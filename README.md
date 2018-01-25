@@ -8,7 +8,7 @@ To implement Subscribe with Google in your app, include the following partial(s)
 {{> n-swg/meta appName="article" contentAccessLevel="premium" }}
 ```
 
-+ `appName` (required) - The name of the app that's implementing this.
++ `appName` - The name of the app that's implementing this. *Note:* Check this is necessary before passing it in.
 + `contentAccessLevel` - Should be one of: `registered`, `subscribed`, or `premium`. Will default to `free` if not passed in.
 
 ## Clientside JS
