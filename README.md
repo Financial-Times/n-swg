@@ -20,3 +20,17 @@ To implement Subscribe with Google in your app, include the following partial(s)
 ---
 
 *Note:* This assumes the use of [`n-ui`](https://github.com/Financial-Times/n-ui).
+
+
+## Entitlements Checking API
+
+`GetEntitlements` is an HTTPS endpoint we host that returns the set of entitlements for a given user.
+It accepts either:
+
+- an `FTSession_s` cookie via a CORS request from `ft.com`
+- or, an `entitlements_access_token` (previous generated oAuth token given to Google by us)
+
+It returns a `labels` array of user entitlements. These `labels` map directly to the access levels of our content as per `meta` tags.
+
+The endpoint lives in https://github.com/Financial-Times/next-signup-api at `https://next-signup-api.ft.com/swg/get-entitlements`
+
