@@ -1,0 +1,13 @@
+{
+  "name": "n-swg",
+  "homepage": "https://github.com/Financial-Times/n-swg",
+  "description": "Styling, components, and templates for our Subscribe with Google work.",
+  "ignore": [
+    ".babelrc"
+  ],
+  "main": [
+    "main.scss",
+    "main.js"
+  ],
+  "dependencies": {}
+}
