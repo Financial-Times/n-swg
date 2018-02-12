@@ -24,7 +24,7 @@ It will also automatically pull in the SwG client if _any_ components are found.
 
 ### SwG Client
 
-Should you encounter the case where you need to manually pull in the client, you can do so by calling:
+Should you encounter the case where you need to manually pull in the client, you can do so by calling the following:
 
 ```
 nSwG.importClient();
@@ -39,4 +39,4 @@ nSwG.importClient();
 ```
 
 + `appName` - The name of the app that's implementing this.
-+ `sku` - What Google knows as the sku is what we know as `accessLevel`.
++ `sku` - What Google knows as the sku. This will likely be something of the form: `offerId_paymentTerm`
