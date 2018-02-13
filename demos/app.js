@@ -20,10 +20,6 @@ const app = module.exports = express({
 	s3o: false
 });
 
-app.locals.origami = {
-	css: 'o-buttons@5.8.5'
-};
-
 app.get('/*', (req, res) => {
 	if (process.env.GURU_HOST) res.locals.guruEndpoint = process.env.GURU_HOST;
 	res.render('index',{ layout: 'vanilla', title: 'Demo' });

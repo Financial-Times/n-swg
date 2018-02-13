@@ -10,7 +10,6 @@
     "main.js"
   ],
   "dependencies": {
-    "o-buttons": "^5.8.5",
     "n-ui-foundations": "^3.0.0"
   }
 }
