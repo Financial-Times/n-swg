@@ -4,7 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "precommit": "node_modules/.bin/secret-squirrel",
+    "commitmsg": "node_modules/.bin/secret-squirrel-commitmsg",
+    "prepush": "make verify -j3"
   },
   "repository": {
     "type": "git",
@@ -16,5 +18,11 @@
   "bugs": {
     "url": "https://github.com/Financial-Times/n-swg/issues"
   },
-  "homepage": "https://github.com/Financial-Times/n-swg#readme"
+  "homepage": "https://github.com/Financial-Times/n-swg#readme",
+  "dependencies": {
+    "@financial-times/n-gage": "^1.19.6"
+  },
+  "devDependencies": {
+    "@financial-times/n-webpack": "^3.1.0"
+  }
 }

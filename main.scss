@@ -1,14 +1,14 @@
 @import 'lib/subscribe-button/styles';
 
 .o-overlay-shadow {
-    background-color: rgba(0,0,0,.2);
-    height: 150%;
-    width: 100%;
-    top: 0;
-    left: 0;
-    position: fixed;
-    z-index: 10;
-    opacity: 1;
-    -webkit-transition: opacity .3s ease-in-out;
-    transition: opacity .3s ease-in-out;
+		background-color: rgba(0, 0, 0, 0.2);
+		height: 150%;
+		width: 100%;
+		top: 0;
+		left: 0;
+		position: fixed;
+		z-index: 10;
+		opacity: 1;
+		-webkit-transition: opacity 0.3s ease-in-out;
+		transition: opacity 0.3s ease-in-out;
 }
