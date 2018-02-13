@@ -35,8 +35,9 @@ nSwG.importClient();
 ### Button
 
 ```
-{{> n-swg/views/button appName="article" sku="premium" }}
+{{> n-swg/views/button appName="article" sku="premium" manualInit=true }}
 ```
 
 + `appName` - The name of the app that's implementing this.
 + `sku` - What Google knows as the sku. This will likely be something of the form: `offerId_paymentTerm`
++ `manualInit` - This will tell the SwG client that we want to manually init rather than depending on JSON-LD markup on the page. Useful for cases like the Barrier pages.
