@@ -9,5 +9,7 @@
     "main.scss",
     "main.js"
   ],
-  "dependencies": {}
+  "dependencies": {
+    "o-buttons": "^5.8.5"
+  }
 }

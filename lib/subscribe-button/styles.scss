@@ -1,0 +1,52 @@
+@import 'o-buttons/main';
+
+.swg__button {
+  @include oButtons(big);
+  
+  display: inline-block;
+  position: relative;
+  background: getColor('white');
+  border: 1px solid getColor('teal-50');
+  font-size: 14px;
+  color: rgba(0, 0, 0, 0.5);
+  letter-spacing: 0.22px;
+
+  &::before {
+    background-image: url('https://www.ft.com/__origami/service/image/v2/images/raw/https%3A%2F%2Fwww.ft.com%2F__assets%2Fcreatives%2FG_active_focused_pressed.svg?source=m-login&width=20&height=20&format=png'), none;
+    background-image: url('https://www.ft.com/__origami/service/image/v2/images/raw/https%3A%2F%2Fwww.ft.com%2F__assets%2Fcreatives%2FG_active_focused_pressed.svg?source=m-login&width=20&height=20&format=svg'), none;
+    background-repeat: no-repeat;
+    background-size: contain;
+    background-position: 50%;
+    content: '';
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    vertical-align: baseline;
+    border-radius: 50%;
+    left: 4px;
+    position: absolute;
+    top: 10px;
+    padding-left: 10px;
+  }
+
+  &:not([disabled]):active {
+    background-color: #EEEEEE;
+    color: rgba(0, 0, 0, 0.5);
+    border-color: rgba(0, 0, 0, 0.5);
+  }
+
+  &[disabled] {
+    background: rgba(0, 0, 0, 0.08);
+    border: 1px solid rgba(0, 0, 0, 0.4);
+  }
+
+  &[disabled]::before {
+    background-image: url('https://www.ft.com/__origami/service/image/v2/images/raw/https%3A%2F%2Fwww.ft.com%2F__assets%2Fcreatives%2FG_disabled.svg?source=m-login&width=20&height=20&format=png'), none;
+    background-image: url('https://www.ft.com/__origami/service/image/v2/images/raw/https%3A%2F%2Fwww.ft.com%2F__assets%2Fcreatives%2FG_disabled.svg?source=m-login&width=20&height=20&format=svg'), none;
+  }
+
+  &:focus {
+    outline: 4px solid getColor('teal-100');
+    outline-offset: -4px;
+  }
+}
