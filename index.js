@@ -1,6 +1,6 @@
 import SubscribeButton from './lib/subscribe-button';
 import shouldInit from './lib/utils/should-init';
-import importClient from '../swg-client';
+import importClient from './lib/swg-client';
 
 module.exports = {
 	init: () => {
