@@ -21,7 +21,6 @@ const app = module.exports = express({
 });
 
 app.get('/*', (req, res) => {
-	if (process.env.GURU_HOST) res.locals.guruEndpoint = process.env.GURU_HOST;
 	res.render('index',{ layout: 'vanilla', title: 'Demo' });
 });
 
