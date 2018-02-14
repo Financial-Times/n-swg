@@ -1,0 +1,32 @@
+@import 'n-ui-foundations/main';
+@import '../../main';
+
+.mock-content {
+
+	padding-bottom: 50px;
+
+	h1 {
+		padding-top: 20px;
+	}
+
+	p {
+		font-size: 16px;
+		line-height: 1.4;
+	}
+
+	.explainer {
+		font-size: 18px;
+		font-weight: bold;
+	}
+
+	.code {
+		display: inline-block;
+		background: #eff0f1;
+		border: 1px solid #cccccc;
+		padding: 2px 5px;
+		border-radius: 3px;
+		font-size: 0.8;
+		font-family: Consolas,Menlo,Monaco,Lucida Console,Courier New,monospace,sans-serif;
+	}
+
+}

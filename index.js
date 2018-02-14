@@ -5,7 +5,7 @@ import importClient from './lib/swg-client';
 module.exports = {
 	init: () => {
 		let toInit = [];
-		
+
 		if (shouldInit('[data-n-swg-button]')) {
 			toInit.push(SubscribeButton);
 		}
@@ -14,7 +14,7 @@ module.exports = {
 			for (let i = 0; i < toInit.length; i++) {
 				new toInit[i]();
 			}
-			
+
 			importClient();
 		}
 	},
