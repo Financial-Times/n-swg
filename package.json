@@ -20,7 +20,8 @@
   },
   "homepage": "https://github.com/Financial-Times/n-swg#readme",
   "dependencies": {
-    "@financial-times/n-gage": "^1.19.6"
+    "@financial-times/n-gage": "^1.19.6",
+    "lodash.get": "^4.4.2"
   },
   "devDependencies": {
     "@financial-times/n-gage": "^1.19.0",
