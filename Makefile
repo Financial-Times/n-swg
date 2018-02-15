@@ -27,12 +27,12 @@ a11y: demo-build
 	@PA11Y=true DEMO_MODE=true node demos/app
 	@$(DONE)
 
-# test: verify
-# 	make smoke unit-test
+test: verify
+	make a11y-demo
 
-# unit-test:
-# 	mocha --recursive
+a11y-demo:
+	export TEST_URL=http://localhost:5005; \
+	make a11y
 
-# smoke:
-# 	export TEST_URL=http://localhost:5005; \
-# 	make a11y
+smoke:
+	n-test smoke --host http://localhost:5005
