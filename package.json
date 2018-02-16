@@ -2,7 +2,6 @@
   "name": "@financial-times/n-swg",
   "version": "0.0.0",
   "description": "",
-  "main": "index.js",
   "scripts": {
     "precommit": "node_modules/.bin/secret-squirrel",
     "commitmsg": "node_modules/.bin/secret-squirrel-commitmsg",
