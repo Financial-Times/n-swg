@@ -1,3 +1,10 @@
-import nSwG from '../../index';
+import { swgLoader } from '../../main';
 
-nSwG.init();
+const options = {
+	manualInitDomain: 'ft.com',
+	subscribeFromButton: true
+}
+
+swgLoader(options).then(swg => {
+	swg.init();
+});

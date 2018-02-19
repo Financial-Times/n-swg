@@ -14,10 +14,23 @@ To import the styles, add the following to your `main.scss` file:
 
 ### Options Object
 ```javascript
-const options = {
+{
 	manualInitDomain: 'ft.com', // if provided swg will be imported in manual mode and inited with the provided domain (it only works for ft.com at the time of writing)
 	subscribeFromButton: true // if true checkout flow will be initiated by clicking on [data-n-swg-button] elements
-};
+}
+```
+
+### Simple / Convenience method
+```javascript
+import { swgLoader } from '@financial-times/n-swg';
+
+swgLoader(options).then(swg => {
+	swg.init();
+});
+
+// async alternative
+const swg = await swgLoader(options);
+swg.init();
 ```
 
 ### Manual
@@ -35,24 +48,7 @@ SwgController.load(loadOptions).then(client => {
 });
 ```
 
-### Convenience method
-```javascript
-import { swgLoader } from '@financial-times/n-swg';
-
-swgLoader(options).then(swg => {
-	swg.init();
-});
-```
-
-#### async
-```javascript
-import { swgLoader } from '@financial-times/n-swg';
-
-const swg = await swgLoader(options);
-swg.init();
-```
-
-Note that the swg client must be loaded in first from Google and handlers set up before exposing the class.
+Note that the swg client must be loaded in first from Google and relevant handlers set up before exposing the class.
 
 ### SwG Client
 
@@ -70,7 +66,7 @@ nSwG.importClient(loadOptions);
 ### Button
 
 ```
-{{> n-swg/views/button appName="article" sku="premium" manualInit=true }}
+{{> n-swg/views/button appName="article" sku="premium" }}
 ```
 
 + `appName` - The name of the app that's implementing this.
