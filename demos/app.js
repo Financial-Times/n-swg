@@ -24,7 +24,7 @@ app.get('/*', (req, res) => {
 	res.render('index',{ layout: 'vanilla', title: 'Demo' });
 });
 
-const PORT = process.env.PORT || 5005;
+const PORT = process.env.PORT || 5050; // !NOTE: Google is setup to only allow scripts to load on local.ft.com:5050
 
 const listen = app.listen(PORT);
 
