@@ -32,7 +32,7 @@ successful swg subscription event response */
 
 ### Simple / Convenience method
 ```javascript
-import { swgLoader } from '@financial-times/n-swg';
+import { swgLoader } from 'n-swg';
 
 swgLoader(options).then(swg => {
 	swg.init();
@@ -45,7 +45,7 @@ swg.init();
 
 ### Manual
 ```javascript
-import { SwgController } from '@financial-times/n-swg';
+import { SwgController } from 'n-swg';
 
 // only required when initialising manually
 const loadOptions = {
