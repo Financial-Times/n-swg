@@ -2,6 +2,7 @@
 'use strict';
 
 const { resolve } = require('path');
+const bodyParser = require('body-parser');
 const chalk = require('chalk');
 const express = require('@financial-times/n-internal-tool');
 
@@ -24,7 +25,12 @@ app.get('/*', (req, res) => {
 	res.render('index',{ layout: 'vanilla', title: 'Demo' });
 });
 
-const PORT = process.env.PORT || 5050; // !NOTE: Google is setup to only allow scripts to load on local.ft.com:5050
+app.post('/cors-endpoint/:result?', bodyParser.json(), require('./mock-endpoints.controller')(process.env.DEMO_MODE));
+app.post('*', require('./utils/proxy')('https)://www.ft.com'));
+
+// !NOTE: Google is setup to allow scripts to load on http(s)://local.ft.com:5050
+// https://console.developers.google.com/apis/credentials/oauthclient
+const PORT = process.env.PORT || 5050;
 
 const listen = app.listen(PORT);
 
