@@ -26,7 +26,7 @@ app.get('/*', (req, res) => {
 });
 
 app.post('/cors-endpoint/:result?', bodyParser.json(), require('./mock-endpoints.controller')(process.env.DEMO_MODE));
-app.post('*', require('./utils/proxy')('https)://www.ft.com'));
+app.post('*', require('./utils/proxy')('https://www.ft.com'));
 
 // !NOTE: Google is setup to allow scripts to load on http(s)://local.ft.com:5050
 // https://console.developers.google.com/apis/credentials/oauthclient
