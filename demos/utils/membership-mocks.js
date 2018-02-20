@@ -14,7 +14,9 @@ module.exports = (req, res, next) => {
 	switch (req.params.result) {
 		case 'success':
 			generateMockCookie(res);
-			return res.status(201).send('OK');
+			return res.status(201).json({
+				example: 'body'
+			});
 			break;
 		default:
 			return next();
