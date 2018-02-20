@@ -15,14 +15,24 @@ To import the styles, add the following to your `main.scss` file:
 ### Options Object
 ```javascript
 {
-	manualInitDomain: 'ft.com', // if provided swg will be imported in manual mode and inited with the provided domain (it only works for ft.com at the time of writing)
-	subscribeFromButton: true // if true checkout flow will be initiated by clicking on [data-n-swg-button] elements
+manualInitDomain: 'ft.com',
+/* [optional] if provided swg will be imported in manual mode and inited
+with the provided domain (it only works for ft.com at the time of writing).
+If not passed the config will be pulled by swg from JSON-LD markup. */
+
+subscribeFromButton: true,
+/* [optional] if true checkout flow will be initiated by clicking on
+[data-n-swg-button] elements */
+
+M_SWG_SUB_SUCCESS_ENDPOINT: '/some-ft-com-url'
+/* [optional] if provided this is the CORS endpoint n-swg will call upon a
+successful swg subscription event response */
 }
 ```
 
 ### Simple / Convenience method
 ```javascript
-import { swgLoader } from '@financial-times/n-swg';
+import { swgLoader } from 'n-swg';
 
 swgLoader(options).then(swg => {
 	swg.init();
@@ -35,7 +45,7 @@ swg.init();
 
 ### Manual
 ```javascript
-import { SwgController } from '@financial-times/n-swg';
+import { SwgController } from 'n-swg';
 
 // only required when initialising manually
 const loadOptions = {

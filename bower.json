@@ -3,7 +3,27 @@
   "homepage": "https://github.com/Financial-Times/n-swg",
   "description": "Styling, components, and templates for our Subscribe with Google work.",
   "ignore": [
-    ".babelrc"
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests",
+    "demos",
+    "pa11y_screenCapture",
+    "public",
+    ".babelrc",
+    ".DS_Store",
+    ".editorconfig",
+    ".eslintrc.js",
+    ".gitignore",
+    ".scss-lint.yml",
+    ".pa11yci.js",
+    ".stylelintrc",
+    "package-lock.json",
+    "circle.yml",
+    "ft.yml",
+    "Makefile",
+    "secret-squirrel.js"
   ],
   "main": [
     "main.scss",

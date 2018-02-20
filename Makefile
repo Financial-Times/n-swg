@@ -31,8 +31,8 @@ test: verify
 	make a11y-demo
 
 a11y-demo:
-	export TEST_URL=http://localhost:5005; \
+	export TEST_URL=http://localhost:5050; \
 	make a11y
 
 smoke:
-	n-test smoke --host http://localhost:5005
+	n-test smoke --host http://localhost:5050
