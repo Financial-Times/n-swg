@@ -1,8 +1,25 @@
 #  Subscribe with Google (SwG)
 
+#### Contents
+- [SwG Client](#swg-client)
+- [JSON-LD Markup](#json-ld-markup)
+
+# SwG client
+
 To implement SwG in your app, include the following partial(s) making sure to pass in the required information where applicable:
 
-## Styles
+### Templates
+
+#### Button
+
+```
+{{> n-swg/views/button appName="article" sku="premium" }}
+```
+
++ `appName` - The name of the app that's implementing this.
++ `sku` - What Google knows as the sku. This will likely be something of the form: `ft.com_<OFFER-ID>_<PAYMENT-TERM>`
+
+### Styles
 
 To import the styles, add the following to your `main.scss` file:
 
@@ -10,9 +27,9 @@ To import the styles, add the following to your `main.scss` file:
 @import 'n-swg/main';
 ```
 
-## JS
+### JS
 
-### Options Object
+#### Options Object
 ```javascript
 {
 manualInitDomain: 'ft.com',
@@ -30,7 +47,7 @@ successful swg subscription event response */
 }
 ```
 
-### Simple / Convenience method
+#### Simple / Convenience method (recommended)
 ```javascript
 import { swgLoader } from 'n-swg';
 
@@ -43,7 +60,9 @@ const swg = await swgLoader(options);
 swg.init();
 ```
 
-### Manual
+#### Manual
+Note that the swg client must be loaded in first from Google and relevant handlers set up before exposing the class.
+
 ```javascript
 import { SwgController } from 'n-swg';
 
@@ -58,11 +77,9 @@ SwgController.load(loadOptions).then(client => {
 });
 ```
 
-Note that the swg client must be loaded in first from Google and relevant handlers set up before exposing the class.
+#### SwG Client Library
 
-### SwG Client
-
-Should you encounter the case where you need to manually pull in the client, you can do so by calling the following:
+Should you encounter the case where you need to manually pull in the client library, you can do so by calling the following:
 
 ```
 const loadOptions = {
@@ -71,16 +88,5 @@ const loadOptions = {
 nSwG.importClient(loadOptions);
 ```
 
-## Templates
-
-### Button
-
-```
-{{> n-swg/views/button appName="article" sku="premium" }}
-```
-
-+ `appName` - The name of the app that's implementing this.
-+ `sku` - What Google knows as the sku. This will likely be something of the form: `offerId_paymentTerm`
-
-## JSON-LD Markup
+# JSON-LD Markup
 Please see [`next-json-ld` README](https://github.com/Financial-Times/next-json-ld/blob/master/README.md#subscribe-with-google-swg-markup) for a detailed description of the markup required on our articles and barriers.
