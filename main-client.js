@@ -1,5 +1,5 @@
-import SwgController from './lib/swg-controller';
-import { importClient } from './lib/utils';
+import SwgController from './src/client/swg-controller';
+import { importClient } from './src/client/utils';
 
 module.exports = {
 	SwgController,

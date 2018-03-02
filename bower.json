@@ -27,7 +27,7 @@
   ],
   "main": [
     "main.scss",
-    "main.js"
+    "main-client.js"
   ],
   "dependencies": {
     "n-ui-foundations": "^3.0.0"
