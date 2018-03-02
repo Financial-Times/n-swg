@@ -81,3 +81,6 @@ nSwG.importClient(loadOptions);
 
 + `appName` - The name of the app that's implementing this.
 + `sku` - What Google knows as the sku. This will likely be something of the form: `offerId_paymentTerm`
+
+## JSON-LD Markup
+Please see (`next-json-ld` README)[https://github.com/Financial-Times/next-json-ld/blob/master/README.md#subscribe-with-google-swg-markup] for a detailed description of the markup required on our articles and barriers.
