@@ -1,0 +1,4 @@
+/**
+ * Replicate self API
+ */
+self = {};

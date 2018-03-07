@@ -6,8 +6,8 @@
 /test/
 /pa11y_screenCapture/
 /public/
-/lib/
-main.js
+/src/client/*
+main-client.js
 main.scss
 
 .babelrc
