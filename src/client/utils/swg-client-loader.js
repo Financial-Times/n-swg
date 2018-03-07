@@ -1,10 +1,9 @@
-let hasClientAlready = !!document.querySelector('#swg-client');
-
-module.exports = ({ manual=false, src='https://subscribe.sandbox.google.com/swglib/swg.js', id='swg-client' }={}) => {
+module.exports = (_document=document) => ({ manual=false, src='https://subscribe.sandbox.google.com/swglib/swg.js', id='swg-client' }={}) => {
+	const hasClientAlready = id && !!_document.querySelector('#' + id);
 	// Prevent importing more than once.
 	if (hasClientAlready) return;
 
-	let script = document.createElement('SCRIPT');
+	let script = _document.createElement('SCRIPT');
 
 	script.src = src;
 	script.async = true;
@@ -15,7 +14,5 @@ module.exports = ({ manual=false, src='https://subscribe.sandbox.google.com/swgl
 		script.setAttribute('subscriptions-control', 'manual');
 	}
 
-	hasClientAlready = true;
-
-	document.body.appendChild(script);
+	_document.body.appendChild(script);
 };

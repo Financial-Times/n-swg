@@ -1,5 +1,3 @@
-require('./mocks/document');
-require('./mocks/self');
 require('babel-register')({
 	presets: [
 		[

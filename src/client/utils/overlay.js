@@ -1,20 +1,16 @@
-let el;
-
 class Overlay {
 
 	constructor () {
-		if (!el) {
-			el = document.createElement('div');
-			el.classList.add('o-overlay-shadow');
-		}
+		this.el = document.createElement('div');
+		this.el.classList.add('o-overlay-shadow');
 	}
 
 	show () {
-		document.body.appendChild(el);
+		document.body.appendChild(this.el);
 	}
 
 	hide () {
-		document.body.removeChild(el);
+		document.body.removeChild(this.el);
 	}
 
 };

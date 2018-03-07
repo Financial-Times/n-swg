@@ -11,5 +11,5 @@ module.exports = {
 		})
 		.catch(reject);
 	}),
-	importClient
+	importClient: importClient()
 };

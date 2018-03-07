@@ -1,3 +1,3 @@
-module.exports = new Promise((resolve) => {
-	(self.SUBSCRIPTIONS = self.SUBSCRIPTIONS || []).push(resolve);
+module.exports = (_self=self) => new Promise((resolve) => {
+	(_self.SUBSCRIPTIONS = _self.SUBSCRIPTIONS || []).push(resolve);
 });
