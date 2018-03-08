@@ -4,6 +4,7 @@
 class Document {
 	constructor () {
 		this.state = Document.defaultState();
+		this.listeners = [];
 	}
 
 	querySelector (selector) {
@@ -28,6 +29,17 @@ class Document {
 				self.state.elements = self.state.elements.filter(_el => {
 					return _el !== el;
 				});
+			},
+			dispatchEvent: function (ev) {
+				const toSend = self.listeners.filter(l => l.type === ev.type);
+				if (toSend.length > 0) {
+					toSend.forEach(({ listener }) => {
+						listener(ev);
+					});
+				}
+			},
+			addEventListener (type, listener) {
+				self.listeners.push({ type, listener });
 			}
 		};
 	}

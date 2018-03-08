@@ -4,30 +4,29 @@ import _get from 'lodash.get';
 
 class SwgController {
 
-	constructor (swgClient, options={}) {
+	constructor (swgClient, options={}, subscribeButtonConstructor=SubscribeButtons) {
 		this.manualInitDomain = options.manualInitDomain;
 		this.alreadyInitialised = false;
 
 		this.handlers = Object.assign({
 			onSubscribeResponse: this.onSubscribeResponse
 		}, options.handlers);
-		this.onReturnListeners = [];
-		this.onErrorListeners = [];
+		this.listeners = [];
 		this.swgClient = swgClient;
 
 		this.M_SWG_SUB_SUCCESS_ENDPOINT = options.M_SWG_SUB_SUCCESS_ENDPOINT; // !TODO: safe default
 
 		if (options.subscribeFromButton) {
-			this.subscribeButtons = new SubscribeButtons(swgClient, {
+			this.subscribeButtons = new subscribeButtonConstructor(swgClient, {
 				trackEvent: SwgController.trackEvent
 			});
 		};
 	}
 
-	static load ({ manual=false, swgPromise=swgReady()}={}) {
+	static load ({ manual=false, swgPromise=swgReady(), loadClient=importClient}={}) {
 		return new Promise((resolve, reject) => {
 			try {
-				importClient(document)({ manual });
+				loadClient(document)({ manual });
 			} catch (e) {
 				reject(e);
 			}
@@ -100,24 +99,32 @@ class SwgController {
 		});
 	}
 
-	signalReturn (res) {
-		if (this.onReturnListeners) {
-			this.onReturnListeners.forEach(listener => listener.call(null, res));
+	addListener (type, listener) {
+		this.listeners.push({ type, listener });
+	}
+
+	callListeners (ofType, event) {
+		const condition = ({ type }={}) => type === ofType;
+		const call = ({ listener }) => listener && listener.call(null, event);
+		if (this.listeners && ofType) {
+			this.listeners.filter(condition).forEach(call);
 		}
+	}
+
+	signalReturn (res) {
+		this.callListeners('onReturn', res);
 	}
 
 	signalError (err) {
-		if (this.onErrorListeners) {
-			this.onErrorListeners.forEach(listener => listener.call(null, err));
-		}
+		this.callListeners('onError', err);
 	}
 
-	addReturnListener (callback) {
-		this.onReturnListeners.push(callback);
+	addReturnListener (listener) {
+		this.addListener('onReturn', listener);
 	}
 
-	addErrorListener (callback) {
-		this.onErrorListeners.push(callback);
+	addErrorListener (listener) {
+		this.addListener('onError', listener);
 	}
 
 	static fetch (url, options, _fetch=self.fetch) {
@@ -147,13 +154,13 @@ class SwgController {
 		});
 	}
 
-	static trackEvent (action, context={}) {
+	static trackEvent (action, context={}, eventConstructor=CustomEvent) {
 		const detail = Object.assign({}, context, {
 			category: 'SwG',
 			action,
 			system: { source: 'n-swg' }
 		});
-		document.body.dispatchEvent(new CustomEvent('oTracking.event', { detail , bubbles: true }));
+		document.body.dispatchEvent(new eventConstructor('oTracking.event', { detail, bubbles: true }));
 	}
 
 }
