@@ -3,7 +3,7 @@ import { importClient } from './src/client/utils';
 
 module.exports = {
 	SwgController,
-	swgLoader: (options) => new Promise((resolve, reject) => {
+	swgLoader: (options={}) => new Promise((resolve, reject) => {
 		const loadOptions = { manual: !!options.manualInitDomain };
 		SwgController.load(loadOptions).then(client => {
 			const swg = new SwgController(client, options);
