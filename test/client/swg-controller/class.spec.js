@@ -7,7 +7,7 @@ const SwgClient = require('../mocks/swg-client');
 const SwgController = require('../../../src/client/swg-controller');
 const SwgSubscribeButtons = require('../../../src/client/subscribe-button/index');
 
-describe.only('Swg Controller: class', function () {
+describe('Swg Controller: class', function () {
 	let dom;
 	let swgClient;
 
@@ -218,6 +218,67 @@ describe.only('Swg Controller: class', function () {
 				done();
 			})
 			.catch(done);
+		});
+
+	});
+
+	describe('.resolveUser()', function () {
+		let subject;
+		const MOCK_M_SWG_SUB_SUCCESS_ENDPOINT = 'https://www.ft.com/success';
+
+		beforeEach(() => {
+			subject = new SwgController(swgClient, {
+				M_SWG_SUB_SUCCESS_ENDPOINT: MOCK_M_SWG_SUB_SUCCESS_ENDPOINT
+			});
+		});
+
+		afterEach(() => {
+			subject = null;
+		});
+
+		it('is a function', function () {
+			expect(subject.resolveUser).to.be.a('Function');
+		});
+
+		it('returns a promise', function () {
+			sinon.stub(SwgController, 'fetch').resolves({ json: {}});
+			expect(subject.resolveUser()).to.be.a('Promise');
+			SwgController.fetch.restore();
+		});
+
+		it('correctly formats request from passed options', function () {
+			const MOCK_SWG_RESPONSE = { swgToken: '123' };
+			const expectedBody = JSON.stringify({ swg: MOCK_SWG_RESPONSE, source: { 'country-code': 'GBR' }});
+			sinon.stub(SwgController, 'fetch').resolves({ json: {}});
+			subject.resolveUser(MOCK_SWG_RESPONSE);
+			expect(SwgController.fetch.calledWith(MOCK_M_SWG_SUB_SUCCESS_ENDPOINT, {
+				method: 'POST',
+				body: expectedBody,
+				headers: {
+					'content-type': 'application/json'
+				}
+			})).to.be.true;
+			SwgController.fetch.restore();
+		});
+
+		it('extracts and resolves with json on fetch response', function (done) {
+			const MOCK_RESULT = { end: 'result' };
+			sinon.stub(SwgController, 'fetch').resolves({ json: MOCK_RESULT });
+			subject.resolveUser().then(result => {
+				expect(result).to.deep.equal(MOCK_RESULT);
+				done();
+			});
+			SwgController.fetch.restore();
+		});
+
+		it('extracts and resolves with json on fetch error', function (done) {
+			const MOCK_ERROR = new Error('Bad response!');
+			sinon.stub(SwgController, 'fetch').throws(MOCK_ERROR);
+			subject.resolveUser().catch(err => {
+				expect(err).to.deep.equal(MOCK_ERROR);
+				done();
+			});
+			SwgController.fetch.restore();
 		});
 
 	});
