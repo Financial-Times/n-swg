@@ -1,27 +1,24 @@
 const { expect } = require('chai');
 const sinon = require('sinon');
 
-const Document = require('../mocks/document');
-const CustomEvent = require('../mocks/custom-event');
+const { JSDOM } = require('../mocks/document');
 const SwgClient = require('../mocks/swg-client');
 const SwgController = require('../../../src/client/swg-controller');
 const SwgSubscribeButtons = require('../../../src/client/subscribe-button/index');
 
 describe('Swg Controller: class', function () {
-	let dom;
 	let swgClient;
 
 	beforeEach(() => {
-		dom = global.document = new Document();
+		const jsdom = new JSDOM();
+		global.CustomEvent = jsdom.window.CustomEvent;
+		global.document = jsdom.window.document;
 		swgClient = new SwgClient();
-		global.CustomEvent = CustomEvent;
 	});
 
 	afterEach(() => {
-		dom._reset();
-		dom = global.document = null;
 		delete global.CustomEvent;
-		swgClient = null;
+		delete global.document;
 	});
 
 	it('exports a class', function () {
@@ -135,7 +132,7 @@ describe('Swg Controller: class', function () {
 		it('.signalError() calls all registered error listeners', function (done) {
 			const MOCK_ERROR = new Error('mock error');
 			subject.addErrorListener((error) => {
-				expect(error).to.equal(MOCK_ERROR)
+				expect(error).to.equal(MOCK_ERROR);
 				done();
 			});
 			subject.signalError(MOCK_ERROR);
@@ -144,7 +141,7 @@ describe('Swg Controller: class', function () {
 		it('.signalReturn() calls all registered return listeners', function (done) {
 			const MOCK_RETURN_VAL = { success: true };
 			subject.addReturnListener((error) => {
-				expect(error).to.equal(MOCK_RETURN_VAL)
+				expect(error).to.equal(MOCK_RETURN_VAL);
 				done();
 			});
 			subject.signalReturn(MOCK_RETURN_VAL);

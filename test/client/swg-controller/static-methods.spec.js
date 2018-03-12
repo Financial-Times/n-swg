@@ -1,20 +1,21 @@
 const { expect } = require('chai');
 const sinon = require('sinon');
 
-const Document = require('../mocks/document');
-const CustomEvent = require('../mocks/custom-event');
+const { JSDOM } = require('../mocks/document');
 const SwgController = require('../../../src/client/swg-controller');
 
 describe('Swg Controller: static methods', function () {
 	let dom;
 
 	beforeEach(() => {
-		dom = global.document = new Document();
+		const jsdom = new JSDOM();
+		global.CustomEvent = jsdom.window.CustomEvent;
+		dom = global.document = jsdom.window.document;
 	});
 
 	afterEach(() => {
-		dom._reset();
-		dom = global.document = null;
+		delete global.document;
+		delete global.CustomEvent;
 	});
 
 	it('exports a class', function () {

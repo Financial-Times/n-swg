@@ -1,22 +1,23 @@
 const { expect } = require('chai');
 const sinon = require('sinon');
 
-const Document = require('./mocks/document');
+const { JSDOM, _helpers } = require('./mocks/document');
 const SwgController = require('../../src/client/swg-controller');
 
 describe('Bower main-client.js', function () {
 	let subject;
-	let dom;
+	let helpers;
 
 	beforeEach(() => {
-		dom = global.document = new Document();
+		const jsdom = new JSDOM();
+		global.document = jsdom.window.document;
 		subject = require('../../main-client');
-		document._addElement('#swg-client', {});
+		helpers = _helpers(jsdom);
+		helpers.addElement({ name: '#swg-client' });
 	});
 
 	afterEach(() => {
-		dom._reset();
-		dom = global.document = null;
+		delete global.document;
 	});
 
 	it('exports an object', function () {

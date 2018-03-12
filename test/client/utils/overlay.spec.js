@@ -1,18 +1,18 @@
 const { expect } = require('chai');
 
-const Document = require('../mocks/document');
+const { JSDOM } = require('../mocks/document');
 const Overlay = require('../../../src/client/utils/overlay');
 
 describe('Util: overlay.js', function () {
 	let dom;
 
 	beforeEach(() => {
-		dom = global.document = new Document();
+		const jsdom = new JSDOM();
+		dom = global.document = jsdom.window.document;
 	});
 
 	afterEach(() => {
-		dom._reset();
-		dom = global.document = null;
+		delete global.document;
 	});
 
 	it('exports a class', function () {
@@ -23,23 +23,22 @@ describe('Util: overlay.js', function () {
 	it('creates an overlay element', function () {
 		const overlay = new Overlay();
 		const el = overlay.el;
-		expect(el.type).to.equal('div');
-		expect(el._classList.includes('o-overlay-shadow')).to.be.true;
+		expect(el.classList.contains('o-overlay-shadow')).to.be.true;
 	});
 
 	it('overlay.show() adds the overlay to the document', function () {
 		const overlay = new Overlay();
-		expect(dom._elements.length).to.equal(0);
+		expect(dom.querySelectorAll('.o-overlay-shadow').length).to.equal(0);
 		overlay.show();
-		expect(dom._elements.length).to.equal(1);
+		expect(dom.querySelectorAll('.o-overlay-shadow').length).to.equal(1);
 	});
 
 	it('overlay.hide() removes the overlay from the document', function () {
 		const overlay = new Overlay();
 		overlay.show();
-		expect(dom._elements.length).to.equal(1);
+		expect(dom.querySelectorAll('.o-overlay-shadow').length).to.equal(1);
 		overlay.hide();
-		expect(dom._elements.length).to.equal(0);
+		expect(dom.querySelectorAll('.o-overlay-shadow').length).to.equal(0);
 	});
 
 });

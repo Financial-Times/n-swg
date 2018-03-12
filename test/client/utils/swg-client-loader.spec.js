@@ -1,21 +1,22 @@
 const { expect } = require('chai');
 
-const Document = require('../mocks/document');
+const { JSDOM, _helpers } = require('../mocks/document');
 const importClient = require('../../../src/client/utils/swg-client-loader');
 
 describe('Util: swg-client-loader.js', function () {
 	let dom;
 	let subject;
+	let helpers;
 
 	beforeEach(() => {
-		dom = global.document = new Document();
+		const jsdom = new JSDOM();
+		dom = global.document = jsdom.window.document;
 		subject = importClient(dom);
+		helpers = _helpers(jsdom);
 	});
 
 	afterEach(() => {
-		dom._reset();
-		dom = global.document = null;
-		subject = null;
+		delete global.document;
 	});
 
 	it('exports a function', function () {
@@ -23,39 +24,37 @@ describe('Util: swg-client-loader.js', function () {
 	});
 
 	it('will return early if element with id already exists on page', function () {
-		dom._addElement({ name: '#foo' });
+		helpers.addElement({ name: 'foo' });
 		subject({ id: 'foo'});
-		expect(dom._elements.length).to.equal(1);
+		expect(dom.querySelectorAll('#foo').length).to.equal(1);
 	});
 
 	it('creates a new element if id does not already exist', function () {
-		dom._addElement({ name: '#bar' });
+		helpers.addElement({ name: 'bar' });
 		subject({ id: 'foo'});
-		expect(dom._elements.length).to.equal(2);
+		expect(dom.querySelectorAll('#foo').length, 'script tag added').to.equal(1);
+		expect(dom.querySelectorAll('#bar').length, 'existing div').to.equal(1);
 	});
 
 	context('creates and adds a SCRIPT element to the document', function () {
+		const defaultSelector = '#swg-client';
 
 		it('with correct default attributes', function () {
 			subject();
-			expect(dom._elements.length).to.equal(1);
-			const resultEl = dom._elements[0];
-			expect(resultEl.src).to.equal('https://subscribe.sandbox.google.com/swglib/swg.js');
+			const resultEl = dom.querySelector(defaultSelector);
+			expect(resultEl.getAttribute('src')).to.equal('https://subscribe.sandbox.google.com/swglib/swg.js');
 			expect(resultEl.async).to.equal(true);
-			expect(resultEl['subscriptions-control']).to.be.undefined;
+			expect(resultEl.getAttribute('subscriptions-control')).to.be.null;
 			expect(resultEl.id).to.equal('swg-client');
-			expect(resultEl.type).to.equal('SCRIPT');
 		});
 
 		it('with correct custom attributes if passed', function () {
 			subject({ id: 'bar', manual: true, src: 'https://foo.com/file.js' });
-			expect(dom._elements.length).to.equal(1);
-			const resultEl = dom._elements[0];
-			expect(resultEl.src).to.equal('https://foo.com/file.js');
+			const resultEl = dom.querySelector('#bar');
+			expect(resultEl.getAttribute('src')).to.equal('https://foo.com/file.js');
 			expect(resultEl.async).to.equal(true);
-			expect(resultEl['subscriptions-control']).to.equal('manual');
+			expect(resultEl.getAttribute('subscriptions-control')).to.equal('manual');
 			expect(resultEl.id).to.equal('bar');
-			expect(resultEl.type).to.equal('SCRIPT');
 		});
 
 	});

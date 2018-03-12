@@ -1,18 +1,20 @@
 const { expect } = require('chai');
 const sinon = require('sinon');
 
-const Document = require('./mocks/document');
+const { JSDOM, _helpers } = require('./mocks/document');
 const SubscribeButtons = require('../../src/client/subscribe-button/index');
 
 describe('FEATURE: subscribe-button.js', function () {
-	let dom;
 	let mockSwgClient = { subscribe: () => true };
 	let mockTrackEvent;
 	let mockOverlay;
-	const customSelector = '[data-n-swg-btn]';
+	let helpers;
+	const customSelector = '.n-swg-button';
 
 	beforeEach(() => {
-		dom = global.document = new Document();
+		const jsdom = new JSDOM();
+		global.document = jsdom.window.document;
+		helpers = _helpers(jsdom);
 		mockOverlay = {
 			show: sinon.stub(),
 			hide: sinon.stub()
@@ -22,11 +24,8 @@ describe('FEATURE: subscribe-button.js', function () {
 	});
 
 	afterEach(() => {
-		dom._reset();
-		dom = global.document = null;
 		mockSwgClient.subscribe.restore();
-		mockTrackEvent = null;
-		mockOverlay = null;
+		delete global.document;
 	});
 
 	it('exports a function', function () {
@@ -35,13 +34,15 @@ describe('FEATURE: subscribe-button.js', function () {
 
 	context('with button elements on page', function () {
 		let subject;
+		let buttons;
 
 		beforeEach(() => {
-			dom._addElement({ name: '#other-element', val: {} });
+			helpers.addElement({ name: '#other-element', val: {} });
 			for (let i=0 ; i < 4; i++) {
-				dom._addElement({ name: customSelector, val: { id: i } });
+				helpers.addElement({ classString: customSelector.replace('.', ''), val: { id: i } });
 			}
 			subject = new SubscribeButtons(mockSwgClient, { trackEvent: mockTrackEvent, selector: customSelector, overlay: mockOverlay });
+			buttons = global.document.querySelectorAll(customSelector);
 		});
 
 		afterEach(() => {
@@ -51,9 +52,8 @@ describe('FEATURE: subscribe-button.js', function () {
 		describe('constructor()', function () {
 
 			it('disables all buttons', function () {
-				dom._elements.forEach((el) => {
-					const expectedVal = el.selector === customSelector ? true : undefined;
-					expect(el.disabled).to.equal(expectedVal);
+				buttons.forEach((el) => {
+					expect(el.disabled).to.equal(true);
 				});
 			});
 
@@ -69,18 +69,19 @@ describe('FEATURE: subscribe-button.js', function () {
 				const handleClickStub = sinon.stub(subject, 'handleClick');
 
 				subject.init();
-				dom._elements[3]._triggerEvent('click', { val: 'to-pass' });
+				const btn = buttons[3];
+				helpers.clickElement(btn);
 				expect(handleClickStub.calledOnce).to.be.true;
 
 				const eventArg = handleClickStub.getCall(0).args[0];
-				expect(eventArg.target).to.deep.equal(dom._elements[3]);
+				expect(eventArg.target).to.deep.equal(btn);
 				subject.handleClick.restore();
 			});
 
 			it('enables all buttons', function () {
 				subject.init();
-				dom._elements.forEach((el) => {
-					expect(el.disabled).to.equal(undefined);
+				buttons.forEach((el) => {
+					expect(el.disabled).to.equal(false);
 				});
 			});
 
@@ -119,8 +120,8 @@ describe('FEATURE: subscribe-button.js', function () {
 
 				it('removes "disabled" attribute from buttons', function () {
 					subject.enableButtons();
-					dom._elements.forEach((el) => {
-						expect(el.disabled).to.equal(undefined);
+					buttons.forEach((el) => {
+						expect(el.disabled).to.equal(false);
 					});
 				});
 			});

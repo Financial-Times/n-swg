@@ -9,10 +9,6 @@ describe('Util: swg-ready.js', function () {
 		_self = {};
 	});
 
-	afterEach(() => {
-		_self = null;
-	});
-
 	it('exports a promise', function () {
 		expect(subject(_self)).to.be.a('Promise');
 	});

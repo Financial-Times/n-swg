@@ -47,6 +47,7 @@ class SubscribeButtons {
 
 	enableButtons () {
 		this.buttons.forEach(btn => {
+			btn.disabled = false;
 			btn.removeAttribute('disabled');
 		});
 	}
