@@ -4,6 +4,8 @@ const sinon = require('sinon');
 const { JSDOM, _helpers } = require('./mocks/document');
 const SubscribeButtons = require('../../src/client/subscribe-button/index');
 
+const HTML = '<body><div id="other-element"></div><div class="n-swg-button"></div><div class="n-swg-button"></div><div class="n-swg-button"></div><div class="n-swg-button"></div></body>';
+
 describe('FEATURE: subscribe-button.js', function () {
 	let mockSwgClient = { subscribe: () => true };
 	let mockTrackEvent;
@@ -12,7 +14,7 @@ describe('FEATURE: subscribe-button.js', function () {
 	const customSelector = '.n-swg-button';
 
 	beforeEach(() => {
-		const jsdom = new JSDOM();
+		const jsdom = new JSDOM(HTML);
 		global.document = jsdom.window.document;
 		helpers = _helpers(jsdom);
 		mockOverlay = {
@@ -37,10 +39,6 @@ describe('FEATURE: subscribe-button.js', function () {
 		let buttons;
 
 		beforeEach(() => {
-			helpers.addElement({ name: '#other-element', val: {} });
-			for (let i=0 ; i < 4; i++) {
-				helpers.addElement({ classString: customSelector.replace('.', ''), val: { id: i } });
-			}
 			subject = new SubscribeButtons(mockSwgClient, { trackEvent: mockTrackEvent, selector: customSelector, overlay: mockOverlay });
 			buttons = global.document.querySelectorAll(customSelector);
 		});

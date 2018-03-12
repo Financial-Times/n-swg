@@ -1,18 +1,16 @@
 const { expect } = require('chai');
 
-const { JSDOM, _helpers } = require('../mocks/document');
+const { JSDOM } = require('../mocks/document');
 const importClient = require('../../../src/client/utils/swg-client-loader');
 
 describe('Util: swg-client-loader.js', function () {
 	let dom;
 	let subject;
-	let helpers;
 
 	beforeEach(() => {
 		const jsdom = new JSDOM();
 		dom = global.document = jsdom.window.document;
 		subject = importClient(dom);
-		helpers = _helpers(jsdom);
 	});
 
 	afterEach(() => {
@@ -24,14 +22,14 @@ describe('Util: swg-client-loader.js', function () {
 	});
 
 	it('will return early if element with id already exists on page', function () {
-		helpers.addElement({ name: 'foo' });
-		subject({ id: 'foo'});
+		dom = global.document = (new JSDOM('<body><div id="foo"></div></body>')).window.document;
+		importClient(dom)({ id: 'foo'});
 		expect(dom.querySelectorAll('#foo').length).to.equal(1);
 	});
 
 	it('creates a new element if id does not already exist', function () {
-		helpers.addElement({ name: 'bar' });
-		subject({ id: 'foo'});
+		dom = global.document = (new JSDOM('<body><div id="bar"></div></body>')).window.document;
+		importClient(dom)({ id: 'foo'});
 		expect(dom.querySelectorAll('#foo').length, 'script tag added').to.equal(1);
 		expect(dom.querySelectorAll('#bar').length, 'existing div').to.equal(1);
 	});
