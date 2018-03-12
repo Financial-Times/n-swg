@@ -37,6 +37,9 @@ manualInitDomain: 'ft.com',
 with the provided domain (it only works for ft.com at the time of writing).
 If not passed the config will be pulled by swg from JSON-LD markup. */
 
+sandbox: false,
+/* [optional] if true imports the sandbox version of swg.js */
+
 subscribeFromButton: true,
 /* [optional] if true checkout flow will be initiated by clicking on
 [data-n-swg-button] elements */

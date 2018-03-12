@@ -7,6 +7,7 @@ document.addEventListener('oTracking.event', e => {
 
 const options = {
 	manualInitDomain: 'ft.com',
+	sandbox: true,
 	subscribeFromButton: true,
 	M_SWG_SUB_SUCCESS_ENDPOINT: '/cors-endpoint/success'
 };
