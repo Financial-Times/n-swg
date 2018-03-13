@@ -23,10 +23,10 @@ class SwgController {
 		};
 	}
 
-	static load ({ manual=false, swgPromise=swgReady(), loadClient=importClient}={}) {
+	static load ({ manual=false, swgPromise=swgReady(), loadClient=importClient, sandbox=false }={}) {
 		return new Promise((resolve, reject) => {
 			try {
-				loadClient(document)({ manual });
+				loadClient(document)({ manual, sandbox });
 			} catch (e) {
 				reject(e);
 			}
