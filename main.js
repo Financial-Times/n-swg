@@ -4,7 +4,7 @@ import { importClient } from './lib/utils';
 module.exports = {
 	SwgController,
 	swgLoader: (options) => new Promise((resolve, reject) => {
-		const loadOptions = { manual: !!options.manualInitDomain };
+		const loadOptions = { manual: !!options.manualInitDomain, sandbox: options.sandbox };
 		SwgController.load(loadOptions).then(client => {
 			const swg = new SwgController(client, options);
 			resolve(swg);
