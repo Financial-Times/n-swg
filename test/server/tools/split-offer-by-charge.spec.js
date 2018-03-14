@@ -1,7 +1,7 @@
 const { expect } = require('chai');
 
 const splitOfferByCharge = require('../../../src/server/tools/split-offer-by-charge');
-const mockOffers = require('./fixtures/offers');
+const mockOffers = require('./fixtures/offers.json');
 
 describe('Tool: split-offer-by-charge', function () {
 

@@ -1,7 +1,7 @@
 const { expect } = require('chai');
 
 const transformer = require('../../../src/server/tools/offer-to-sku-transformer');
-const mockOffers = require('./fixtures/offers');
+const mockOffers = require('./fixtures/offers.json');
 
 describe('Tool: offer-to-sku-transformer', function () {
 	let subject;
