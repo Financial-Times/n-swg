@@ -114,6 +114,18 @@ describe('FEATURE: subscribe-button.js', function () {
 				subject.onReturn.restore();
 			});
 
+			it('hide overlay onReturn and onError events', function () {
+				const triggerEvent = (type, ev) => mockDomListeners.find(({ t }={}) => t === type).l.call(ev);
+
+				subject.init();
+
+				triggerEvent('error', new Error('mock error'));
+				expect(mockOverlay.hide.calledOnce, 'overlay hidden onSwgError').to.be.true;
+
+				triggerEvent('return', { success: true });
+				expect(mockOverlay.hide.calledTwice, 'overlay hidden onSwgReturn').to.be.true;
+			});
+
 		});
 
 		describe('methods', function () {

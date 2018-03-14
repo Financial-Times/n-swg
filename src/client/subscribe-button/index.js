@@ -16,8 +16,8 @@ class SubscribeButtons {
 		this.buttons.forEach((btn) => {
 			btn.addEventListener('click', this.handleClick.bind(this));
 		});
-		if (this.onSwgReturn) this.onSwgReturn(this.onReturn);
-		if (this.onSwgError) this.onSwgError(this.onReturn);
+		if (this.onSwgReturn) this.onSwgReturn(this.onReturn.bind(this));
+		if (this.onSwgError) this.onSwgError(this.onReturn.bind(this));
 
 		this.enableButtons();
 	}
@@ -25,7 +25,7 @@ class SubscribeButtons {
 	handleClick (event) {
 		event.preventDefault();
 
-		this.overlay.show(); // maybe this isn't needed as google already overlay on return
+		this.overlay.show();
 
 		try {
 			const sku = event.target.getAttribute('data-n-swg-button-sku');
