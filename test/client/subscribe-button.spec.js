@@ -8,7 +8,6 @@ const HTML = '<body><div id="other-element"></div><div class="n-swg-button"></di
 
 describe('FEATURE: subscribe-button.js', function () {
 	let mockSwgClient = { subscribe: () => true };
-	let mockTrackEvent;
 	let mockOverlay;
 	let helpers;
 	const customSelector = '.n-swg-button';
@@ -22,7 +21,6 @@ describe('FEATURE: subscribe-button.js', function () {
 			hide: sinon.stub()
 		};
 		sinon.stub(mockSwgClient, 'subscribe');
-		mockTrackEvent = sinon.stub();
 	});
 
 	afterEach(() => {
@@ -37,14 +35,32 @@ describe('FEATURE: subscribe-button.js', function () {
 	context('with button elements on page', function () {
 		let subject;
 		let buttons;
+		let mockDomListeners;
+		let trackEvent;
 
 		beforeEach(() => {
-			subject = new SubscribeButtons(mockSwgClient, { trackEvent: mockTrackEvent, selector: customSelector, overlay: mockOverlay });
+			mockDomListeners = [];
+			/* Dummy class with static methods */
+			class MockSwgController {
+				static trackEvent () {
+					return true;
+				}
+				static onError (l) {
+					mockDomListeners.push({ t: 'error', l });
+				}
+				static onReturn (l) {
+					mockDomListeners.push({ t: 'return', l });
+				}
+			};
+
+			trackEvent = sinon.stub(MockSwgController, 'trackEvent');
+			subject = new SubscribeButtons(mockSwgClient, { SwgController: MockSwgController, selector: customSelector, overlay: mockOverlay });
 			buttons = global.document.querySelectorAll(customSelector);
 		});
 
 		afterEach(() => {
-			subject = null;
+			trackEvent.restore();
+			mockDomListeners = subject = null;
 		});
 
 		describe('constructor()', function () {
@@ -84,27 +100,30 @@ describe('FEATURE: subscribe-button.js', function () {
 			});
 
 			it('attatches swgEventListener callbacks for onReturn and onError events', function () {
+				const triggerEvent = (type, ev) => mockDomListeners.find(({ t }={}) => t === type).l.call(ev);
 				const onReturnStub = sinon.stub(subject, 'onReturn');
-				const listeners = {};
-				const triggerEvent = (type, ev) => listeners[type](ev);
-				const swgEventListeners = {
-					onError: function (callback) {
-						listeners['onError'] = callback;
-					},
-					onReturn: function (callback) {
-						listeners['onReturn'] = callback;
-					}
-				};
 
-				subject.init(swgEventListeners);
+				subject.init();
 
-				triggerEvent('onError', new Error('mock error'));
+				triggerEvent('error', new Error('mock error'));
 				expect(onReturnStub.calledOnce).to.be.true;
 
-				triggerEvent('onReturn', { success: true });
+				triggerEvent('return', { success: true });
 				expect(onReturnStub.calledTwice).to.be.true;
 
 				subject.onReturn.restore();
+			});
+
+			it('hide overlay onReturn and onError events', function () {
+				const triggerEvent = (type, ev) => mockDomListeners.find(({ t }={}) => t === type).l.call(ev);
+
+				subject.init();
+
+				triggerEvent('error', new Error('mock error'));
+				expect(mockOverlay.hide.calledOnce, 'overlay hidden onSwgError').to.be.true;
+
+				triggerEvent('return', { success: true });
+				expect(mockOverlay.hide.calledTwice, 'overlay hidden onSwgReturn').to.be.true;
 			});
 
 		});
@@ -158,8 +177,7 @@ describe('FEATURE: subscribe-button.js', function () {
 
 				it('triggers a landing event', function () {
 					subject.handleClick(mockEvent);
-
-					expect(mockTrackEvent.calledWith('landing', {})).to.be.true;
+					expect(trackEvent.calledWith('landing', {})).to.be.true;
 				});
 
 				it('calls swgClient.subscribe with the SKU from the event', function () {

@@ -33,7 +33,6 @@ describe('Swg Controller: class', function () {
 			expect(subject.manualInitDomain).to.be.undefined;
 			expect(subject.alreadyInitialised).to.be.false;
 			expect(subject.handlers.onSubscribeResponse).to.be.a('Function');
-			expect(subject.listeners).to.be.an('Array');
 			expect(subject.swgClient).to.deep.equal(swgClient);
 			expect(subject.M_SWG_SUB_SUCCESS_ENDPOINT).to.be.undefined;
 		});
@@ -101,7 +100,6 @@ describe('Swg Controller: class', function () {
 			const subject = new SwgController(swgClient, { subscribeFromButton: true }, mockButtonConstructor);
 			subject.init();
 			expect(buttonInitStub.calledOnce).to.be.true;
-			expect(buttonInitStub.getCall(0).args[0]).to.have.all.keys('onReturn','onError');
 		});
 
 	});
@@ -113,25 +111,9 @@ describe('Swg Controller: class', function () {
 			subject = new SwgController(swgClient);
 		});
 
-		afterEach(() => {
-			subject = null;
-		});
-
-		it('.addReturnListener() adds a return listener to the array', function () {
-			expect(subject.listeners).to.be.empty;
-			subject.addReturnListener(() => true);
-			expect(subject.listeners).to.have.lengthOf(1);
-		});
-
-		it('.addErrorListener() adds a error listener to the array', function () {
-			expect(subject.listeners).to.be.empty;
-			subject.addErrorListener(() => true);
-			expect(subject.listeners).to.have.lengthOf(1);
-		});
-
 		it('.signalError() calls all registered error listeners', function (done) {
 			const MOCK_ERROR = new Error('mock error');
-			subject.addErrorListener((error) => {
+			SwgController.onError((error) => {
 				expect(error).to.equal(MOCK_ERROR);
 				done();
 			});
@@ -140,8 +122,8 @@ describe('Swg Controller: class', function () {
 
 		it('.signalReturn() calls all registered return listeners', function (done) {
 			const MOCK_RETURN_VAL = { success: true };
-			subject.addReturnListener((error) => {
-				expect(error).to.equal(MOCK_RETURN_VAL);
+			SwgController.onReturn((res) => {
+				expect(res).to.equal(MOCK_RETURN_VAL);
 				done();
 			});
 			subject.signalReturn(MOCK_RETURN_VAL);
