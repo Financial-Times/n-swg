@@ -2,6 +2,7 @@
   "name": "@financial-times/n-swg",
   "version": "0.0.0",
   "description": "",
+  "main": "main.js",
   "scripts": {
     "precommit": "node_modules/.bin/secret-squirrel",
     "commitmsg": "node_modules/.bin/secret-squirrel-commitmsg",
@@ -27,19 +28,24 @@
     "@financial-times/n-internal-tool": "^2.2.2",
     "@financial-times/n-test": "^1.0.1",
     "@financial-times/n-webpack": "^3.1.0",
+    "babel-plugin-add-module-exports": "^0.2.1",
+    "babel-plugin-transform-runtime": "^6.23.0",
+    "babel-preset-env": "^1.6.1",
+    "babel-register": "^6.26.0",
     "body-parser": "^1.18.2",
     "bower": "^1.8.2",
     "chai": "^4.1.2",
     "chalk": "^2.3.0",
     "css-loader": "^0.28.7",
     "eslint": "^4.13.1",
-    "mocha": "^5.0.0",
+    "jsdom": "^11.6.2",
+    "mocha": "^5.0.1",
     "node-sass": "^4.7.2",
     "nodemon": "^1.14.12",
     "npm-prepublish": "^1.2.3",
     "pa11y-ci": "^1.3.1",
     "proxyquire": "^1.8.0",
     "request": "^2.83.0",
-    "sinon": "^4.2.2"
+    "sinon": "^4.4.2"
   }
 }

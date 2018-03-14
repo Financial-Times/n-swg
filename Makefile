@@ -28,7 +28,11 @@ a11y: demo-build
 	@$(DONE)
 
 test: verify
+	make unit-test
 	make a11y-demo
+
+unit-test:
+	mocha test/client --recursive --require test/client/setup
 
 a11y-demo:
 	export TEST_URL=http://localhost:5050; \
