@@ -2,27 +2,24 @@ import { Overlay } from '../utils';
 
 class SubscribeButtons {
 
-	constructor (swgClient, { selector='[data-n-swg-button]', trackEvent, overlay }={}) {
+	constructor (swgClient, { selector='[data-n-swg-button]', SwgController, overlay }={}) {
 		this.buttons = Array.from(document.querySelectorAll(selector));
 		this.swgClient = swgClient;
 		this.overlay = overlay || new Overlay();
-		this.trackEvent = trackEvent;
+		this.trackEvent = SwgController.trackEvent;
+		this.onSwgReturn = SwgController.onReturn;
+		this.onSwgError = SwgController.onError;
 		this.disableButtons();
 	}
 
-	init (swgEventListeners) {
+	init () {
 		this.buttons.forEach((btn) => {
 			btn.addEventListener('click', this.handleClick.bind(this));
 		});
+		if (this.onSwgReturn) this.onSwgReturn(this.onReturn);
+		if (this.onSwgError) this.onSwgError(this.onReturn);
+
 		this.enableButtons();
-		if (swgEventListeners) {
-			swgEventListeners.onReturn((res) => {
-				this.onReturn(res);
-			});
-			swgEventListeners.onError((err) => {
-				this.onReturn(err);
-			});
-		}
 	}
 
 	handleClick (event) {

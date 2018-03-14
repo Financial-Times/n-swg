@@ -11,15 +11,12 @@ class SwgController {
 		this.handlers = Object.assign({
 			onSubscribeResponse: this.onSubscribeResponse
 		}, options.handlers);
-		this.listeners = [];
 		this.swgClient = swgClient;
 
 		this.M_SWG_SUB_SUCCESS_ENDPOINT = options.M_SWG_SUB_SUCCESS_ENDPOINT; // !TODO: safe default
 
 		if (options.subscribeFromButton) {
-			this.subscribeButtons = new subscribeButtonConstructor(swgClient, {
-				trackEvent: SwgController.trackEvent
-			});
+			this.subscribeButtons = new subscribeButtonConstructor(swgClient, { SwgController });
 		};
 	}
 
@@ -47,11 +44,7 @@ class SwgController {
 		}
 
 		if (this.subscribeButtons) {
-			const swgEventsListeners = {
-				onReturn: this.addReturnListener.bind(this),
-				onError: this.addErrorListener.bind(this)
-			};
-			this.subscribeButtons.init(swgEventsListeners);
+			this.subscribeButtons.init();
 		}
 	}
 
@@ -99,32 +92,12 @@ class SwgController {
 		});
 	}
 
-	addListener (type, listener) {
-		this.listeners.push({ type, listener });
-	}
-
-	callListeners (ofType, event) {
-		const condition = ({ type }={}) => type === ofType;
-		const call = ({ listener }) => listener && listener.call(null, event);
-		if (this.listeners && ofType) {
-			this.listeners.filter(condition).forEach(call);
-		}
-	}
-
 	signalReturn (res) {
-		this.callListeners('onReturn', res);
+		SwgController.signal('onReturn', res);
 	}
 
 	signalError (err) {
-		this.callListeners('onError', err);
-	}
-
-	addReturnListener (listener) {
-		this.addListener('onReturn', listener);
-	}
-
-	addErrorListener (listener) {
-		this.addListener('onError', listener);
+		SwgController.signal('onError', err);
 	}
 
 	static fetch (url, options, _fetch=self.fetch) {
@@ -161,6 +134,24 @@ class SwgController {
 			system: { source: 'n-swg' }
 		});
 		document.body.dispatchEvent(new eventConstructor('oTracking.event', { detail, bubbles: true }));
+	}
+
+	static signal (action, context={}, eventConstructor=CustomEvent) {
+		document.body.dispatchEvent(new eventConstructor(`nSwg.${action}`, { detail: context, bubbles: true }));
+	}
+
+	static listen (action, callback) {
+		document.body.addEventListener(`nSwg.${action}`, (event={}) => {
+			callback(event.detail);
+		});
+	}
+
+	static onReturn (listener) {
+		SwgController.listen('onReturn', listener);
+	}
+
+	static onError (listener) {
+		SwgController.listen('onError', listener);
 	}
 
 }
