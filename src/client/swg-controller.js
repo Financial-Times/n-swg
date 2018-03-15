@@ -6,63 +6,83 @@ class SwgController {
 
 	constructor (swgClient, options={}, subscribeButtonConstructor=SubscribeButtons) {
 		this.manualInitDomain = options.manualInitDomain;
-		this.alreadyInitialised = false;
-
-		this.handlers = Object.assign({
-			onSubscribeResponse: this.onSubscribeResponse
-		}, options.handlers);
-		this.swgClient = swgClient;
-
 		this.M_SWG_SUB_SUCCESS_ENDPOINT = options.M_SWG_SUB_SUCCESS_ENDPOINT; // !TODO: safe default
+		this.handlers = Object.assign({
+			onSubscribeResponse: this.onSubscribeResponse,
+			onEntitlementsResponse: this.onEntitlementsResponse
+		}, options.handlers);
+
+		this.swgClient = swgClient;
+		/* bind handlers */
+		this.swgClient.setOnSubscribeResponse(this.handlers.onSubscribeResponse.bind(this));
+		this.swgClient.setOnEntitlementsResponse(this.handlers.onEntitlementsResponse.bind(this));
 
 		if (options.subscribeFromButton) {
 			this.subscribeButtons = new subscribeButtonConstructor(swgClient, { SwgController });
 		};
-	}
 
-	static load ({ manual=false, swgPromise=swgReady(), loadClient=importClient, sandbox=false }={}) {
-		return new Promise((resolve, reject) => {
-			try {
-				loadClient(document)({ manual, sandbox });
-			} catch (e) {
-				reject(e);
-			}
-			swgPromise.then(resolve);
-		});
+		this.alreadyInitialised = false;
 	}
 
 	init () {
-		if (!this.alreadyInitialised) {
+		if (this.alreadyInitialised) return;
 
-			if (this.manualInitDomain) {
-				this.swgClient.init(this.manualInitDomain);
+		if (this.manualInitDomain) {
+			this.swgClient.init(this.manualInitDomain);
+		}
+
+		this.alreadyInitialised = true;
+
+		/* check user entitlements */
+		this.checkEntitlements().then((res={}) => {
+			if (res.granted) {
+				this.resolveUser(res.entitlements).then(this.onwardEntitledJourney).catch(this.signalError);
+			} else if (this.subscribeButtons) {
+				this.subscribeButtons.init();
 			}
-			// bind handlers
-			this.swgClient.setOnSubscribeResponse(this.handlers.onSubscribeResponse.bind(this));
+		});
+	}
 
-			this.alreadyInitialised = true;
-		}
-
-		if (this.subscribeButtons) {
-			this.subscribeButtons.init();
-		}
+	checkEntitlements () {
+		const formatResponse = (resolve) => (entitlements={}) => {
+			const granted = entitlements && entitlements.enablesThis();
+			resolve({ granted, entitlements });
+		};
+		return new Promise((resolve) => {
+			SwgController.listen('entitlementsResponse', formatResponse(resolve));
+			this.swgClient.getEntitlements();
+		});
 	}
 
 	onSubscribeResponse (subPromise) {
 		subPromise.then((response) => {
+			/* disable any buttons */
+			if (this.subscribeButtons) this.subscribeButtons.disableButtons();
+			/* signal a return event to any listeners */
 			this.signalReturn(response);
+			/* track success event */
 			SwgController.trackEvent('success', {});
-			this.resolveUser(response).then(() => {
-				SwgController.trackEvent('confirmation', {});
-				// !TODO: redirect the now logged in user to relevant page
+			/* resolve user */
+			this.resolveUser(response).then((res) => {
+				response.complete().then(() => {
+					this.onwardSubscribedJourney(res);
+				});
 			});
 		}).catch((err) => {
+			/* signal error event to any listeners */
 			this.signalError(err);
+			/* track exit event */
 			SwgController.trackEvent('exit', {
 				errCode: _get(err, 'activityResult.code'),
-				errData: _get(err, 'activityResult.data'),
+				errData: _get(err, 'activityResult.data')
 			});
 		});
+	}
+
+	onEntitlementsResponse (entitlementsPromise) {
+		entitlementsPromise.then((entitlements) => {
+			SwgController.signal('entitlementsResponse', entitlements);
+		}).catch(this.signalError);
 	}
 
 	resolveUser (swgResponse) {
@@ -74,13 +94,21 @@ class SwgController {
 					'content-type': 'application/json'
 				}
 			})
-			.then(({ json }) => {
-				resolve(json);
-			})
-			.catch(err => {
-				reject(err);
-			});
+			.then(({ json }) => resolve(json))
+			.catch(reject);
 		});
+	}
+
+	onwardEntitledJourney () {
+		// console.log('FT.COM ONWARD ENTITLED', JSON.stringify(o, null, 2));
+		// !TODO: redirect the now logged in user to relevant page
+	}
+
+	onwardSubscribedJourney () {
+		// console.log('FT.COM ONWARD SUBSCRIBED', JSON.stringify(o, null, 2));
+		/* track confirmation event */
+		SwgController.trackEvent('confirmation', {});
+		// !TODO: redirect the now logged in user to relevant page
 	}
 
 	combinedPayload (swgResponse) {
@@ -98,6 +126,17 @@ class SwgController {
 
 	signalError (err) {
 		SwgController.signal('onError', err);
+	}
+
+	static load ({ manual=false, swgPromise=swgReady(), loadClient=importClient, sandbox=false }={}) {
+		return new Promise((resolve, reject) => {
+			try {
+				loadClient(document)({ manual, sandbox });
+			} catch (e) {
+				reject(e);
+			}
+			swgPromise.then(resolve);
+		});
 	}
 
 	static fetch (url, options, _fetch=self.fetch) {

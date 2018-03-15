@@ -41,8 +41,8 @@ describe('Swg Controller: class', function () {
 			const OPTIONS = {
 				manualInitDomain: 'ft.com',
 				handlers: {
-					onSubscribeResponse: 'stub',
-					onSomeOtherThing: 'stub again'
+					onSubscribeResponse: () => 'stub',
+					onSomeOtherThing: () => 'stub again'
 				},
 				M_SWG_SUB_SUCCESS_ENDPOINT: '/success',
 				subscribeFromButton: true
@@ -50,11 +50,25 @@ describe('Swg Controller: class', function () {
 			const subject = new SwgController(swgClient, OPTIONS);
 			expect(subject.manualInitDomain).to.equal(OPTIONS.manualInitDomain);
 			expect(subject.handlers.onSubscribeResponse).to.equal(OPTIONS.handlers.onSubscribeResponse);
+			expect(subject.handlers.setOnEntitlementsResponse).to.equal(OPTIONS.handlers.setOnEntitlementsResponse);
 			expect(subject.handlers.onSomeOtherThing).to.equal(OPTIONS.handlers.onSomeOtherThing);
 			expect(subject.swgClient).to.deep.equal(swgClient);
 			expect(subject.M_SWG_SUB_SUCCESS_ENDPOINT).to.equal(OPTIONS.M_SWG_SUB_SUCCESS_ENDPOINT);
 			expect(subject.subscribeButtons).to.be.an.instanceOf(SwgSubscribeButtons);
 		});
+
+		it('binds event handlers', function () {
+			sinon.stub(swgClient, 'setOnSubscribeResponse');
+			sinon.stub(swgClient, 'setOnEntitlementsResponse');
+
+			const subject = new SwgController(swgClient);
+			expect(swgClient.setOnSubscribeResponse.calledOnce).to.be.true;
+			expect(swgClient.setOnEntitlementsResponse.calledOnce).to.be.true;
+			expect(subject.swgClient).to.deep.equal(swgClient);
+
+			swgClient.setOnSubscribeResponse.restore();
+			swgClient.setOnEntitlementsResponse.restore();
+	});
 
 	});
 
@@ -75,13 +89,11 @@ describe('Swg Controller: class', function () {
 			subject.alreadyInitialised = true;
 			subject.init();
 			expect(swgClient.init.notCalled).to.be.true;
-			expect(swgClient.setOnSubscribeResponse.notCalled).to.be.true;
 		});
 
 		it('will setup swgClient if not alreadyInitialised', function () {
 			const subject = new SwgController(swgClient);
 			subject.init();
-			expect(swgClient.setOnSubscribeResponse.calledOnce).to.be.true;
 			expect(subject.alreadyInitialised).to.be.true;
 		});
 
@@ -94,12 +106,81 @@ describe('Swg Controller: class', function () {
 			expect(subject.alreadyInitialised).to.be.true;
 		});
 
-		it('will .init() subscribe buttons if .subscribeButtons', function () {
-			const buttonInitStub = sinon.stub();
-			const mockButtonConstructor = () => ({ init: buttonInitStub });
-			const subject = new SwgController(swgClient, { subscribeFromButton: true }, mockButtonConstructor);
+		it('will check entitlements', function () {
+			const subject = new SwgController(swgClient);
+			sinon.stub(subject, 'checkEntitlements').resolves();
 			subject.init();
-			expect(buttonInitStub.calledOnce).to.be.true;
+			expect(subject.checkEntitlements.calledOnce).to.be.true;
+			subject.checkEntitlements.restore();
+		});
+
+		context('and on checkEntitlements response', function () {
+
+			it('if not granted access and .subscribeButtons will init subscribe buttons', function (done) {
+				const buttonInitStub = sinon.stub();
+				const mockButtonConstructor = () => ({ init: buttonInitStub });
+				const subject = new SwgController(swgClient, { subscribeFromButton: true }, mockButtonConstructor);
+				const checkEntitlementsPromise = Promise.resolve({ granted: false });
+				sinon.stub(subject, 'checkEntitlements').resolves(checkEntitlementsPromise);
+				subject.init();
+				checkEntitlementsPromise.then(() => {
+					expect(buttonInitStub.calledOnce).to.be.true;
+					subject.checkEntitlements.restore();
+					done();
+				})
+				.catch(done);
+			});
+
+			it('if granted access will resolve user and call onwardEntitledJourney method', function (done) {
+				const subject = new SwgController(swgClient);
+				const checkEntitlementsPromise = Promise.resolve({ granted: true });
+				const resolveUserPromise = Promise.resolve();
+				sinon.stub(subject, 'checkEntitlements').returns(checkEntitlementsPromise);
+				sinon.stub(subject, 'resolveUser').returns(resolveUserPromise);
+				sinon.stub(subject, 'onwardEntitledJourney');
+
+				subject.init();
+				checkEntitlementsPromise.then(() => {
+					resolveUserPromise.then(() => {
+						expect(subject.onwardEntitledJourney.calledOnce).to.be.true;
+						subject.resolveUser.restore();
+						subject.checkEntitlements.restore();
+						subject.onwardEntitledJourney.restore();
+						done();
+					})
+					.catch(done);
+				})
+				.catch(done);
+			});
+
+			it('if granted access but resolve user errors, will signal error', function (done) {
+				const subject = new SwgController(swgClient);
+				const checkEntitlementsPromise = Promise.resolve({ granted: true });
+				const resolveUserPromise = Promise.reject(new Error('what!'));
+				sinon.stub(subject, 'checkEntitlements').returns(checkEntitlementsPromise);
+				sinon.stub(subject, 'resolveUser').returns(resolveUserPromise);
+				sinon.stub(subject, 'signalError');
+
+				subject.init();
+				checkEntitlementsPromise.then(() => {
+					resolveUserPromise
+					.catch(() => {
+						/* slight hack to force the following block to be
+						executed after the actual promise rejection and handling */
+						return;
+					})
+					.then(() => {
+						expect(subject.signalError.calledOnce).to.be.true;
+						subject.resolveUser.restore();
+						subject.checkEntitlements.restore();
+						subject.signalError.restore();
+						done();
+					})
+					.catch(done);
+				})
+				.catch(done);
+			});
+
 		});
 
 	});
@@ -149,7 +230,8 @@ describe('Swg Controller: class', function () {
 		});
 
 		it('on subPromise success', function (done) {
-			const MOCK_RESULT = { mock: 'swg-result' };
+			const mockResponseComplete = Promise.resolve();
+			const MOCK_RESULT = { mock: 'swg-result', complete: () => mockResponseComplete };
 			const subPromise = Promise.resolve(MOCK_RESULT);
 			const resolveUserPromise = Promise.resolve();
 
@@ -161,10 +243,12 @@ describe('Swg Controller: class', function () {
 				expect(SwgController.trackEvent.calledOnce).to.be.true;
 				expect(SwgController.trackEvent.calledWith('success')).to.be.true;
 				resolveUserPromise.then(() => {
+					mockResponseComplete.then(() => {
 					expect(SwgController.trackEvent.calledTwice).to.be.true;
 					expect(SwgController.trackEvent.calledWith('confirmation')).to.be.true;
 					subject.resolveUser.restore();
 					done();
+				});
 				});
 			})
 			.catch(done);
@@ -185,7 +269,7 @@ describe('Swg Controller: class', function () {
 				/* slight hack to force the following catch block to be
 				registered after the genuine catch block in the
 				onSubscribeResponse > subPromise */
-				return true;
+				return;
 			})
 			.catch(() => {
 				expect(subject.signalError.calledWith(MOCK_ERROR), 'signalError called').to.be.true;

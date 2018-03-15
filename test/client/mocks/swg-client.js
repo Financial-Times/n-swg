@@ -14,6 +14,14 @@ class SwgClient {
 		return true;
 	}
 
+	setOnEntitlementsResponse () {
+		return true;
+	}
+
+	getEntitlements () {
+		return true;
+	}
+
 	subscribe () {
 		return true;
 	}
