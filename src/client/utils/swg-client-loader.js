@@ -5,7 +5,7 @@ module.exports = (_document=document) => ({ manual=false, src, id='swg-client', 
 
 	let script = _document.createElement('SCRIPT');
 
-	script.src = src || (sandbox ? 'https://subscribe.sandbox.google.com/swglib/swg.js' : 'https://news.google.com/swg/js/v1/swg.js');
+	script.src = src || (sandbox ? 'https://news.google.com/swg/js/v1/swg-tt.js' : 'https://news.google.com/swg/js/v1/swg.js');
 	script.async = true;
 	script.id = id;
 
