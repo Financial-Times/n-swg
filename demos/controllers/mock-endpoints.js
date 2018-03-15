@@ -1,4 +1,4 @@
-const mockMembership = require('./utils/membership-mocks');
+const mockMembership = require('../utils/membership-mocks');
 
 module.exports = (MOCK_MODE) => (req, res, next) => {
 	if (MOCK_MODE) {
