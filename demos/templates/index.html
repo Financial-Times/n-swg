@@ -1,23 +1,39 @@
-<div class="o-grid-container mock-content">
+{{#defineBlock 'head'}}
+	{{#each jsonLd}}
+	<script type="application/ld+json">
+		{{{json this}}}
+	</script>
+	{{/each}}
+{{/defineBlock}}
+
+<div class="o-grid-container mock-content" data-n-swg-demo-env="{{env}}" data-n-swg-demo-manual-mode="{{manualInit}}">
 
 	<h1>Demo of n-swg</h1>
 
-	<h2>Subscribe Button</h2>
-
 	<p>
-		<strong>basic_daily_1 Dummy SKU</strong><br />
-		{{> n-swg/views/button appName="demo" sku="basic_daily_1" }}
+		Note: Using <strong>{{env}}</strong> environment. JSON-LD is that of a <strong>{{#if contentPaywall}}content paywall for "{{accessLevel}}" content{{else}} standalone paywall (i.e ft.com/products){{/if}}.</strong> SwG client will be initialised<strong>{{#if manualInit}} using manual init mode for "ft.com:subscribed"{{else}} automatically{{/if}}</strong>.
 	</p>
 
-	<p>
-		<strong>premium_daily_1 Dummy SKU</strong><br />
-		{{> n-swg/views/button appName="demo" sku="premium_daily_1" }}
+	<h2>Subscribe Buttons:</h2>
+
+	{{#each offers}}
+	<p class="offer">
+		<strong>{{name}}</strong><br />
+		{{> n-swg/views/button appName="demo" sku=sku }}
+	</p>
+	{{/each}}
+
+	<p>For now you can clear your sandbox subscriptions <a href="https://subscribe-autopush.sandbox.google.com/swg/dev/ft.com">here</a>.</p>
+
+	<p>Other scenarios:
+		<a href="/?production=true&paywall=true">Production env with paywall markup</a>,
+		<a href="/?paywall=true">Sandbox env with paywall markup</a>,
+		<a href="/?production=true&manual=true">Production with forced manual init mode</a>,
 	</p>
 
-	<p>
-		Note: The button above is mainly for demonstration. The window it opens may not work as it uses a dummy sku.
-		<br />
-		For now you can clear you subscriptions <a href="https://subscribe.sandbox.google.com/swglib/dev/ft.com">here</a>
-	</p>
+	<p>Markup found in head "application/ld+json" script tag:</p>
+	{{#each jsonLd}}
+	<p class="code">{{{json this}}}</p>
+	{{/each}}
 
 </div>

@@ -49,7 +49,7 @@ describe('Util: swg-client-loader.js', function () {
 		it('with correct default attributes in sandbox mode', function () {
 			subject({ sandbox: true });
 			const resultEl = dom.querySelector(defaultSelector);
-			expect(resultEl.getAttribute('src')).to.equal('https://subscribe.sandbox.google.com/swglib/swg.js');
+			expect(resultEl.getAttribute('src')).to.equal('https://news.google.com/swg/js/v1/swg-tt.js');
 			expect(resultEl.async).to.equal(true);
 			expect(resultEl.getAttribute('subscriptions-control')).to.be.null;
 			expect(resultEl.id).to.equal('swg-client');

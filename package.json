@@ -28,6 +28,7 @@
     "@financial-times/n-internal-tool": "^2.2.2",
     "@financial-times/n-test": "^1.0.1",
     "@financial-times/n-webpack": "^3.1.0",
+    "@financial-times/next-json-ld": "^0.4.0",
     "babel-plugin-add-module-exports": "^0.2.1",
     "babel-plugin-transform-runtime": "^6.23.0",
     "babel-preset-env": "^1.6.1",

@@ -1,0 +1,52 @@
+const nextJsonLd = require('@financial-times/next-json-ld');
+const mockArticle = require('../fixtures/mock-article-es-result');
+
+const markup = (query={}) => {
+	const paywall = query['paywall'];
+	const accessLevel = paywall === 'premium' ? 'premium' : 'subscribed';
+	const content = paywall && accessLevel && mockArticle(accessLevel);
+	return { jsonLd: [ nextJsonLd.barrier(content) ], accessLevel, contentPaywall: !!(content) };
+};
+
+const getMode = (query={}) => {
+	const useProduction = query['production'];
+	return useProduction ? 'production' : 'sandbox';
+};
+
+const getOffers = (mode) => {
+	return {
+		production: [
+			{ name: 'FT.com standard', sku: 'ft.com_c8ad55e6.ba74.fea0.f9da.a4546ae2ee23_p1m' },
+			{ name: 'FT.com premium', sku: 'ft.com_713f1e28.0bc5.8261.f1e6.eebab6f7600e_p1m' }
+		],
+		sandbox: [
+			{ name: 'basic_daily_1 Dummy SKU', sku: 'basic_daily_1' },
+			{ name: 'premium_daily_1 Dummy SKU', sku: 'premium_daily_1' }
+		]
+	}[mode] || [];
+};
+
+const getManualInitMode = (query={}, contentPaywall) => {
+	if (query['manual'] === 'true') return true;
+	if (!query['manual'] && !contentPaywall) return true; // will not work otherwise
+	return false;
+};
+
+module.exports = (req, res, next) => {
+	const env = getMode(req.query);
+	const { jsonLd, accessLevel, contentPaywall } = markup(req.query);
+	try {
+		res.render('index', {
+			layout: 'vanilla',
+			title: 'Demo',
+			jsonLd,
+			env,
+			accessLevel,
+			contentPaywall,
+			manualInit: getManualInitMode(req.query, contentPaywall),
+			offers: getOffers(env)
+		});
+	} catch (e) {
+		next(e);
+	}
+};

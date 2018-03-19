@@ -21,11 +21,10 @@ const app = module.exports = express({
 	s3o: false
 });
 
-app.get('/*', (req, res) => {
-	res.render('index',{ layout: 'vanilla', title: 'Demo' });
-});
+app.get('/*', require('./controllers/index'));
 
-app.post('/cors-endpoint/:result?', bodyParser.json(), require('./mock-endpoints.controller')(process.env.DEMO_MODE));
+app.post('/cors-endpoint/:result?', bodyParser.json(), require('./controllers/mock-endpoints')(process.env.DEMO_MODE));
+
 app.post('*', require('./utils/proxy')('https://www.ft.com'));
 
 // !NOTE: Google is setup to allow scripts to load on http(s)://local.ft.com:5050
