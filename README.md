@@ -17,7 +17,7 @@ To implement SwG in your app, include the following partial(s) making sure to pa
 ```
 
 + `appName` - The name of the app that's implementing this.
-+ `sku` - What Google knows as the sku. This will likely be something of the form: `ft.com_<OFFER-ID>_<PAYMENT-TERM>`
++ `skus` - A comma separated list of what Google knows as the sku. If only one sku is passed, it will immediately open the subscribe popup, otherwise it will call the `showOffers` flow. These will likely be something of the form: `ft.com_<OFFER-ID>_<PAYMENT-TERM>`.
 
 ### Styles
 
