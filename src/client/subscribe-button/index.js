@@ -28,15 +28,16 @@ class SubscribeButtons {
 		this.overlay.show();
 
 		try {
-			const sku = event.target.getAttribute('data-n-swg-button-sku');
-			const skus = event.target.getAttribute('data-n-swg-button-skus');
+			const skus = event.target.getAttribute('data-n-swg-button-skus').split(',');
 
 			this.trackEvent('landing', {});
 
-			if (skus) {
-				this.swgClient.showOffers({ skus: skus.split(',') });
-			} else if (sku) {
-				this.swgClient.subscribe(sku);
+			if (skus.length > 1) {
+				this.swgClient.showOffers({ skus });
+			} else if (skus.length === 1) {
+				this.swgClient.subscribe(skus);
+			} else {
+				throw new Error('n-swg: No SKUs passed to button component.');
 			}
 		} catch (error) {
 			this.overlay.hide();
