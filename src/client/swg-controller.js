@@ -13,7 +13,7 @@ class SwgController {
 		}, options.handlers);
 		this.swgClient = swgClient;
 
-		this.M_SWG_SUB_SUCCESS_ENDPOINT = options.M_SWG_SUB_SUCCESS_ENDPOINT; // !TODO: safe default
+		this.M_SWG_SUB_SUCCESS_ENDPOINT = options.M_SWG_SUB_SUCCESS_ENDPOINT || 'https://swg-fulfilment-svc-eu-test.memb.ft.com/subscriptions';
 
 		if (options.subscribeFromButton) {
 			this.subscribeButtons = new subscribeButtonConstructor(swgClient, { SwgController });
@@ -69,7 +69,7 @@ class SwgController {
 		return new Promise((resolve, reject) => {
 			SwgController.fetch(this.M_SWG_SUB_SUCCESS_ENDPOINT, {
 				method: 'POST',
-				body: this.combinedPayload(swgResponse),
+				body: JSON.stringify(swgResponse),
 				headers: {
 					'content-type': 'application/json'
 				}
@@ -80,15 +80,6 @@ class SwgController {
 			.catch(err => {
 				reject(err);
 			});
-		});
-	}
-
-	combinedPayload (swgResponse) {
-		return JSON.stringify({
-			swg: swgResponse,
-			source: {
-				'country-code': 'GBR' // !TODO: set this dynamically incase swg does not return it
-			}
 		});
 	}
 
