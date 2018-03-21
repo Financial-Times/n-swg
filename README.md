@@ -18,6 +18,7 @@ To implement SwG in your app, include the following partial(s) making sure to pa
 
 + `appName` - The name of the app that's implementing this.
 + `sku` - What Google knows as the sku. This will likely be something of the form: `ft.com_<OFFER-ID>_<PAYMENT-TERM>`
++ `skus` - A comma separated list of `sku`s. Use this instead of `sku` if you want to show a selection of offers to the user.
 
 ### Styles
 

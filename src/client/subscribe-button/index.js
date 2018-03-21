@@ -29,8 +29,15 @@ class SubscribeButtons {
 
 		try {
 			const sku = event.target.getAttribute('data-n-swg-button-sku');
+			const skus = event.target.getAttribute('data-n-swg-button-skus');
+
 			this.trackEvent('landing', {});
-			this.swgClient.subscribe(sku);
+
+			if (skus) {
+				this.swgClient.showOffers({ skus: skus.split(',') });
+			} else if (sku) {
+				this.swgClient.subscribe(sku);
+			}
 		} catch (error) {
 			this.overlay.hide();
 		}
