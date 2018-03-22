@@ -1,27 +1,32 @@
-import { swgReady, importClient } from './utils';
+import { swgReady, importClient, Overlay } from './utils';
 import SubscribeButtons from './subscribe-button';
 import _get from 'lodash.get';
 
 class SwgController {
 
-	constructor (swgClient, options={}, subscribeButtonConstructor=SubscribeButtons) {
+	constructor (swgClient, options={}, subscribeButtonConstructor=SubscribeButtons, overlay) {
+		/* options */
 		this.manualInitDomain = options.manualInitDomain;
 		this.M_SWG_SUB_SUCCESS_ENDPOINT = options.M_SWG_SUB_SUCCESS_ENDPOINT || 'https://swg-fulfilment-svc-eu-test.memb.ft.com/subscriptions';
+
+		this.alreadyInitialised = false;
+		this.swgClient = swgClient;
+
+		/* bind handlers */
 		this.handlers = Object.assign({
 			onSubscribeResponse: this.onSubscribeResponse,
 			onEntitlementsResponse: this.onEntitlementsResponse
 		}, options.handlers);
-
-		this.swgClient = swgClient;
-		/* bind handlers */
 		this.swgClient.setOnSubscribeResponse(this.handlers.onSubscribeResponse.bind(this));
 		this.swgClient.setOnEntitlementsResponse(this.handlers.onEntitlementsResponse.bind(this));
 
 		if (options.subscribeFromButton) {
+			/* setup buttons */
 			this.subscribeButtons = new subscribeButtonConstructor(swgClient, { SwgController });
 		};
 
-		this.alreadyInitialised = false;
+		this.overlay = overlay || new Overlay();
+		this.ENTITLED_SUCCESS = 'ENTITLEMENTS_GRANT_SUCCESS';
 	}
 
 	init () {
@@ -36,7 +41,11 @@ class SwgController {
 		/* check user entitlements */
 		this.checkEntitlements().then((res={}) => {
 			if (res.granted) {
-				this.resolveUser(res.entitlements).then(this.onwardEntitledJourney).catch(this.signalError);
+				this.showToast(this.ENTITLED_SUCCESS);
+				/* NOTE: below chain will be broken until membership endpoint ready */
+				this.resolveUser(res.entitlements)
+					.then(this.onwardEntitledJourney)
+					.catch(this.signalError);
 			} else if (this.subscribeButtons) {
 				this.subscribeButtons.init();
 			}
@@ -59,7 +68,7 @@ class SwgController {
 			/* disable any buttons */
 			if (this.subscribeButtons) this.subscribeButtons.disableButtons();
 			/* signal a return event to any listeners */
-			this.signalReturn(response);
+			SwgController.signal('onSubscribeReturn', response);
 			/* track success event */
 			SwgController.trackEvent('success', {});
 			/* resolve user */
@@ -111,12 +120,15 @@ class SwgController {
 		// !TODO: redirect the now logged in user to relevant page
 	}
 
-	signalReturn (res) {
-		SwgController.signal('onReturn', res);
-	}
-
 	signalError (err) {
 		SwgController.signal('onError', err);
+	}
+
+	showToast (id) {
+		/* NOTE: temporary usage for testing */
+		if (id === this.ENTITLED_SUCCESS) {
+			this.overlay.show(`<p>It looks like you already have an FT.com subscription with Google.<br /><a href="https://www.ft.com/login?location=${encodeURIComponent(window.location.href)}">Login</a><br /><br /><small>code: ${id}</small></p>`);
+		}
 	}
 
 	static load ({ manual=false, swgPromise=swgReady(), loadClient=importClient, sandbox=false }={}) {
@@ -177,7 +189,7 @@ class SwgController {
 	}
 
 	static onReturn (listener) {
-		SwgController.listen('onReturn', listener);
+		SwgController.listen('onSubscribeReturn', listener);
 	}
 
 	static onError (listener) {

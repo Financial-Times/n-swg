@@ -13,12 +13,14 @@ describe('Swg Controller: class', function () {
 		const jsdom = new JSDOM();
 		global.CustomEvent = jsdom.window.CustomEvent;
 		global.document = jsdom.window.document;
+		global.window = jsdom.window;
 		swgClient = new SwgClient();
 	});
 
 	afterEach(() => {
 		delete global.CustomEvent;
 		delete global.document;
+		delete global.window;
 	});
 
 	it('exports a class', function () {
@@ -201,13 +203,22 @@ describe('Swg Controller: class', function () {
 			subject.signalError(MOCK_ERROR);
 		});
 
-		it('.signalReturn() calls all registered return listeners', function (done) {
-			const MOCK_RETURN_VAL = { success: true };
-			SwgController.onReturn((res) => {
-				expect(res).to.equal(MOCK_RETURN_VAL);
+		it('.signalError() calls all registered error listeners', function (done) {
+			const MOCK_ERROR = new Error('mock error');
+			SwgController.onError((error) => {
+				expect(error).to.equal(MOCK_ERROR);
 				done();
 			});
-			subject.signalReturn(MOCK_RETURN_VAL);
+			subject.signalError(MOCK_ERROR);
+		});
+
+		it('\"onError\" event calls all registered error listeners', function (done) {
+			const MOCK_ERROR = new Error('mock error');
+			SwgController.onError((error) => {
+				expect(error).to.equal(MOCK_ERROR);
+				done();
+			});
+			SwgController.signal('onError', MOCK_ERROR);
 		});
 
 	});
@@ -217,14 +228,12 @@ describe('Swg Controller: class', function () {
 
 		beforeEach(() => {
 			subject = new SwgController(swgClient);
-			sinon.stub(subject, 'signalReturn');
-			sinon.stub(subject, 'signalError');
+			sinon.stub(SwgController, 'signal');
 			sinon.stub(SwgController, 'trackEvent');
 		});
 
 		afterEach(() => {
-			subject.signalReturn.restore();
-			subject.signalError.restore();
+			SwgController.signal.restore();
 			SwgController.trackEvent.restore();
 			subject = null;
 		});
@@ -239,7 +248,7 @@ describe('Swg Controller: class', function () {
 			subject.onSubscribeResponse(subPromise);
 
 			subPromise.then(() => {
-				expect(subject.signalReturn.calledWith(MOCK_RESULT)).to.be.true;
+				expect(SwgController.signal.calledWith('onSubscribeReturn', MOCK_RESULT)).to.be.true;
 				expect(SwgController.trackEvent.calledOnce).to.be.true;
 				expect(SwgController.trackEvent.calledWith('success')).to.be.true;
 				resolveUserPromise.then(() => {
@@ -272,7 +281,7 @@ describe('Swg Controller: class', function () {
 				return;
 			})
 			.catch(() => {
-				expect(subject.signalError.calledWith(MOCK_ERROR), 'signalError called').to.be.true;
+				expect(SwgController.signal.calledWith('onError', MOCK_ERROR), 'signalError called').to.be.true;
 				expect(SwgController.trackEvent.calledOnce, 'trackEvent calledOnce').to.be.true;
 				expect(SwgController.trackEvent.calledWith('exit', {
 					errCode: MOCK_ERROR.activityResult.code,
