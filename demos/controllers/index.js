@@ -35,6 +35,7 @@ const getManualInitMode = (query={}, contentPaywall) => {
 module.exports = (req, res, next) => {
 	const env = getMode(req.query);
 	const { jsonLd, accessLevel, contentPaywall } = markup(req.query);
+	const offers = getOffers(env);
 	try {
 		res.render('index', {
 			layout: 'vanilla',
@@ -44,7 +45,8 @@ module.exports = (req, res, next) => {
 			accessLevel,
 			contentPaywall,
 			manualInit: getManualInitMode(req.query, contentPaywall),
-			offers: getOffers(env)
+			offers,
+			offersList: offers.map((offer) => offer.sku).join(',')
 		});
 	} catch (e) {
 		next(e);

@@ -6,7 +6,7 @@ class SwgController {
 
 	constructor (swgClient, options={}, subscribeButtonConstructor=SubscribeButtons) {
 		this.manualInitDomain = options.manualInitDomain;
-		this.M_SWG_SUB_SUCCESS_ENDPOINT = options.M_SWG_SUB_SUCCESS_ENDPOINT; // !TODO: safe default
+		this.M_SWG_SUB_SUCCESS_ENDPOINT = options.M_SWG_SUB_SUCCESS_ENDPOINT || 'https://swg-fulfilment-svc-eu-test.memb.ft.com/subscriptions';
 		this.handlers = Object.assign({
 			onSubscribeResponse: this.onSubscribeResponse,
 			onEntitlementsResponse: this.onEntitlementsResponse
@@ -89,7 +89,7 @@ class SwgController {
 		return new Promise((resolve, reject) => {
 			SwgController.fetch(this.M_SWG_SUB_SUCCESS_ENDPOINT, {
 				method: 'POST',
-				body: this.combinedPayload(swgResponse),
+				body: JSON.stringify(swgResponse),
 				headers: {
 					'content-type': 'application/json'
 				}
@@ -109,15 +109,6 @@ class SwgController {
 		/* track confirmation event */
 		SwgController.trackEvent('confirmation', {});
 		// !TODO: redirect the now logged in user to relevant page
-	}
-
-	combinedPayload (swgResponse) {
-		return JSON.stringify({
-			swg: swgResponse,
-			source: {
-				'country-code': 'GBR' // !TODO: set this dynamically incase swg does not return it
-			}
-		});
 	}
 
 	signalReturn (res) {

@@ -19,11 +19,14 @@
 	{{#each offers}}
 	<p class="offer">
 		<strong>{{name}}</strong><br />
-		{{> n-swg/views/button appName="demo" sku=sku }}
+		{{> n-swg/views/button appName="demo" skus=sku }}
 	</p>
 	{{/each}}
 
-	<p>For now you can clear you sandbox subscriptions <a href="https://subscribe-autopush.sandbox.google.com/swg/dev/ft.com">here</a>.</p>
+	<p><strong>Multiple SKUs (showOffer)</strong></p>
+	<p>{{> n-swg/views/button appName="demo" skus=offersList }}</p>
+
+	<p>For now you can clear your sandbox subscriptions <a href="https://subscribe-autopush.sandbox.google.com/swg/dev/ft.com">here</a>.</p>
 
 	<p>Other scenarios:
 		<a href="/?production=true&paywall=true">Production env with paywall markup</a>,
