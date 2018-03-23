@@ -35,7 +35,7 @@ class SubscribeButtons {
 			if (skus.length > 1) {
 				this.swgClient.showOffers({ skus });
 			} else if (skus.length === 1) {
-				this.swgClient.subscribe(skus);
+				this.swgClient.subscribe(skus[0]);
 			} else {
 				throw new Error('n-swg: No SKUs passed to button component.');
 			}
