@@ -1,0 +1,14 @@
+machine:
+  node:
+    version: 8.2.1
+
+dependencies:
+  cache_directories:
+    - "bower_components"
+
+deployment:
+  release:
+    tag: /^v?\d+\.\d+\.\d+(?:-beta\.\d+)?$/
+    owner: Financial-Times
+    commands:
+    - make npm-publish
