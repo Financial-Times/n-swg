@@ -9,7 +9,7 @@ const options = {
 	manualInitDomain: !!(document.querySelector('[data-n-swg-demo-manual-mode=true]')) ? 'ft.com:subscribed' : false,
 	sandbox: !!(document.querySelector('[data-n-swg-demo-env=sandbox]')),
 	subscribeFromButton: true,
-	M_SWG_SUB_SUCCESS_ENDPOINT: '/cors-endpoint/success',
+	M_SWG_SUB_SUCCESS_ENDPOINT: '/cors-endpoint/success'
 };
 
 console.log('SwG options:', JSON.stringify(options, null, 2));
