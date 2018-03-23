@@ -5,6 +5,7 @@ const { JSDOM } = require('../mocks/document');
 const SwgClient = require('../mocks/swg-client');
 const SwgController = require('../../../src/client/swg-controller');
 const SwgSubscribeButtons = require('../../../src/client/subscribe-button/index');
+const { Overlay } = require('../../../src/client/utils');
 
 describe('Swg Controller: class', function () {
 	let swgClient;
@@ -35,7 +36,9 @@ describe('Swg Controller: class', function () {
 			expect(subject.manualInitDomain).to.be.undefined;
 			expect(subject.alreadyInitialised).to.be.false;
 			expect(subject.handlers.onSubscribeResponse).to.be.a('Function');
+			expect(subject.handlers.onEntitlementsResponse).to.be.a('Function');
 			expect(subject.swgClient).to.deep.equal(swgClient);
+			expect(subject.overlay).to.be.an.instanceOf(Overlay);
 			expect(subject.M_SWG_SUB_SUCCESS_ENDPOINT).to.equal('https://swg-fulfilment-svc-eu-test.memb.ft.com/subscriptions');
 		});
 
@@ -133,21 +136,24 @@ describe('Swg Controller: class', function () {
 				.catch(done);
 			});
 
-			it('if granted access will resolve user and call onwardEntitledJourney method', function (done) {
+			it('if granted access will showToast, resolve user and call onwardEntitledJourney method', function (done) {
 				const subject = new SwgController(swgClient);
 				const checkEntitlementsPromise = Promise.resolve({ granted: true });
 				const resolveUserPromise = Promise.resolve();
 				sinon.stub(subject, 'checkEntitlements').returns(checkEntitlementsPromise);
 				sinon.stub(subject, 'resolveUser').returns(resolveUserPromise);
 				sinon.stub(subject, 'onwardEntitledJourney');
+				sinon.stub(subject, 'showToast');
 
 				subject.init();
 				checkEntitlementsPromise.then(() => {
 					resolveUserPromise.then(() => {
 						expect(subject.onwardEntitledJourney.calledOnce).to.be.true;
+						expect(subject.showToast.calledOnce).to.be.true;
 						subject.resolveUser.restore();
 						subject.checkEntitlements.restore();
 						subject.onwardEntitledJourney.restore();
+						subject.showToast.restore();
 						done();
 					})
 					.catch(done);
@@ -155,13 +161,14 @@ describe('Swg Controller: class', function () {
 				.catch(done);
 			});
 
-			it('if granted access but resolve user errors, will signal error', function (done) {
+			it('if granted access but resolve user errors, will showToast and signal error', function (done) {
 				const subject = new SwgController(swgClient);
 				const checkEntitlementsPromise = Promise.resolve({ granted: true });
 				const resolveUserPromise = Promise.reject(new Error('what!'));
 				sinon.stub(subject, 'checkEntitlements').returns(checkEntitlementsPromise);
 				sinon.stub(subject, 'resolveUser').returns(resolveUserPromise);
 				sinon.stub(subject, 'signalError');
+				sinon.stub(subject, 'showToast');
 
 				subject.init();
 				checkEntitlementsPromise.then(() => {
@@ -173,9 +180,11 @@ describe('Swg Controller: class', function () {
 					})
 					.then(() => {
 						expect(subject.signalError.calledOnce).to.be.true;
+						expect(subject.showToast.calledOnce).to.be.true;
 						subject.resolveUser.restore();
 						subject.checkEntitlements.restore();
 						subject.signalError.restore();
+						subject.showToast.restore();
 						done();
 					})
 					.catch(done);
@@ -227,7 +236,7 @@ describe('Swg Controller: class', function () {
 		let subject;
 
 		beforeEach(() => {
-			subject = new SwgController(swgClient);
+			subject = new SwgController(swgClient, { subscribeFromButton: true });
 			sinon.stub(SwgController, 'signal');
 			sinon.stub(SwgController, 'trackEvent');
 		});
@@ -238,24 +247,30 @@ describe('Swg Controller: class', function () {
 			subject = null;
 		});
 
-		it('on subPromise success', function (done) {
+		it('on subPromise success: disable buttons, signal return, track success, resolve user -> onwardSubscribedJourney', function (done) {
 			const mockResponseComplete = Promise.resolve();
 			const MOCK_RESULT = { mock: 'swg-result', complete: () => mockResponseComplete };
 			const subPromise = Promise.resolve(MOCK_RESULT);
 			const resolveUserPromise = Promise.resolve();
 
 			sinon.stub(subject, 'resolveUser').returns(resolveUserPromise);
+			sinon.stub(subject.subscribeButtons, 'disableButtons');
+			sinon.spy(subject, 'onwardSubscribedJourney');
 			subject.onSubscribeResponse(subPromise);
 
 			subPromise.then(() => {
+				expect(subject.subscribeButtons.disableButtons.calledOnce).to.be.true;
 				expect(SwgController.signal.calledWith('onSubscribeReturn', MOCK_RESULT)).to.be.true;
 				expect(SwgController.trackEvent.calledOnce).to.be.true;
 				expect(SwgController.trackEvent.calledWith('success')).to.be.true;
 				resolveUserPromise.then(() => {
 					mockResponseComplete.then(() => {
 					expect(SwgController.trackEvent.calledTwice).to.be.true;
+					expect(subject.onwardSubscribedJourney.calledOnce).to.be.true;
 					expect(SwgController.trackEvent.calledWith('confirmation')).to.be.true;
 					subject.resolveUser.restore();
+					subject.subscribeButtons.disableButtons.restore();
+					subject.onwardSubscribedJourney.restore();
 					done();
 				});
 				});
@@ -263,7 +278,7 @@ describe('Swg Controller: class', function () {
 			.catch(done);
 		});
 
-		it('on subPromise error', function (done) {
+		it('on subPromise error: signal error, track event', function (done) {
 			const MOCK_ERROR = new Error('mock error');
 			MOCK_ERROR.activityResult = {
 				code: '1234',
@@ -352,6 +367,125 @@ describe('Swg Controller: class', function () {
 			});
 			SwgController.fetch.restore();
 		});
+
+	});
+
+	describe('.checkEntitlements()', function () {
+		let subject;
+
+		beforeEach(() => {
+			subject = new SwgController(swgClient);
+		});
+
+		afterEach(() => {
+			subject = null;
+		});
+
+		it('is a function', function () {
+			expect(subject.resolveUser).to.be.a('Function');
+		});
+
+		it('returns a promise', function () {
+			expect(subject.checkEntitlements()).to.be.a('Promise');
+		});
+
+		it('resolves with formatted \"entitlementsResponse\" event and calls swgClient.getEntitlements()', function (done) {
+			const MOCK_RESULT = { enablesThis: () => true, other: 'data' };
+			sinon.stub(swgClient, 'getEntitlements');
+
+			subject.checkEntitlements().then(res => {
+				expect(res.granted).to.be.true;
+				expect(res.entitlements).to.equal(MOCK_RESULT);
+				expect(swgClient.getEntitlements.calledOnce).to.true;
+				swgClient.getEntitlements.restore();
+				done();
+			})
+			.catch(done);
+
+			SwgController.signal('entitlementsResponse', MOCK_RESULT);
+		});
+
+		it('resolves with formatted \"entitlementsResponse\" where access is not granted', function (done) {
+			const MOCK_RESULT = { enablesThis: () => false, other: 'data' };
+			sinon.stub(swgClient, 'getEntitlements');
+
+			subject.checkEntitlements().then(res => {
+				expect(res.granted).to.be.false;
+				expect(res.entitlements).to.equal(MOCK_RESULT);
+				expect(swgClient.getEntitlements.calledOnce).to.true;
+				swgClient.getEntitlements.restore();
+				done();
+			})
+			.catch(done);
+
+			SwgController.signal('entitlementsResponse', MOCK_RESULT);
+		});
+
+	});
+
+	describe('.onEntitlementsResponse()', function () {
+		let subject;
+
+		beforeEach(() => {
+			subject = new SwgController(swgClient);
+		});
+
+		afterEach(() => {
+			subject = null;
+		});
+
+		it('signal \"entitlementsResponse\" event on entitlementsPromise', function () {
+			sinon.stub(SwgController, 'signal');
+			const MOCK_RESULT = { entitlments: 'object' }
+			const mockEntitlementsPromise = Promise.resolve(MOCK_RESULT);
+
+			subject.onEntitlementsResponse(mockEntitlementsPromise);
+			return mockEntitlementsPromise.then(() => {
+				expect(SwgController.signal.calledWith('entitlementsResponse', MOCK_RESULT)).to.be.true;
+				SwgController.signal.restore();
+			});
+		});
+
+		it('signal \"Error\" event on entitlementsPromise', function () {
+			sinon.stub(subject, 'signalError');
+			const MOCK_ERROR = new Error('mock');
+			const mockEntitlementsPromise = Promise.reject(MOCK_ERROR);
+
+			subject.onEntitlementsResponse(mockEntitlementsPromise);
+			return mockEntitlementsPromise.then(() => true).catch(() => {
+					expect(subject.signalError.calledWith(MOCK_ERROR)).to.be.true;
+					subject.signalError.restore();
+				});
+		});
+
+	});
+
+	describe('.showToast()', function () {
+		let subject;
+		let overlayStub;
+
+		beforeEach(() => {
+			subject = new SwgController(swgClient);
+			overlayStub = {
+				show: sinon.stub(subject.overlay, 'show')
+			};
+		});
+
+		afterEach(() => {
+			subject = null;
+			overlayStub.show.restore();
+		});
+
+		it('shows entitled success message overlay', function () {
+			subject.showToast(subject.ENTITLED_SUCCESS);
+			expect(overlayStub.show.calledOnce).to.be.true;
+		});
+
+		it('does nothing if called with an unknown id', function () {
+			subject.showToast();
+			expect(overlayStub.show.notCalled).to.be.true;
+		});
+
 
 	});
 

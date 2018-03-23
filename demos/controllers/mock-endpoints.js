@@ -42,7 +42,7 @@ module.exports = (MOCK_MODE) => (req, res, next) => {
 				return res.status(201).json({
 					example: 'body'
 				});
-			}, 5000);
+			}, 2000); // fake slower async call
 			break;
 		default:
 			return next();
