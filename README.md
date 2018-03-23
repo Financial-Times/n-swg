@@ -1,4 +1,4 @@
-#  Subscribe with Google (SwG)
+#  Subscribe with Google (SwG) [![CircleCI](https://circleci.com/gh/Financial-Times/n-swg.svg?style=svg&circle-token=53194bdb41b629f6e3696ccfdb2a2492a12b7360)](https://circleci.com/gh/Financial-Times/n-swg)
 
 #### Contents
 - [SwG Client](#swg-client)
