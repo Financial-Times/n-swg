@@ -34,7 +34,7 @@ describe('Swg Controller: class', function () {
 			expect(subject.alreadyInitialised).to.be.false;
 			expect(subject.handlers.onSubscribeResponse).to.be.a('Function');
 			expect(subject.swgClient).to.deep.equal(swgClient);
-			expect(subject.M_SWG_SUB_SUCCESS_ENDPOINT).to.be.undefined;
+			expect(subject.M_SWG_SUB_SUCCESS_ENDPOINT).to.equal('https://swg-fulfilment-svc-eu-test.memb.ft.com/subscriptions');
 		});
 
 		it('accepts custom options', function () {
@@ -227,7 +227,7 @@ describe('Swg Controller: class', function () {
 
 		it('correctly formats request from passed options', function () {
 			const MOCK_SWG_RESPONSE = { swgToken: '123' };
-			const expectedBody = JSON.stringify({ swg: MOCK_SWG_RESPONSE, source: { 'country-code': 'GBR' }});
+			const expectedBody = JSON.stringify(MOCK_SWG_RESPONSE);
 			sinon.stub(SwgController, 'fetch').resolves({ json: {}});
 			subject.resolveUser(MOCK_SWG_RESPONSE);
 			expect(SwgController.fetch.calledWith(MOCK_M_SWG_SUB_SUCCESS_ENDPOINT, {
