@@ -3,6 +3,7 @@ const sinon = require('sinon');
 
 const { JSDOM } = require('./mocks/document');
 const SwgController = require('../../src/client/swg-controller');
+const swgClientMock = require('./mocks/swg-client');
 
 describe('Bower main-client.js', function () {
 	let subject;
@@ -51,7 +52,7 @@ describe('Bower main-client.js', function () {
 		});
 
 		it('calls SwgController.load() with correct options', function (done) {
-			sinon.stub(SwgController, 'load').resolves();
+			sinon.stub(SwgController, 'load').resolves(new swgClientMock());
 			subject.swgLoader({ manualInitDomain: 'ft.com', sandbox: true }).then(() => {
 				expect(SwgController.load.calledWith({ manual: true, sandbox: true })).to.be.true;
 				SwgController.load.restore();
@@ -64,7 +65,7 @@ describe('Bower main-client.js', function () {
 		});
 
 		it('on successful .load() resolves with an instance of the SwgController class', function (done) {
-			sinon.stub(SwgController, 'load').resolves();
+			sinon.stub(SwgController, 'load').resolves(new swgClientMock());
 			subject.swgLoader().then((swg) => {
 				expect(SwgController.load.calledWith({ manual: false, sandbox: false })).to.be.true;
 				expect(swg).to.be.an.instanceOf(SwgController);

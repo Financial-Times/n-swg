@@ -17,7 +17,7 @@ class SubscribeButtons {
 			btn.addEventListener('click', this.handleClick.bind(this));
 		});
 		if (this.onSwgReturn) this.onSwgReturn(this.onReturn.bind(this));
-		if (this.onSwgError) this.onSwgError(this.onReturn.bind(this));
+		if (this.onSwgError) this.onSwgError(this.onError.bind(this));
 
 		this.enableButtons();
 	}
@@ -57,8 +57,12 @@ class SubscribeButtons {
 		});
 	}
 
-	onReturn () {
+	onError () {
 		this.overlay.hide();
+	}
+
+	onReturn () {
+		this.disableButtons();
 	}
 
 }

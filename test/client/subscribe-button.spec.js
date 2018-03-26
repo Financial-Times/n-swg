@@ -102,28 +102,38 @@ describe('FEATURE: subscribe-button.js', function () {
 			it('attatches swgEventListener callbacks for onReturn and onError events', function () {
 				const triggerEvent = (type, ev) => mockDomListeners.find(({ t }={}) => t === type).l.call(ev);
 				const onReturnStub = sinon.stub(subject, 'onReturn');
+				const onErrorStub = sinon.stub(subject, 'onError');
 
 				subject.init();
 
 				triggerEvent('error', new Error('mock error'));
-				expect(onReturnStub.calledOnce).to.be.true;
+				expect(onErrorStub.calledOnce, 'error called').to.be.true;
 
 				triggerEvent('return', { success: true });
-				expect(onReturnStub.calledTwice).to.be.true;
+				expect(onReturnStub.calledOnce, 'return called').to.be.true;
 
 				subject.onReturn.restore();
 			});
 
-			it('hide overlay onReturn and onError events', function () {
+			it('hide overlay onError events', function () {
 				const triggerEvent = (type, ev) => mockDomListeners.find(({ t }={}) => t === type).l.call(ev);
 
 				subject.init();
 
 				triggerEvent('error', new Error('mock error'));
 				expect(mockOverlay.hide.calledOnce, 'overlay hidden onSwgError').to.be.true;
+			});
+
+			it('hide overlay onReturn events', function () {
+				const triggerEvent = (type, ev) => mockDomListeners.find(({ t }={}) => t === type).l.call(ev);
+				sinon.stub(subject, 'disableButtons');
+
+				subject.init();
 
 				triggerEvent('return', { success: true });
-				expect(mockOverlay.hide.calledTwice, 'overlay hidden onSwgReturn').to.be.true;
+				expect(mockOverlay.hide.notCalled, 'overlay hidden onSwgError').to.be.true;
+				expect(subject.disableButtons.calledOnce).to.be.true;
+				subject.disableButtons.restore();
 			});
 
 		});
