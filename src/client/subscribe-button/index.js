@@ -59,8 +59,12 @@ class SubscribeButtons {
 		});
 	}
 
-	onReturn () {
+	onError () {
 		this.overlay.hide();
+	}
+
+	onReturn () {
+		this.disableButtons();
 	}
 
 }

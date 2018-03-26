@@ -1,76 +1,104 @@
-import { swgReady, importClient } from './utils';
+import { swgReady, importClient, Overlay } from './utils';
 import SubscribeButtons from './subscribe-button';
 import _get from 'lodash.get';
 
 class SwgController {
 
-	constructor (swgClient, options={}, subscribeButtonConstructor=SubscribeButtons) {
+	constructor (swgClient, options={}, subscribeButtonConstructor=SubscribeButtons, overlay) {
+		/* options */
 		this.manualInitDomain = options.manualInitDomain;
-		this.alreadyInitialised = false;
-
-		this.handlers = Object.assign({
-			onSubscribeResponse: this.onSubscribeResponse
-		}, options.handlers);
-		this.swgClient = swgClient;
-
 		this.M_SWG_SUB_SUCCESS_ENDPOINT = options.M_SWG_SUB_SUCCESS_ENDPOINT || 'https://swg-fulfilment-svc-eu-test.memb.ft.com/subscriptions';
 
+		this.alreadyInitialised = false;
+		this.swgClient = swgClient;
+
+		/* bind handlers */
+		this.handlers = Object.assign({
+			onSubscribeResponse: this.onSubscribeResponse,
+			onEntitlementsResponse: this.onEntitlementsResponse
+		}, options.handlers);
+		this.swgClient.setOnSubscribeResponse(this.handlers.onSubscribeResponse.bind(this));
+		this.swgClient.setOnEntitlementsResponse(this.handlers.onEntitlementsResponse.bind(this));
+
 		if (options.subscribeFromButton) {
+			/* setup buttons */
 			this.subscribeButtons = new subscribeButtonConstructor(swgClient, { SwgController });
 		};
 
+		this.overlay = overlay || new Overlay();
+		this.ENTITLED_SUCCESS = 'ENTITLEMENTS_GRANT_SUCCESS';
 		this.baseTrackingData = SwgController.generateTrackingData(options);
 		this.activeTrackingData;
 	}
 
-	static load ({ manual=false, swgPromise=swgReady(), loadClient=importClient, sandbox=false }={}) {
-		return new Promise((resolve, reject) => {
-			try {
-				loadClient(document)({ manual, sandbox });
-			} catch (e) {
-				reject(e);
+	init () {
+		if (this.alreadyInitialised) return;
+
+		if (this.manualInitDomain) {
+			this.swgClient.init(this.manualInitDomain);
+		}
+
+		this.alreadyInitialised = true;
+
+		// bind own handlers
+		SwgController.listen('track', this.track.bind(this));
+
+		/* check user entitlements */
+		this.checkEntitlements().then((res={}) => {
+			if (res.granted) {
+				this.showOverlay(this.ENTITLED_SUCCESS);
+				/* NOTE: below chain will be broken until membership endpoint ready */
+				this.resolveUser(res.entitlements)
+					.then(this.onwardEntitledJourney)
+					.catch(this.signalError);
+			} else if (this.subscribeButtons) {
+				this.subscribeButtons.init();
 			}
-			swgPromise.then(resolve);
 		});
 	}
 
-	init () {
-		if (!this.alreadyInitialised) {
-
-			if (this.manualInitDomain) {
-				this.swgClient.init(this.manualInitDomain);
-			}
-			// bind swg handlers
-			this.swgClient.setOnSubscribeResponse(this.handlers.onSubscribeResponse.bind(this));
-
-			// bind own handlers
-			SwgController.listen('track', this.track.bind(this));
-
-			this.alreadyInitialised = true;
-		}
-
-		if (this.subscribeButtons) {
-			this.subscribeButtons.init();
-		}
+	checkEntitlements () {
+		const formatResponse = (resolve) => (entitlements={}) => {
+			const granted = entitlements && entitlements.enablesThis();
+			resolve({ granted, entitlements });
+		};
+		return new Promise((resolve) => {
+			SwgController.listen('entitlementsResponse', formatResponse(resolve));
+			this.swgClient.getEntitlements();
+		});
 	}
 
 	onSubscribeResponse (subPromise) {
 		subPromise.then((response) => {
-			this.signalReturn(response);
-			this.track({ action: 'success', context: {} });
-			this.resolveUser(response).then(() => {
-				this.track({ action: 'confirmation', context: {
-					// subscriptionId: response.subscriptionId
-				}});
-				// !TODO: redirect the now logged in user to relevant page
+			/* disable any buttons */
+			if (this.subscribeButtons) this.subscribeButtons.disableButtons();
+			/* signal a return event to any listeners */
+			SwgController.signal('onSubscribeReturn', response);
+			/* track success event */
+			SwgController.trackEvent({ action: 'success', context: {} });
+			/* resolve user */
+			this.resolveUser(response).then((res) => {
+				response.complete().then(() => {
+					this.track({ action: 'confirmation', context: {
+						// subscriptionId: response.subscriptionId
+					}});
+					this.onwardSubscribedJourney(res);
+				});
 			});
 		}).catch((err) => {
+			/* signal error event to any listeners */
 			this.signalError(err);
 			this.track({ action: 'exit', context: {
 				errCode: _get(err, 'activityResult.code'),
 				errData: _get(err, 'activityResult.data'),
 			}});
 		});
+	}
+
+	onEntitlementsResponse (entitlementsPromise) {
+		entitlementsPromise.then((entitlements) => {
+			SwgController.signal('entitlementsResponse', entitlements);
+		}).catch(this.signalError);
 	}
 
 	resolveUser (swgResponse) {
@@ -82,21 +110,43 @@ class SwgController {
 					'content-type': 'application/json'
 				}
 			})
-			.then(({ json }) => {
-				resolve(json);
-			})
-			.catch(err => {
-				reject(err);
-			});
+			.then(({ json }) => resolve(json))
+			.catch(reject);
 		});
 	}
 
-	signalReturn (res) {
-		SwgController.signal('onReturn', res);
+	onwardEntitledJourney () {
+		// console.log('FT.COM ONWARD ENTITLED', JSON.stringify(o, null, 2));
+		// !TODO: redirect the now logged in user to relevant page
+	}
+
+	onwardSubscribedJourney () {
+		// console.log('FT.COM ONWARD SUBSCRIBED', JSON.stringify(o, null, 2));
+		/* track confirmation event */
+		SwgController.trackEvent('confirmation', {});
+		// !TODO: redirect the now logged in user to relevant page
 	}
 
 	signalError (err) {
 		SwgController.signal('onError', err);
+	}
+
+	showOverlay (id) {
+		/* NOTE: temporary usage for testing */
+		if (id === this.ENTITLED_SUCCESS) {
+			this.overlay.show(`<p>It looks like you already have an FT.com subscription with Google.<br /><a href="https://www.ft.com/login?location=${encodeURIComponent(window.location.href)}">Login</a><br /><br /><small>code: ${id}</small></p>`);
+		}
+	}
+
+	static load ({ manual=false, swgPromise=swgReady(), loadClient=importClient, sandbox=false }={}) {
+		return new Promise((resolve, reject) => {
+			try {
+				loadClient(document)({ manual, sandbox });
+			} catch (e) {
+				reject(e);
+			}
+			swgPromise.then(resolve);
+		});
 	}
 
 	static fetch (url, options, _fetch=self.fetch) {
