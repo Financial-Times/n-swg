@@ -2,6 +2,8 @@ import { swgReady, importClient, Overlay } from './utils';
 import SubscribeButtons from './subscribe-button';
 import _get from 'lodash.get';
 
+const ARTICLE_UUID_QS = /ft-content-uuid=([^&]+)/;
+
 class SwgController {
 
 	constructor (swgClient, options={}, subscribeButtonConstructor=SubscribeButtons, overlay) {
@@ -94,6 +96,16 @@ class SwgController {
 		}).catch(this.signalError);
 	}
 
+	// Putting this in its own function to help with testing
+	redirectTo (url) {
+		window.location.href = url;
+	}
+
+	// Putting this in its own function to help with testing
+	getQueryStringParams () {
+		return window.location.search;
+	}
+
 	resolveUser (swgResponse) {
 		return new Promise((resolve, reject) => {
 			SwgController.fetch(this.M_SWG_SUB_SUCCESS_ENDPOINT, {
@@ -108,16 +120,25 @@ class SwgController {
 		});
 	}
 
+	onwardJourney () {
+		const qs = this.getQueryStringParams();
+
+		// If this is a page like a barrier, we want to redirect to the article the user was trying to access.
+		if (ARTICLE_UUID_QS.test(qs)) {
+			this.redirectTo(`https://www.ft.com/content/${qs.match(ARTICLE_UUID_QS)[1]}`);
+		}
+	}
+
 	onwardEntitledJourney () {
 		// console.log('FT.COM ONWARD ENTITLED', JSON.stringify(o, null, 2));
-		// !TODO: redirect the now logged in user to relevant page
+		this.onwardJourney();
 	}
 
 	onwardSubscribedJourney () {
 		// console.log('FT.COM ONWARD SUBSCRIBED', JSON.stringify(o, null, 2));
 		/* track confirmation event */
 		SwgController.trackEvent('confirmation', {});
-		// !TODO: redirect the now logged in user to relevant page
+		this.onwardJourney();
 	}
 
 	signalError (err) {

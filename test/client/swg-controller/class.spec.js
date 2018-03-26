@@ -265,17 +265,45 @@ describe('Swg Controller: class', function () {
 				expect(SwgController.trackEvent.calledWith('success')).to.be.true;
 				resolveUserPromise.then(() => {
 					mockResponseComplete.then(() => {
-					expect(SwgController.trackEvent.calledTwice).to.be.true;
-					expect(subject.onwardSubscribedJourney.calledOnce).to.be.true;
-					expect(SwgController.trackEvent.calledWith('confirmation')).to.be.true;
-					subject.resolveUser.restore();
-					subject.subscribeButtons.disableButtons.restore();
-					subject.onwardSubscribedJourney.restore();
-					done();
-				});
+						expect(SwgController.trackEvent.calledTwice).to.be.true;
+						expect(subject.onwardSubscribedJourney.calledOnce).to.be.true;
+						expect(SwgController.trackEvent.calledWith('confirmation')).to.be.true;
+						subject.resolveUser.restore();
+						subject.subscribeButtons.disableButtons.restore();
+						subject.onwardSubscribedJourney.restore();
+						done();
+					});
 				});
 			})
 			.catch(done);
+		});
+
+		it('correctly redirects to article if ft-content-uuid is passed as a query string param', function (done) {
+			const mockResponseComplete = Promise.resolve();
+			const MOCK_RESULT = { mock: 'swg-result', complete: () => mockResponseComplete };
+			const subPromise = Promise.resolve(MOCK_RESULT);
+			const resolveUserPromise = Promise.resolve();
+			const href = sinon.stub(subject, 'redirectTo');
+
+			sinon.spy(subject, 'onwardSubscribedJourney');
+			sinon.stub(subject, 'resolveUser').returns(resolveUserPromise);
+			sinon.stub(subject, 'getQueryStringParams').returns('?ft-content-uuid=1234');
+			sinon.stub(subject.subscribeButtons, 'disableButtons');
+			subject.onSubscribeResponse(subPromise);
+
+			subPromise.then(() => {
+				expect(subject.subscribeButtons.disableButtons.calledOnce).to.be.true;
+				expect(SwgController.signal.calledWith('onSubscribeReturn', MOCK_RESULT)).to.be.true;
+				expect(SwgController.trackEvent.calledOnce).to.be.true;
+				expect(SwgController.trackEvent.calledWith('success')).to.be.true;
+				resolveUserPromise.then(() => {
+					mockResponseComplete.then(() => {
+						expect(href.getCall(0).args[0]).to.equal('https://www.ft.com/content/1234');
+
+						done();
+					});
+				});
+			});
 		});
 
 		it('on subPromise error: signal error, track event', function (done) {
@@ -436,7 +464,7 @@ describe('Swg Controller: class', function () {
 
 		it('signal \"entitlementsResponse\" event on entitlementsPromise', function () {
 			sinon.stub(SwgController, 'signal');
-			const MOCK_RESULT = { entitlments: 'object' }
+			const MOCK_RESULT = { entitlments: 'object' };
 			const mockEntitlementsPromise = Promise.resolve(MOCK_RESULT);
 
 			subject.onEntitlementsResponse(mockEntitlementsPromise);
