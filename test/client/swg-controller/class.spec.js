@@ -136,24 +136,24 @@ describe('Swg Controller: class', function () {
 				.catch(done);
 			});
 
-			it('if granted access will showToast, resolve user and call onwardEntitledJourney method', function (done) {
+			it('if granted access will showOverlay, resolve user and call onwardEntitledJourney method', function (done) {
 				const subject = new SwgController(swgClient);
 				const checkEntitlementsPromise = Promise.resolve({ granted: true });
 				const resolveUserPromise = Promise.resolve();
 				sinon.stub(subject, 'checkEntitlements').returns(checkEntitlementsPromise);
 				sinon.stub(subject, 'resolveUser').returns(resolveUserPromise);
 				sinon.stub(subject, 'onwardEntitledJourney');
-				sinon.stub(subject, 'showToast');
+				sinon.stub(subject, 'showOverlay');
 
 				subject.init();
 				checkEntitlementsPromise.then(() => {
 					resolveUserPromise.then(() => {
 						expect(subject.onwardEntitledJourney.calledOnce).to.be.true;
-						expect(subject.showToast.calledOnce).to.be.true;
+						expect(subject.showOverlay.calledOnce).to.be.true;
 						subject.resolveUser.restore();
 						subject.checkEntitlements.restore();
 						subject.onwardEntitledJourney.restore();
-						subject.showToast.restore();
+						subject.showOverlay.restore();
 						done();
 					})
 					.catch(done);
@@ -161,14 +161,14 @@ describe('Swg Controller: class', function () {
 				.catch(done);
 			});
 
-			it('if granted access but resolve user errors, will showToast and signal error', function (done) {
+			it('if granted access but resolve user errors, will showOverlay and signal error', function (done) {
 				const subject = new SwgController(swgClient);
 				const checkEntitlementsPromise = Promise.resolve({ granted: true });
 				const resolveUserPromise = Promise.reject(new Error('what!'));
 				sinon.stub(subject, 'checkEntitlements').returns(checkEntitlementsPromise);
 				sinon.stub(subject, 'resolveUser').returns(resolveUserPromise);
 				sinon.stub(subject, 'signalError');
-				sinon.stub(subject, 'showToast');
+				sinon.stub(subject, 'showOverlay');
 
 				subject.init();
 				checkEntitlementsPromise.then(() => {
@@ -180,11 +180,11 @@ describe('Swg Controller: class', function () {
 					})
 					.then(() => {
 						expect(subject.signalError.calledOnce).to.be.true;
-						expect(subject.showToast.calledOnce).to.be.true;
+						expect(subject.showOverlay.calledOnce).to.be.true;
 						subject.resolveUser.restore();
 						subject.checkEntitlements.restore();
 						subject.signalError.restore();
-						subject.showToast.restore();
+						subject.showOverlay.restore();
 						done();
 					})
 					.catch(done);
@@ -460,7 +460,7 @@ describe('Swg Controller: class', function () {
 
 	});
 
-	describe('.showToast()', function () {
+	describe('.showOverlay()', function () {
 		let subject;
 		let overlayStub;
 
@@ -477,12 +477,12 @@ describe('Swg Controller: class', function () {
 		});
 
 		it('shows entitled success message overlay', function () {
-			subject.showToast(subject.ENTITLED_SUCCESS);
+			subject.showOverlay(subject.ENTITLED_SUCCESS);
 			expect(overlayStub.show.calledOnce).to.be.true;
 		});
 
 		it('does nothing if called with an unknown id', function () {
-			subject.showToast();
+			subject.showOverlay();
 			expect(overlayStub.show.notCalled).to.be.true;
 		});
 

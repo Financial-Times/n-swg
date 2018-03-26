@@ -41,7 +41,7 @@ class SwgController {
 		/* check user entitlements */
 		this.checkEntitlements().then((res={}) => {
 			if (res.granted) {
-				this.showToast(this.ENTITLED_SUCCESS);
+				this.showOverlay(this.ENTITLED_SUCCESS);
 				/* NOTE: below chain will be broken until membership endpoint ready */
 				this.resolveUser(res.entitlements)
 					.then(this.onwardEntitledJourney)
@@ -124,7 +124,7 @@ class SwgController {
 		SwgController.signal('onError', err);
 	}
 
-	showToast (id) {
+	showOverlay (id) {
 		/* NOTE: temporary usage for testing */
 		if (id === this.ENTITLED_SUCCESS) {
 			this.overlay.show(`<p>It looks like you already have an FT.com subscription with Google.<br /><a href="https://www.ft.com/login?location=${encodeURIComponent(window.location.href)}">Login</a><br /><br /><small>code: ${id}</small></p>`);
