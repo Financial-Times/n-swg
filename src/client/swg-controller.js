@@ -2,8 +2,6 @@ import { swgReady, importClient, Overlay } from './utils';
 import SubscribeButtons from './subscribe-button';
 import _get from 'lodash.get';
 
-const ARTICLE_UUID_QS = /ft-content-uuid=([^&]+)/;
-
 class SwgController {
 
 	constructor (swgClient, options={}, subscribeButtonConstructor=SubscribeButtons, overlay) {
@@ -104,16 +102,6 @@ class SwgController {
 		}).catch(this.signalError);
 	}
 
-	// Putting this in its own function to help with testing
-	redirectTo (url) {
-		window.location.href = url;
-	}
-
-	// Putting this in its own function to help with testing
-	getQueryStringParams () {
-		return window.location.search;
-	}
-
 	resolveUser (swgResponse) {
 		return new Promise((resolve, reject) => {
 			SwgController.fetch(this.M_SWG_SUB_SUCCESS_ENDPOINT, {
@@ -128,27 +116,18 @@ class SwgController {
 		});
 	}
 
-	onwardJourney (location) {
-		if (location) return this.redirectTo(location);
-
-		const qs = this.getQueryStringParams();
-
-		// If this is a page like a barrier, we want to redirect to the article the user was trying to access.
-		if (ARTICLE_UUID_QS.test(qs)) {
-			this.redirectTo(`https://www.ft.com/content/${qs.match(ARTICLE_UUID_QS)[1]}`);
-		} else {
-			this.redirectTo('https://www.ft.com');
-		}
-	}
-
 	onwardEntitledJourney () {
 		// console.log('FT.COM ONWARD ENTITLED', JSON.stringify(o, null, 2));
-		this.onwardJourney();
+		const uuid = SwgController.currentContentUrl();
+		const url = uuid ? `https://www.ft.com/content/${uuid}` : 'https://www.ft.com';
+		SwgController.redirectTo(url);
 	}
 
 	onwardSubscribedJourney () {
 		// console.log('FT.COM ONWARD SUBSCRIBED', JSON.stringify(o, null, 2));
-		this.onwardJourney(this.POST_SUBSCRIBE_URL);
+		const uuid = SwgController.currentContentUrl();
+		const url = this.POST_SUBSCRIBE_URL + (uuid ? '&ft-content-uuid=' + uuid : '');
+		SwgController.redirectTo(url);
 	}
 
 	signalError (err) {
@@ -259,6 +238,22 @@ class SwgController {
 		} else {
 			return {};
 		}
+	}
+
+	static currentContentUrl () {
+		const ARTICLE_UUID_QS = /ft-content-uuid=([^&]+)/;
+		const ARTICLE_UUID_PATH = /content\/([^&?\/]+)/;
+		const location = SwgController.getWindowLocation() || {};
+		const lookup = (regexp, str) => str && (str.match(regexp) || [])[1];
+		return lookup(ARTICLE_UUID_QS, location.search) || lookup(ARTICLE_UUID_PATH, location.href);
+	}
+
+	static redirectTo (url) {
+		window.location.href = url;
+	}
+
+	static getWindowLocation () {
+		return window.location;
 	}
 
 }
