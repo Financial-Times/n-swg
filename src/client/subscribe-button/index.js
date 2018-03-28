@@ -8,8 +8,6 @@ class SubscribeButtons {
 		this.overlay = overlay || new Overlay();
 		this.signal = SwgController.signal;
 		this.listen = SwgController.listen;
-		// this.onSwgReturn = SwgController.onReturn;
-		// this.onSwgError = SwgController.onError;
 		this.disableButtons();
 	}
 
@@ -18,7 +16,7 @@ class SubscribeButtons {
 			btn.addEventListener('click', this.handleClick.bind(this));
 		});
 		this.listen('onReturn', this.onReturn.bind(this));
-		this.listen('onError', this.onReturn.bind(this));
+		this.listen('onError', this.onError.bind(this));
 
 		this.enableButtons();
 	}
@@ -26,13 +24,12 @@ class SubscribeButtons {
 	handleClick (event) {
 		event.preventDefault();
 
-		// this.overlay.show();
+		this.overlay.show();
 
 		try {
 			const skus = event.target.getAttribute('data-n-swg-button-skus').split(',');
 
 			this.signal('track', { action: 'landing', context: { skus }, journeyStart: true });
-			// this.trackEvent('landing', {});
 
 			if (skus.length > 1) {
 				this.swgClient.showOffers({ skus });

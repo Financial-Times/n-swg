@@ -40,6 +40,7 @@ describe('Swg Controller: class', function () {
 			expect(subject.swgClient).to.deep.equal(swgClient);
 			expect(subject.overlay).to.be.an.instanceOf(Overlay);
 			expect(subject.M_SWG_SUB_SUCCESS_ENDPOINT).to.equal('https://swg-fulfilment-svc-eu-prod.memb.ft.com/subscriptions');
+			expect(subject.POST_SUBSCRIBE_URL).to.equal('https://www.ft.com/profile?splash=swg_checkout');
 		});
 
 		it('accepts custom options', function () {
@@ -136,7 +137,7 @@ describe('Swg Controller: class', function () {
 				.catch(done);
 			});
 
-			it('if granted access will showOverlay, resolve user and call onwardEntitledJourney method', function (done) {
+			it('if granted access will showOverlay, resolve user and call onwardEntitledJourney()', function (done) {
 				const subject = new SwgController(swgClient);
 				const checkEntitlementsPromise = Promise.resolve({ granted: true });
 				const resolveUserPromise = Promise.resolve();
@@ -197,57 +198,46 @@ describe('Swg Controller: class', function () {
 	});
 
 	describe('events and listeners', function () {
-		let subject;
 
-		beforeEach(() => {
-			subject = new SwgController(swgClient);
-		});
-
-		it('.signalError() calls all registered error listeners', function (done) {
+		it('.signal() \"onError\" event calls all registered error listeners', function (done) {
 			const MOCK_ERROR = new Error('mock error');
-			SwgController.onError((error) => {
-				expect(error).to.equal(MOCK_ERROR);
-				done();
-			});
-			subject.signalError(MOCK_ERROR);
-		});
-
-		it('.signalError() calls all registered error listeners', function (done) {
-			const MOCK_ERROR = new Error('mock error');
-			SwgController.onError((error) => {
-				expect(error).to.equal(MOCK_ERROR);
-				done();
-			});
-			subject.signalError(MOCK_ERROR);
-		});
-
-		it('\"onError\" event calls all registered error listeners', function (done) {
-			const MOCK_ERROR = new Error('mock error');
-			SwgController.onError((error) => {
+			SwgController.listen('onError', (error) => {
 				expect(error).to.equal(MOCK_ERROR);
 				done();
 			});
 			SwgController.signal('onError', MOCK_ERROR);
 		});
 
+		it('.signal() \"onReturn\" event calls all registered return listeners', function (done) {
+			const MOCK_RESULT = { example: 'object' };
+			SwgController.listen('onReturn', (error) => {
+				expect(error).to.equal(MOCK_RESULT);
+				done();
+			});
+			SwgController.signal('onReturn', MOCK_RESULT);
+		});
+
 	});
 
 	describe('.onSubscribeResponse() handler', function () {
 		let subject;
+		let redirectStub;
 
 		beforeEach(() => {
 			subject = new SwgController(swgClient, { subscribeFromButton: true });
 			sinon.stub(SwgController, 'signal');
 			sinon.stub(SwgController, 'trackEvent');
+			redirectStub = sinon.stub(subject, 'redirectTo');
 		});
 
 		afterEach(() => {
 			SwgController.signal.restore();
 			SwgController.trackEvent.restore();
+			redirectStub.restore();
 			subject = null;
 		});
 
-		it('on subPromise success: disable buttons, signal return, track success, resolve user -> onwardSubscribedJourney', function (done) {
+		it('on subPromise success: disable buttons, signal return, track success, resolve user -> onwardSubscribedJourney()', function (done) {
 			const mockResponseComplete = Promise.resolve();
 			const MOCK_RESULT = { mock: 'swg-result', complete: () => mockResponseComplete };
 			const subPromise = Promise.resolve(MOCK_RESULT);
@@ -262,12 +252,12 @@ describe('Swg Controller: class', function () {
 				expect(subject.subscribeButtons.disableButtons.calledOnce).to.be.true;
 				expect(SwgController.signal.calledWith('onSubscribeReturn', MOCK_RESULT)).to.be.true;
 				expect(SwgController.trackEvent.calledOnce).to.be.true;
-				expect(SwgController.trackEvent.calledWith('success')).to.be.true;
+				expect(SwgController.trackEvent.calledWith(sinon.match({ action: 'success' }))).to.be.true;
 				resolveUserPromise.then(() => {
 					mockResponseComplete.then(() => {
 						expect(SwgController.trackEvent.calledTwice).to.be.true;
 						expect(subject.onwardSubscribedJourney.calledOnce).to.be.true;
-						expect(SwgController.trackEvent.calledWith('confirmation')).to.be.true;
+						expect(SwgController.trackEvent.calledWith(sinon.match({ action: 'confirmation' }))).to.be.true;
 						subject.resolveUser.restore();
 						subject.subscribeButtons.disableButtons.restore();
 						subject.onwardSubscribedJourney.restore();
@@ -276,34 +266,6 @@ describe('Swg Controller: class', function () {
 				});
 			})
 			.catch(done);
-		});
-
-		it('correctly redirects to article if ft-content-uuid is passed as a query string param', function (done) {
-			const mockResponseComplete = Promise.resolve();
-			const MOCK_RESULT = { mock: 'swg-result', complete: () => mockResponseComplete };
-			const subPromise = Promise.resolve(MOCK_RESULT);
-			const resolveUserPromise = Promise.resolve();
-			const href = sinon.stub(subject, 'redirectTo');
-
-			sinon.spy(subject, 'onwardSubscribedJourney');
-			sinon.stub(subject, 'resolveUser').returns(resolveUserPromise);
-			sinon.stub(subject, 'getQueryStringParams').returns('?ft-content-uuid=1234');
-			sinon.stub(subject.subscribeButtons, 'disableButtons');
-			subject.onSubscribeResponse(subPromise);
-
-			subPromise.then(() => {
-				expect(subject.subscribeButtons.disableButtons.calledOnce).to.be.true;
-				expect(SwgController.signal.calledWith('onSubscribeReturn', MOCK_RESULT)).to.be.true;
-				expect(SwgController.trackEvent.calledOnce).to.be.true;
-				expect(SwgController.trackEvent.calledWith('success')).to.be.true;
-				resolveUserPromise.then(() => {
-					mockResponseComplete.then(() => {
-						expect(href.getCall(0).args[0]).to.equal('https://www.ft.com/content/1234');
-
-						done();
-					});
-				});
-			});
 		});
 
 		it('on subPromise error: signal error, track event', function (done) {
@@ -326,10 +288,11 @@ describe('Swg Controller: class', function () {
 			.catch(() => {
 				expect(SwgController.signal.calledWith('onError', MOCK_ERROR), 'signalError called').to.be.true;
 				expect(SwgController.trackEvent.calledOnce, 'trackEvent calledOnce').to.be.true;
-				expect(SwgController.trackEvent.calledWith('exit', {
+				expect(SwgController.trackEvent.calledWith(sinon.match({
+					action: 'exit',
 					errCode: MOCK_ERROR.activityResult.code,
 					errData: MOCK_ERROR.activityResult.data
-				}), 'track exit called').to.be.true;
+				})), 'track exit called').to.be.true;
 				done();
 			})
 			.catch(done);
@@ -514,6 +477,185 @@ describe('Swg Controller: class', function () {
 			expect(overlayStub.show.notCalled).to.be.true;
 		});
 
+	});
+
+	describe('.track()', function () {
+		let subject;
+		let trackEventStub;
+
+		beforeEach(() => {
+			subject = new SwgController(swgClient);
+			trackEventStub = sinon.stub(SwgController, 'trackEvent');
+		});
+
+		afterEach(() => {
+			trackEventStub.restore();
+			subject = null;
+		});
+
+		it('can be invoked via a \"track\" signalled event', function () {
+			sinon.stub(subject, 'track');
+			subject.init();
+			SwgController.signal('track', { action: 'foo'} );
+			expect(subject.track.calledOnce).to.be.true;
+			subject.track.restore();;
+		});
+
+		it('decorate basic events', function () {
+			const RESULT = {
+				category: 'SwG',
+				formType: 'signup:swg',
+				production: true,
+				paymentMethod: 'SWG',
+				system: { source: 'n-swg' },
+				action: 'foo'
+			};
+			subject.init();
+			subject.track({ action: 'foo' });
+			expect(trackEventStub.calledWith(RESULT)).to.be.true;
+		});
+
+		it('decorate with offer data if journeyStart=true and update activeTrackingData', function () {
+			const context = { skus: ['ft.com_abcd38.efg89_p1m_premium.trial_31.05.18'] };
+			const RESULT = {
+				category: 'SwG',
+				formType: 'signup:swg',
+				production: true,
+				paymentMethod: 'SWG',
+				system: { source: 'n-swg' },
+				offerId: 'abcd38-efg89',
+				skuId: 'ft.com_abcd38.efg89_p1m_premium.trial_31.05.18',
+				productName: 'premium trial',
+				term: 'p1m',
+				productType: 'Digital',
+				isTrial: true,
+				isPremium: true,
+				skus: [ 'ft.com_abcd38.efg89_p1m_premium.trial_31.05.18' ],
+				action: 'foo'
+			};
+			subject.init();
+			subject.track({ action: 'foo', context, journeyStart: true });
+			expect(trackEventStub.calledWith(RESULT)).to.be.true;
+			expect(RESULT).to.contain(subject.activeTrackingData);
+		});
+
+		it('do not decorate with offer data if journeyStart=false', function () {
+			const context = { skus: ['ft.com_abcd38.efg89_p1m_premium.trial_31.05.18'] };
+			const RESULT = {
+				category: 'SwG',
+				formType: 'signup:swg',
+				production: true,
+				paymentMethod: 'SWG',
+				system: { source: 'n-swg' },
+				action: 'foo',
+				skus: context.skus
+			};
+			subject.init();
+			subject.track({ action: 'foo', context, journeyStart: false });
+			expect(trackEventStub.calledWith(RESULT)).to.be.true;
+			expect(subject.activeTrackingData).to.be.undefined;
+		});
+
+		it('do not decorate with offer data if journeyStart=true but mutiple skus', function () {
+			const context = { skus: ['ft.com_abcd38.efg89_p1m_premium.trial_31.05.18', 'ft.com_abcd38.efg89_p1m_standard.trial_31.05.18'] };
+			const RESULT = {
+				category: 'SwG',
+				formType: 'signup:swg',
+				production: true,
+				paymentMethod: 'SWG',
+				system: { source: 'n-swg' },
+				action: 'foo',
+				skus: context.skus
+			};
+			subject.init();
+			subject.track({ action: 'foo', context, journeyStart: true });
+			expect(trackEventStub.calledWith(RESULT)).to.be.true;
+			expect(subject.activeTrackingData).to.be.an('object');
+			expect(subject.activeTrackingData).to.be.empty;
+		});
+
+		it('decorates with activeTrackingData', function () {
+			const mockActiveData = { foo: 'bar' };
+			subject.init();
+			subject.activeTrackingData = mockActiveData;
+			subject.track({ action: 'foo' });
+			const RESULT = {
+				action: 'foo',
+				foo: 'bar'
+			};
+			expect(trackEventStub.calledWith(sinon.match(RESULT))).to.be.true;
+		});
+
+		context('activeTrackingData state', function () {
+
+			it('starts undefined', function () {
+				expect(subject.activeTrackingData).to.be.undefined;
+				subject.init();
+				expect(subject.activeTrackingData).to.be.undefined;
+			});
+
+			it('updates to offerdata if journeyStart', function () {
+				subject.init();
+				const context = { skus: ['ft.com_abcd38.efg89_p1m_premium.trial_31.05.18'] };
+				subject.track({ action: 'foo', context, journeyStart: true });
+				expect(subject.activeTrackingData).to.contain({ skuId: context.skus[0] });
+			});
+
+			it('maintains state for subsequent events', function () {
+				subject.init();
+				const context = { skus: ['ft.com_abcd38.efg89_p1m_premium.trial_31.05.18'] };			subject.track({ action: 'foo', context, journeyStart: true });
+				expect(subject.activeTrackingData).to.contain({ skuId: context.skus[0] });
+				subject.track({ action: 'foo' });
+				expect(subject.activeTrackingData).to.contain({ skuId: context.skus[0] });
+				expect(trackEventStub.calledWith(sinon.match({ skuId: context.skus[0] }))).to.be.true;
+			});
+
+			it('updates offerdata if a new journeyStart event', function () {
+				subject.init();
+				const context1 = { skus: ['ft.com_abcd38.efg89_p1m_premium.trial_31.05.18'] };
+				const context2 = { skus: ['ft.com_abcd38.efg89_p1m_premium.trial_31.05.18', 'ft.com_abcd38.efg89_p1m_standard.trial_31.05.18'] };			subject.track({ action: 'foo', context: context1, journeyStart: true });
+				expect(subject.activeTrackingData).to.contain({ skuId: context1.skus[0] });
+				subject.track({ action: 'foo', context: context2, journeyStart: true });
+				expect(subject.activeTrackingData).to.be.empty;
+			});
+
+		});
+
+	});
+
+	describe('onwardJourney()', function () {
+		let subject;
+		let redirectStub;
+
+		beforeEach(() => {
+			subject = new SwgController(swgClient);
+			subject.init();
+			redirectStub = sinon.stub(subject, 'redirectTo');
+		});
+
+		afterEach(() => {
+			subject = null;
+			redirectStub.restore();
+		});
+
+		it('will redirect to a provided location', function () {
+			const LOCATION = 'https://foo.com';
+			subject.onwardJourney(LOCATION);
+			expect(redirectStub.calledWith(LOCATION));
+		});
+
+		it('will fallback to the homepage', function () {
+			const LOCATION = 'https://www.ft.com';
+			subject.onwardJourney();
+			expect(redirectStub.calledWith(LOCATION));
+		});
+
+		it('will redirect to content if on a content page', function () {
+			sinon.stub(subject, 'getQueryStringParams').returns('?ft-content-uuid=12345&foo=bar');
+			subject.onwardJourney();
+			expect(redirectStub.calledWith('https://www.ft.com/content/12345'));
+			subject.getQueryStringParams.restore();
+		});
 
 	});
 

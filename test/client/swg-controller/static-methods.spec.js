@@ -144,24 +144,99 @@ describe('Swg Controller: static methods', function () {
 				expect(event.type).to.equal('oTracking.event');
 				done();
 			});
-			SwgController.trackEvent(null, {}, CustomEvent);
+			SwgController.trackEvent({}, CustomEvent);
 		});
 
-		it('correctly formats event detail', function (done) {
-			const MOCK_ACTION = 'swg-error';
-			const MOCK_CONTEXT = { message: 'something went wrong' };
+	});
 
-			dom.body.addEventListener('oTracking.event', (event) => {
-				expect(event.type).to.equal('oTracking.event');
-				expect(event.bubbles).to.be.true;
-				expect(event.detail).to.contain(MOCK_CONTEXT);
-				expect(event.detail.action).to.equal(MOCK_ACTION);
-				expect(event.detail.category).to.equal('SwG');
-				expect(event.detail.system).to.deep.equal({ source: 'n-swg' });
-				done();
+	describe('.listen()', function () {
+
+		it('will attatch a name spaced event listener to the body', function () {
+			sinon.stub(dom.body, 'addEventListener');
+
+			SwgController.listen('load', () => true);
+			const [ name, func ] = dom.body.addEventListener.getCall(0).args;
+			expect(name).to.equal('nSwg.load');
+			expect(func).to.be.a('function');
+
+			dom.body.addEventListener.restore();
+		});
+
+	});
+
+	describe('.signal()', function () {
+
+		it('will dispatch a name spaced event to the body', function () {
+			sinon.stub(dom.body, 'dispatchEvent');
+			const DETAIL = { foo: 'bar' };
+
+			SwgController.signal('load', DETAIL, CustomEvent);
+			const event = dom.body.dispatchEvent.getCall(0).args[0];
+			expect(event.type).to.equal('nSwg.load');
+			expect(event.detail).to.equal(DETAIL);
+
+			dom.body.dispatchEvent.restore();
+		});
+
+	});
+
+	describe('.generateTrackingData()', function () {
+
+		it('generates basic tracking data', function () {
+			const result = SwgController.generateTrackingData({ sandbox: true });
+			expect(result).to.deep.equal({
+				category: 'SwG',
+				formType: 'signup:swg',
+				production: false,
+				paymentMethod: 'SWG',
+				system: { source: 'n-swg' }
+			});
+		});
+
+	});
+
+	describe('.generateOfferDataFromSku()', function () {
+
+		it('returns an empty object if mutiple skus', function () {
+			const result = SwgController.generateOfferDataFromSku(['1', '2']);
+			expect(result).to.be.an('object');
+			expect(result).to.be.empty;
+		});
+
+		it('returns an empty object sku does not start with \"ft.com\"', function () {
+			const result = SwgController.generateOfferDataFromSku(['1']);
+			expect(result).to.be.an('object');
+			expect(result).to.be.empty;
+		});
+
+		describe('returns an object with extracted offer data from sku id', function () {
+
+			it('standard non trial', function () {
+				const result = SwgController.generateOfferDataFromSku(['ft.com_abcd38.efg89_p1y_standard_31.05.18']);
+				expect(result).to.deep.equal({
+					offerId: 'abcd38-efg89',
+					skuId: 'ft.com_abcd38.efg89_p1y_standard_31.05.18',
+					productName: 'standard',
+					term: 'p1y',
+					productType: 'Digital',
+					isTrial: false,
+					isPremium: false
+				});
 			});
 
-			SwgController.trackEvent(MOCK_ACTION, MOCK_CONTEXT, CustomEvent);
+			it('premium trial', function () {
+				const result = SwgController.generateOfferDataFromSku(['ft.com_abcd38.efg89_p1m_premium.trial_31.05.18']);
+				expect(result).to.deep.equal({
+					offerId: 'abcd38-efg89',
+					skuId: 'ft.com_abcd38.efg89_p1m_premium.trial_31.05.18',
+					productName: 'premium trial',
+					term: 'p1m',
+					productType: 'Digital',
+					isTrial: true,
+					isPremium: true
+				});
+			});
+
 		});
 
 	});

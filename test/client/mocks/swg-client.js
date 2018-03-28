@@ -22,6 +22,10 @@ class SwgClient {
 		return true;
 	}
 
+	showOffers () {
+		return true;
+	}
+
 	subscribe () {
 		return true;
 	}

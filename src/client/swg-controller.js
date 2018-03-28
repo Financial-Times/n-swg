@@ -10,6 +10,7 @@ class SwgController {
 		/* options */
 		this.manualInitDomain = options.manualInitDomain;
 		this.M_SWG_SUB_SUCCESS_ENDPOINT = options.M_SWG_SUB_SUCCESS_ENDPOINT || (options.sandbox ? 'https://swg-fulfilment-svc-eu-test.memb.ft.com/subscriptions' : 'https://swg-fulfilment-svc-eu-prod.memb.ft.com/subscriptions');
+		this.POST_SUBSCRIBE_URL = 'https://www.ft.com/profile?splash=swg_checkout';
 
 		this.alreadyInitialised = false;
 		this.swgClient = swgClient;
@@ -77,7 +78,7 @@ class SwgController {
 			/* signal a return event to any listeners */
 			SwgController.signal('onSubscribeReturn', response);
 			/* track success event */
-			SwgController.trackEvent({ action: 'success', context: {} });
+			this.track({ action: 'success', context: {} });
 			/* resolve user */
 			this.resolveUser(response).then((res) => {
 				response.complete().then(() => {
@@ -127,12 +128,16 @@ class SwgController {
 		});
 	}
 
-	onwardJourney () {
+	onwardJourney (location) {
+		if (location) return this.redirectTo(location);
+
 		const qs = this.getQueryStringParams();
 
 		// If this is a page like a barrier, we want to redirect to the article the user was trying to access.
 		if (ARTICLE_UUID_QS.test(qs)) {
 			this.redirectTo(`https://www.ft.com/content/${qs.match(ARTICLE_UUID_QS)[1]}`);
+		} else {
+			this.redirectTo('https://www.ft.com');
 		}
 	}
 
@@ -143,9 +148,7 @@ class SwgController {
 
 	onwardSubscribedJourney () {
 		// console.log('FT.COM ONWARD SUBSCRIBED', JSON.stringify(o, null, 2));
-		/* track confirmation event */
-		SwgController.trackEvent('confirmation', {});
-		this.onwardJourney();
+		this.onwardJourney(this.POST_SUBSCRIBE_URL);
 	}
 
 	signalError (err) {
@@ -157,6 +160,16 @@ class SwgController {
 		if (id === this.ENTITLED_SUCCESS) {
 			this.overlay.show(`<p>It looks like you already have an FT.com subscription with Google.<br /><a href="https://www.ft.com/login?location=${encodeURIComponent(window.location.href)}">Login</a><br /><br /><small>code: ${id}</small></p>`);
 		}
+	}
+
+	track ({ action, context={}, journeyStart=false }={}) {
+		const offerData = SwgController.generateOfferDataFromSku(context.skus);
+		if (offerData && journeyStart) {
+			// update the activeTrackingData state to include active offer
+			this.activeTrackingData = offerData;
+		}
+		const decoratedEvent = Object.assign({}, this.baseTrackingData, this.activeTrackingData, context, { action });
+		SwgController.trackEvent(decoratedEvent);
 	}
 
 	static load ({ manual=false, swgPromise=swgReady(), loadClient=importClient, sandbox=false }={}) {
@@ -197,16 +210,6 @@ class SwgController {
 		});
 	}
 
-	track ({ action, context={}, journeyStart=false }={}) {
-		const offerData = SwgController.generateOfferDataFromSku(context.skus);
-		if (offerData && journeyStart) {
-			// update the activeTrackingData state to include active offer
-			this.activeTrackingData = offerData;
-		}
-		const decoratedEvent = Object.assign({}, this.baseTrackingData, this.activeTrackingData, context, { action });
-		SwgController.trackEvent(decoratedEvent);
-	}
-
 	static trackEvent (detail, eventConstructor=CustomEvent) {
 		document.body.dispatchEvent(new eventConstructor('oTracking.event', { detail, bubbles: true }));
 	}
@@ -243,7 +246,7 @@ class SwgController {
 		 */
 		const [ domain, offerId, term, name ] = skus[0].toLowerCase().split('_');
 		const strContainsVal = (s, v) => s && s.indexOf(v) !== -1;
-		if (strContainsVal(domain, 'ft.com')) {
+		if (domain && domain === 'ft.com') {
 			return {
 				offerId: offerId && offerId.replace(/\./g, '-'),
 				skuId: skus[0],
@@ -257,14 +260,6 @@ class SwgController {
 			return {};
 		}
 	}
-
-	// static onReturn (listener) {
-	// 	SwgController.listen('onReturn', listener);
-	// }
-
-	// static onError (listener) {
-	// 	SwgController.listen('onError', listener);
-	// }
 
 }
 
