@@ -4,6 +4,7 @@
   "description": "Styling, components, and templates for our Subscribe with Google work.",
   "ignore": [
     "**/.*",
+    "*env*",
     "node_modules",
     "bower_components",
     "test",
@@ -19,11 +20,14 @@
     ".scss-lint.yml",
     ".pa11yci.js",
     ".stylelintrc",
+    "package.json",
     "package-lock.json",
     "circle.yml",
     "ft.yml",
     "Makefile",
-    "secret-squirrel.js"
+    "secret-squirrel.js",
+    "src/server/*",
+    "main.js"
   ],
   "main": [
     "main.scss",
