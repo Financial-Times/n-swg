@@ -7,7 +7,7 @@ const SubscribeButtons = require('../../src/client/subscribe-button/index');
 const HTML = '<body><div id="other-element"></div><div class="n-swg-button"></div><div class="n-swg-button"></div><div class="n-swg-button"></div><div class="n-swg-button"></div></body>';
 
 describe('FEATURE: subscribe-button.js', function () {
-	let mockSwgClient = { subscribe: () => true };
+	let mockSwgClient = { subscribe: () => true, showOffers: () => true };
 	let mockOverlay;
 	let helpers;
 	const customSelector = '.n-swg-button';
@@ -21,10 +21,12 @@ describe('FEATURE: subscribe-button.js', function () {
 			hide: sinon.stub()
 		};
 		sinon.stub(mockSwgClient, 'subscribe');
+		sinon.stub(mockSwgClient, 'showOffers');
 	});
 
 	afterEach(() => {
 		mockSwgClient.subscribe.restore();
+		mockSwgClient.showOffers.restore();
 		delete global.document;
 	});
 
@@ -36,30 +38,27 @@ describe('FEATURE: subscribe-button.js', function () {
 		let subject;
 		let buttons;
 		let mockDomListeners;
-		let trackEvent;
+		let mockSignal;
 
 		beforeEach(() => {
 			mockDomListeners = [];
 			/* Dummy class with static methods */
 			class MockSwgController {
-				static trackEvent () {
+				static listen (ev, l) {
+					mockDomListeners.push({ t: ev, l });
+				}
+				static signal () {
 					return true;
-				}
-				static onError (l) {
-					mockDomListeners.push({ t: 'error', l });
-				}
-				static onReturn (l) {
-					mockDomListeners.push({ t: 'return', l });
 				}
 			};
 
-			trackEvent = sinon.stub(MockSwgController, 'trackEvent');
+			mockSignal = sinon.stub(MockSwgController, 'signal');
 			subject = new SubscribeButtons(mockSwgClient, { SwgController: MockSwgController, selector: customSelector, overlay: mockOverlay });
 			buttons = global.document.querySelectorAll(customSelector);
 		});
 
 		afterEach(() => {
-			trackEvent.restore();
+			mockSignal.restore();
 			mockDomListeners = subject = null;
 		});
 
@@ -106,10 +105,10 @@ describe('FEATURE: subscribe-button.js', function () {
 
 				subject.init();
 
-				triggerEvent('error', new Error('mock error'));
+				triggerEvent('onError', new Error('mock error'));
 				expect(onErrorStub.calledOnce, 'error called').to.be.true;
 
-				triggerEvent('return', { success: true });
+				triggerEvent('onReturn', { success: true });
 				expect(onReturnStub.calledOnce, 'return called').to.be.true;
 
 				subject.onReturn.restore();
@@ -120,17 +119,17 @@ describe('FEATURE: subscribe-button.js', function () {
 
 				subject.init();
 
-				triggerEvent('error', new Error('mock error'));
+				triggerEvent('onError', new Error('mock error'));
 				expect(mockOverlay.hide.calledOnce, 'overlay hidden onSwgError').to.be.true;
 			});
 
-			it('hide overlay onReturn events', function () {
+			it('disable buttons onReturn events', function () {
 				const triggerEvent = (type, ev) => mockDomListeners.find(({ t }={}) => t === type).l.call(ev);
 				sinon.stub(subject, 'disableButtons');
 
 				subject.init();
 
-				triggerEvent('return', { success: true });
+				triggerEvent('onReturn', { success: true });
 				expect(mockOverlay.hide.notCalled, 'overlay hidden onSwgError').to.be.true;
 				expect(subject.disableButtons.calledOnce).to.be.true;
 				subject.disableButtons.restore();
@@ -185,14 +184,21 @@ describe('FEATURE: subscribe-button.js', function () {
 					expect(mockOverlay.hide.notCalled).to.be.true;
 				});
 
-				it('triggers a landing event', function () {
+				it('signals a landing tracking event', function () {
 					subject.handleClick(mockEvent);
-					expect(trackEvent.calledWith('landing', {})).to.be.true;
+					expect(mockSignal.calledWith('track', { action: 'landing', context: { skus: [ MOCK_SKU ] }, journeyStart: true })).to.be.true;
 				});
 
-				it('calls swgClient.subscribe with the SKU from the event', function () {
+				it('calls swgClient.subscribe with the single SKU from the event target', function () {
 					subject.handleClick(mockEvent);
 					expect(mockSwgClient.subscribe.calledWith(MOCK_SKU)).to.be.true;
+				});
+
+				it('calls swgClient.showOffers with the mutiple SKUs from the event target', function () {
+					const MOCK_SKUS = 'foo,bar';
+					mockEvent.target.getAttribute.returns(MOCK_SKUS);
+					subject.handleClick(mockEvent);
+					expect(mockSwgClient.showOffers.calledWith({ skus: MOCK_SKUS.split(',') })).to.be.true;
 				});
 
 				it('hides the overlay if there is an error', function () {
