@@ -9,7 +9,7 @@ class SwgController {
 	constructor (swgClient, options={}, subscribeButtonConstructor=SubscribeButtons, overlay) {
 		/* options */
 		this.manualInitDomain = options.manualInitDomain;
-		this.M_SWG_SUB_SUCCESS_ENDPOINT = options.M_SWG_SUB_SUCCESS_ENDPOINT || 'https://swg-fulfilment-svc-eu-test.memb.ft.com/subscriptions';
+		this.M_SWG_SUB_SUCCESS_ENDPOINT = options.M_SWG_SUB_SUCCESS_ENDPOINT || (options.sandbox ? 'https://swg-fulfilment-svc-eu-test.memb.ft.com/subscriptions' : 'https://swg-fulfilment-svc-eu-prod.memb.ft.com/subscriptions');
 
 		this.alreadyInitialised = false;
 		this.swgClient = swgClient;
