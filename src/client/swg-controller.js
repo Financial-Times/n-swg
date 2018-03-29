@@ -118,14 +118,14 @@ class SwgController {
 
 	onwardEntitledJourney () {
 		// console.log('FT.COM ONWARD ENTITLED', JSON.stringify(o, null, 2));
-		const uuid = SwgController.currentContentUrl();
+		const uuid = SwgController.getContentUuidFromUrl();
 		const url = uuid ? `https://www.ft.com/content/${uuid}` : 'https://www.ft.com';
 		SwgController.redirectTo(url);
 	}
 
 	onwardSubscribedJourney () {
 		// console.log('FT.COM ONWARD SUBSCRIBED', JSON.stringify(o, null, 2));
-		const uuid = SwgController.currentContentUrl();
+		const uuid = SwgController.getContentUuidFromUrl();
 		const url = this.POST_SUBSCRIBE_URL + (uuid ? '&ft-content-uuid=' + uuid : '');
 		SwgController.redirectTo(url);
 	}
@@ -240,7 +240,7 @@ class SwgController {
 		}
 	}
 
-	static currentContentUrl () {
+	static getContentUuidFromUrl () {
 		const ARTICLE_UUID_QS = /ft-content-uuid=([^&]+)/;
 		const ARTICLE_UUID_PATH = /content\/([^&?\/]+)/;
 		const location = SwgController.getWindowLocation() || {};

@@ -265,7 +265,7 @@ describe('Swg Controller: static methods', function () {
 
 	});
 
-	describe('.currentContentUrl()', function () {
+	describe('.getContentUuidFromUrl()', function () {
 
 		beforeEach(() => {
 			global.window = {};
@@ -276,25 +276,25 @@ describe('Swg Controller: static methods', function () {
 		});
 
 		it('defaults to undefined', function () {
-			const result = SwgController.currentContentUrl();
+			const result = SwgController.getContentUuidFromUrl();
 			expect(result).to.be.undefined;
 		});
 
 		it('extracts uuid from query string', function () {
 			global.window.location = { search: '?ft-content-uuid=12345'};
-			const result = SwgController.currentContentUrl();
+			const result = SwgController.getContentUuidFromUrl();
 			expect(result).to.be.equal('12345');
 		});
 
 		it('extracts uuid from url path', function () {
 			global.window.location = { href: '/content/12345'};
-			const result = SwgController.currentContentUrl();
+			const result = SwgController.getContentUuidFromUrl();
 			expect(result).to.be.equal('12345');
 		});
 
 		it('extracts query string over path', function () {
 			global.window.location = { href: '/content/12345', search: '?ft-content-uuid=54321' };
-			const result = SwgController.currentContentUrl();
+			const result = SwgController.getContentUuidFromUrl();
 			expect(result).to.be.equal('54321');
 		});
 
