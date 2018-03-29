@@ -137,24 +137,21 @@ describe('Swg Controller: class', function () {
 				.catch(done);
 			});
 
-			it('if granted access will showOverlay, resolve user and call onwardEntitledJourney()', function (done) {
+			it('if granted access will showOverlay, resolve user and call onwardEntitledJourney(success)', function (done) {
 				const subject = new SwgController(swgClient);
 				const checkEntitlementsPromise = Promise.resolve({ granted: true });
 				const resolveUserPromise = Promise.resolve();
 				sinon.stub(subject, 'checkEntitlements').returns(checkEntitlementsPromise);
 				sinon.stub(subject, 'resolveUser').returns(resolveUserPromise);
 				sinon.stub(subject, 'onwardEntitledJourney');
-				sinon.stub(subject, 'showOverlay');
 
 				subject.init();
 				checkEntitlementsPromise.then(() => {
 					resolveUserPromise.then(() => {
-						expect(subject.onwardEntitledJourney.calledOnce).to.be.true;
-						expect(subject.showOverlay.calledOnce).to.be.true;
+						expect(subject.onwardEntitledJourney.calledWith({ success: true })).to.be.true;
 						subject.resolveUser.restore();
 						subject.checkEntitlements.restore();
 						subject.onwardEntitledJourney.restore();
-						subject.showOverlay.restore();
 						done();
 					})
 					.catch(done);
@@ -162,14 +159,14 @@ describe('Swg Controller: class', function () {
 				.catch(done);
 			});
 
-			it('if granted access but resolve user errors, will showOverlay and signal error', function (done) {
+			it('if granted access but resolve user errors, signal error and call onwardEntitledJourney(!success)', function (done) {
 				const subject = new SwgController(swgClient);
 				const checkEntitlementsPromise = Promise.resolve({ granted: true });
 				const resolveUserPromise = Promise.reject(new Error('what!'));
 				sinon.stub(subject, 'checkEntitlements').returns(checkEntitlementsPromise);
 				sinon.stub(subject, 'resolveUser').returns(resolveUserPromise);
-				sinon.stub(subject, 'signalError');
-				sinon.stub(subject, 'showOverlay');
+				sinon.stub(SwgController, 'signalError');
+				sinon.stub(subject, 'onwardEntitledJourney');
 
 				subject.init();
 				checkEntitlementsPromise.then(() => {
@@ -180,12 +177,12 @@ describe('Swg Controller: class', function () {
 						return;
 					})
 					.then(() => {
-						expect(subject.signalError.calledOnce).to.be.true;
-						expect(subject.showOverlay.calledOnce).to.be.true;
+						expect(SwgController.signalError.calledOnce).to.be.true;
+						expect(subject.onwardEntitledJourney.calledWith({ success: false })).to.be.true;
 						subject.resolveUser.restore();
 						subject.checkEntitlements.restore();
-						subject.signalError.restore();
-						subject.showOverlay.restore();
+						SwgController.signalError.restore();
+						subject.onwardEntitledJourney.restore();
 						done();
 					})
 					.catch(done);
@@ -286,7 +283,7 @@ describe('Swg Controller: class', function () {
 				return;
 			})
 			.catch(() => {
-				expect(SwgController.signal.calledWith('onError', MOCK_ERROR), 'signalError called').to.be.true;
+				expect(SwgController.signal.calledWith('onError', { error: MOCK_ERROR, info: {} }), 'signalError called').to.be.true;
 				expect(SwgController.trackEvent.calledOnce, 'trackEvent calledOnce').to.be.true;
 				expect(SwgController.trackEvent.calledWith(sinon.match({
 					action: 'exit',
@@ -438,43 +435,15 @@ describe('Swg Controller: class', function () {
 		});
 
 		it('signal \"Error\" event on entitlementsPromise', function () {
-			sinon.stub(subject, 'signalError');
+			sinon.stub(SwgController, 'signalError');
 			const MOCK_ERROR = new Error('mock');
 			const mockEntitlementsPromise = Promise.reject(MOCK_ERROR);
 
 			subject.onEntitlementsResponse(mockEntitlementsPromise);
 			return mockEntitlementsPromise.then(() => true).catch(() => {
-					expect(subject.signalError.calledWith(MOCK_ERROR)).to.be.true;
-					subject.signalError.restore();
+					expect(SwgController.signalError.calledWith(MOCK_ERROR)).to.be.true;
+					SwgController.signalError.restore();
 				});
-		});
-
-	});
-
-	describe('.showOverlay()', function () {
-		let subject;
-		let overlayStub;
-
-		beforeEach(() => {
-			subject = new SwgController(swgClient);
-			overlayStub = {
-				show: sinon.stub(subject.overlay, 'show')
-			};
-		});
-
-		afterEach(() => {
-			subject = null;
-			overlayStub.show.restore();
-		});
-
-		it('shows entitled success message overlay', function () {
-			subject.showOverlay(subject.ENTITLED_SUCCESS);
-			expect(overlayStub.show.calledOnce).to.be.true;
-		});
-
-		it('does nothing if called with an unknown id', function () {
-			subject.showOverlay();
-			expect(overlayStub.show.notCalled).to.be.true;
 		});
 
 	});
@@ -623,8 +592,82 @@ describe('Swg Controller: class', function () {
 
 	});
 
+	describe('.errorEventHandler()', function () {
+		let subject;
+		let dispatchEventStub;
+		let mockData;
+
+		beforeEach(() => {
+			mockData = {
+				base: { basic: 'data' },
+				active: { active: 'data' }
+			};
+			subject = new SwgController(swgClient);
+			subject.init();
+			subject.baseTrackingData = mockData.base;
+			subject.activeTrackingData = mockData.active;
+			dispatchEventStub = sinon.stub(global.document.body, 'dispatchEvent');
+		});
+
+		afterEach(() => {
+			dispatchEventStub.restore();
+			subject = null;
+			mockData = null;
+		});
+
+		it('dispatches both \"oErrors.log\" and \"oTracking.event\" events to the body', function () {
+			const EVENT = {
+				error: new Error('bad'),
+				info: { some: 'additional data' }
+			};
+			subject.errorEventHandler(EVENT);
+			const result = getEvents(dispatchEventStub);
+			expect(result['oTracking.event'].type).to.equal('oTracking.event');
+			expect(result['oErrors.log'].type).to.equal('oErrors.log');
+		});
+
+		it('decorates event.info in \"oErrors.log\" event', function () {
+			const EVENT = {
+				error: new Error('bad'),
+				info: { some: 'additional data' }
+			};
+			subject.errorEventHandler(EVENT);
+			const result = getEvents(dispatchEventStub)['oErrors.log'];
+			expect(result.type).to.equal('oErrors.log');
+			expect(result.detail.info).to.contain(mockData.base);
+			expect(result.detail.info).to.contain(mockData.active);
+			expect(result.detail.info).to.contain(EVENT.info);
+			expect(result.detail.error).to.equal(EVENT.error);
+		});
+
+		it('decorates and flattens event data and adds action: error in \"oTracking.event\" event', function () {
+			const EVENT = {
+				error: new Error('bad'),
+				info: { some: 'additional data' }
+			};
+			subject.errorEventHandler(EVENT);
+			const result = getEvents(dispatchEventStub)['oTracking.event'];
+			expect(result.type).to.equal('oTracking.event');
+			expect(result.detail).to.contain(mockData.base);
+			expect(result.detail).to.contain(mockData.active);
+			expect(result.detail).to.contain(EVENT.info);
+			expect(result.detail.error).to.equal(EVENT.error);
+			expect(result.detail.action).to.equal('error');
+		});
+
+		function getEvents (stub) {
+			const deconstruct = (ev) => ({ type: ev.type, detail: ev.detail });
+			return {
+				'oErrors.log': deconstruct(stub.getCall(0).args[0]),
+				'oTracking.event': deconstruct(stub.getCall(1).args[0])
+			};
+		}
+
+	});
+
 	context('Onward journeys', function () {
 		let subject;
+		let overlayStub;
 		let redirectStub;
 		let windowLocation;
 
@@ -638,11 +681,13 @@ describe('Swg Controller: class', function () {
 			subject = new SwgController(swgClient);
 			subject.init();
 			redirectStub = sinon.stub(SwgController, 'redirectTo');
+			overlayStub = sinon.stub(subject.overlay, 'show');
 			sinon.stub(SwgController, 'getWindowLocation').returns(windowLocation);
 		});
 
 		afterEach(() => {
 			subject = null;
+			overlayStub.restore();
 			redirectStub.restore();
 			windowLocation = null;
 			SwgController.getWindowLocation.restore();
@@ -650,21 +695,35 @@ describe('Swg Controller: class', function () {
 
 		describe('.onwardEntitledJourney()', function () {
 
-			it('will fallback to the homepage', function () {
+			context('!success', function () {
+				it('show overlay will link that defaults to login page with homepage location', function () {
 				subject.onwardEntitledJourney();
-				expect(redirectStub.calledWith('https://www.ft.com')).to.be.true;
+					expect(overlayStub.calledWith(sinon.match('https://www.ft.com/login?location=https%3A%2F%2Fwww.ft.com'))).to.be.true;
+					expect(overlayStub.calledWith(sinon.match('ENTITLED_LOGIN_REQUIRED'))).to.be.true;
 			});
 
-			it('will redirect to requested content if ft-content-uuid present', function () {
+				it('show overlay will login link with requested content url as location', function () {
 				setHref('https://www.ft.com/barrier/trial?ft-content-uuid=12345&foo=bar');
 				subject.onwardEntitledJourney();
-				expect(redirectStub.calledWith('https://www.ft.com/content/12345')).to.be.true;
+					expect(overlayStub.calledWith(sinon.match('https://www.ft.com/login?location=https%3A%2F%2Fwww.ft.com%2Fcontent%2F12345'))).to.be.true;
+					expect(overlayStub.calledWith(sinon.match('ENTITLED_LOGIN_REQUIRED'))).to.be.true;
+				});
 			});
 
-			it('will redirect to requested content if on a content page', function () {
+			context('success', function () {
+				it('show overlay with link to requested content if ft-content-uuid present', function () {
+					setHref('https://www.ft.com/barrier/trial?ft-content-uuid=12345&foo=bar');
+					subject.onwardEntitledJourney({ success: true });
+					expect(overlayStub.calledWith(sinon.match('https://www.ft.com/content/12345'))).to.be.true;
+					expect(overlayStub.calledWith(sinon.match('ENTITLED_LOGIN_SUCCESS'))).to.be.true;
+			});
+
+				it('show overlay with link to requested content if on a content page', function () {
 				setHref('https://www.ft.com/content/12345?foo=bar');
-				subject.onwardEntitledJourney();
-				expect(redirectStub.calledWith('https://www.ft.com/content/12345')).to.be.true;
+					subject.onwardEntitledJourney({ success: true });
+					expect(overlayStub.calledWith(sinon.match('https://www.ft.com/content/12345'))).to.be.true;
+					expect(overlayStub.calledWith(sinon.match('ENTITLED_LOGIN_SUCCESS'))).to.be.true;
+				});
 			});
 
 		});

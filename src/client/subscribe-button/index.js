@@ -1,6 +1,6 @@
 class SubscribeButtons {
 
-	constructor (swgClient, { selector='[data-n-swg-button]', SwgController  }={}) {
+	constructor (swgClient, { selector='[data-n-swg-button]', SwgController }={}) {
 		this.buttons = Array.from(document.querySelectorAll(selector));
 		this.swgClient = swgClient;
 		this.signal = SwgController.signal;
@@ -31,8 +31,8 @@ class SubscribeButtons {
 			} else {
 				throw new Error('n-swg: No SKUs passed to button component.');
 			}
-		} catch (err) {
-			this.signal('onError', err);
+		} catch (error) {
+			this.signal('onError', { error });
 		}
 	}
 
