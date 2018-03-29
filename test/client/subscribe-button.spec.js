@@ -8,7 +8,6 @@ const HTML = '<body><div id="other-element"></div><div class="n-swg-button"></di
 
 describe('FEATURE: subscribe-button.js', function () {
 	let mockSwgClient = { subscribe: () => true, showOffers: () => true };
-	let mockOverlay;
 	let helpers;
 	const customSelector = '.n-swg-button';
 
@@ -16,10 +15,6 @@ describe('FEATURE: subscribe-button.js', function () {
 		const jsdom = new JSDOM(HTML);
 		global.document = jsdom.window.document;
 		helpers = _helpers(jsdom);
-		mockOverlay = {
-			show: sinon.stub(),
-			hide: sinon.stub()
-		};
 		sinon.stub(mockSwgClient, 'subscribe');
 		sinon.stub(mockSwgClient, 'showOffers');
 	});
@@ -53,7 +48,7 @@ describe('FEATURE: subscribe-button.js', function () {
 			};
 
 			mockSignal = sinon.stub(MockSwgController, 'signal');
-			subject = new SubscribeButtons(mockSwgClient, { SwgController: MockSwgController, selector: customSelector, overlay: mockOverlay });
+			subject = new SubscribeButtons(mockSwgClient, { SwgController: MockSwgController, selector: customSelector });
 			buttons = global.document.querySelectorAll(customSelector);
 		});
 
@@ -101,26 +96,13 @@ describe('FEATURE: subscribe-button.js', function () {
 			it('attatches swgEventListener callbacks for onReturn and onError events', function () {
 				const triggerEvent = (type, ev) => mockDomListeners.find(({ t }={}) => t === type).l.call(ev);
 				const onReturnStub = sinon.stub(subject, 'onReturn');
-				const onErrorStub = sinon.stub(subject, 'onError');
 
 				subject.init();
-
-				triggerEvent('onError', new Error('mock error'));
-				expect(onErrorStub.calledOnce, 'error called').to.be.true;
 
 				triggerEvent('onReturn', { success: true });
 				expect(onReturnStub.calledOnce, 'return called').to.be.true;
 
 				subject.onReturn.restore();
-			});
-
-			it('hide overlay onError events', function () {
-				const triggerEvent = (type, ev) => mockDomListeners.find(({ t }={}) => t === type).l.call(ev);
-
-				subject.init();
-
-				triggerEvent('onError', new Error('mock error'));
-				expect(mockOverlay.hide.calledOnce, 'overlay hidden onSwgError').to.be.true;
 			});
 
 			it('disable buttons onReturn events', function () {
@@ -130,7 +112,6 @@ describe('FEATURE: subscribe-button.js', function () {
 				subject.init();
 
 				triggerEvent('onReturn', { success: true });
-				expect(mockOverlay.hide.notCalled, 'overlay hidden onSwgError').to.be.true;
 				expect(subject.disableButtons.calledOnce).to.be.true;
 				subject.disableButtons.restore();
 			});
@@ -178,12 +159,6 @@ describe('FEATURE: subscribe-button.js', function () {
 					expect(mockEvent.preventDefault.calledOnce).to.be.true;
 				});
 
-				it('shows the overlay', function () {
-					subject.handleClick(mockEvent);
-					expect(mockOverlay.show.calledOnce).to.be.true;
-					expect(mockOverlay.hide.notCalled).to.be.true;
-				});
-
 				it('signals a landing tracking event', function () {
 					subject.handleClick(mockEvent);
 					expect(mockSignal.calledWith('track', { action: 'landing', context: { skus: [ MOCK_SKU ] }, journeyStart: true })).to.be.true;
@@ -201,12 +176,12 @@ describe('FEATURE: subscribe-button.js', function () {
 					expect(mockSwgClient.showOffers.calledWith({ skus: MOCK_SKUS.split(',') })).to.be.true;
 				});
 
-				it('hides the overlay if there is an error', function () {
-					mockEvent.target.getAttribute = sinon.stub().throws(new Error('mock'));
+				it('signals an error event in case of an error', function () {
+					const ERR = new Error('mock');
+					mockEvent.target.getAttribute = sinon.stub().throws(ERR);
 
 					subject.handleClick(mockEvent);
-					expect(mockOverlay.show.calledOnce).to.be.true;
-					expect(mockOverlay.hide.calledOnce).to.be.true;
+					expect(mockSignal.calledWith('onError', { error: ERR })).to.be.true;
 				});
 
 			});

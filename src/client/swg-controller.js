@@ -27,7 +27,6 @@ class SwgController {
 		};
 
 		this.overlay = overlay || new Overlay();
-		this.ENTITLED_SUCCESS = 'ENTITLEMENTS_GRANT_SUCCESS';
 		this.baseTrackingData = SwgController.generateTrackingData(options);
 		this.activeTrackingData;
 	}
@@ -43,15 +42,17 @@ class SwgController {
 
 		// bind own handlers
 		SwgController.listen('track', this.track.bind(this));
+		SwgController.listen('onError', this.errorEventHandler.bind(this));
 
 		/* check user entitlements */
 		this.checkEntitlements().then((res={}) => {
 			if (res.granted) {
-				this.showOverlay(this.ENTITLED_SUCCESS);
-				/* NOTE: below chain will be broken until membership endpoint ready */
 				this.resolveUser(res.entitlements)
-					.then(this.onwardEntitledJourney)
-					.catch(this.signalError);
+					.then(() => this.onwardEntitledJourney({ success: true }))
+					.catch(err => {
+						SwgController.signalError(err);
+						this.onwardEntitledJourney({ success: false });
+					});
 			} else if (this.subscribeButtons) {
 				this.subscribeButtons.init();
 			}
@@ -88,7 +89,7 @@ class SwgController {
 			});
 		}).catch((err) => {
 			/* signal error event to any listeners */
-			this.signalError(err);
+			SwgController.signalError(err);
 			this.track({ action: 'exit', context: {
 				errCode: _get(err, 'activityResult.code'),
 				errData: _get(err, 'activityResult.data'),
@@ -99,7 +100,7 @@ class SwgController {
 	onEntitlementsResponse (entitlementsPromise) {
 		entitlementsPromise.then((entitlements) => {
 			SwgController.signal('entitlementsResponse', entitlements);
-		}).catch(this.signalError);
+		}).catch(SwgController.signalError);
 	}
 
 	resolveUser (swgResponse) {
@@ -116,11 +117,17 @@ class SwgController {
 		});
 	}
 
-	onwardEntitledJourney () {
+	onwardEntitledJourney ({ success=false }={}) {
 		// console.log('FT.COM ONWARD ENTITLED', JSON.stringify(o, null, 2));
 		const uuid = SwgController.getContentUuidFromUrl();
-		const url = uuid ? `https://www.ft.com/content/${uuid}` : 'https://www.ft.com';
-		SwgController.redirectTo(url);
+		const directUrl = uuid ? `https://www.ft.com/content/${uuid}` : 'https://www.ft.com';
+		const viaLoginUrl = `https://www.ft.com/login?location=${encodeURIComponent(directUrl)}`;
+
+		if (success) {
+			this.overlay.show(`<p>It looks like you already have an FT.com subscription with Google. You have been logged in.<br /><a href="${directUrl}">Go to content</a><br /><br /><small>code: ENTITLED_LOGIN_SUCCESS</small></p>`);
+		} else {
+			this.overlay.show(`<p>It looks like you already have an FT.com subscription with Google.<br /><a href="${viaLoginUrl}">Please login</a><br /><br /><small>code: ENTITLED_LOGIN_REQUIRED</small></p>`);
+		}
 	}
 
 	onwardSubscribedJourney () {
@@ -128,17 +135,6 @@ class SwgController {
 		const uuid = SwgController.getContentUuidFromUrl();
 		const url = this.POST_SUBSCRIBE_URL + (uuid ? '&ft-content-uuid=' + uuid : '');
 		SwgController.redirectTo(url);
-	}
-
-	signalError (err) {
-		SwgController.signal('onError', err);
-	}
-
-	showOverlay (id) {
-		/* NOTE: temporary usage for testing */
-		if (id === this.ENTITLED_SUCCESS) {
-			this.overlay.show(`<p>It looks like you already have an FT.com subscription with Google.<br /><a href="https://www.ft.com/login?location=${encodeURIComponent(window.location.href)}">Login</a><br /><br /><small>code: ${id}</small></p>`);
-		}
 	}
 
 	track ({ action, context={}, journeyStart=false }={}) {
@@ -149,6 +145,16 @@ class SwgController {
 		}
 		const decoratedEvent = Object.assign({}, this.baseTrackingData, this.activeTrackingData, context, { action });
 		SwgController.trackEvent(decoratedEvent);
+	}
+
+	errorEventHandler (detail={}, eventConstructor=CustomEvent) {
+		const decoratedInfo = Object.assign({}, this.baseTrackingData, this.activeTrackingData, detail.info);
+		/* dispatch oErrors event */
+		const oErrorDetail = Object.assign({}, detail, { info: decoratedInfo });
+		document.body.dispatchEvent(new eventConstructor('oErrors.log', { detail: oErrorDetail, bubbles: true }));
+		/* dispatch custom error event */
+		const customErrorEvent = Object.assign({}, decoratedInfo, { error: detail.error }, { action: 'error' });
+		SwgController.trackEvent(customErrorEvent);
 	}
 
 	static load ({ manual=false, swgPromise=swgReady(), loadClient=importClient, sandbox=false }={}) {
@@ -195,6 +201,10 @@ class SwgController {
 
 	static signal (action, context={}, eventConstructor=CustomEvent) {
 		document.body.dispatchEvent(new eventConstructor(`nSwg.${action}`, { detail: context, bubbles: true }));
+	}
+
+	static signalError (error, info={}) {
+		SwgController.signal('onError', { error, info });
 	}
 
 	static listen (action, callback) {

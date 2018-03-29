@@ -149,6 +149,21 @@ describe('Swg Controller: static methods', function () {
 
 	});
 
+	describe('.signalError()', function () {
+
+		it('signals an onError event with correctly formatted detail', function () {
+			const signalStub = sinon.stub(SwgController, 'signal');
+			const ERR = new Error('bad');
+			const INFO = { some: 'extra info' };
+			SwgController.signalError(ERR, INFO);
+			expect(signalStub.calledWith('onError', { error: ERR, info: INFO }));
+			signalStub.restore();
+		});
+
+	});
+
+
+
 	describe('.listen()', function () {
 
 		it('will attatch a name spaced event listener to the body', function () {
