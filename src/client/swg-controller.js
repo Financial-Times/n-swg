@@ -43,6 +43,7 @@ class SwgController {
 
 		// bind own handlers
 		SwgController.listen('track', this.track.bind(this));
+		SwgController.listen('onError', this.errorHandler.bind(this));
 
 		/* check user entitlements */
 		this.checkEntitlements().then((res={}) => {
@@ -149,6 +150,10 @@ class SwgController {
 		}
 		const decoratedEvent = Object.assign({}, this.baseTrackingData, this.activeTrackingData, context, { action });
 		SwgController.trackEvent(decoratedEvent);
+	}
+
+	errorHandler (error) {
+		console.error('n-swg error', error);
 	}
 
 	static load ({ manual=false, swgPromise=swgReady(), loadClient=importClient, sandbox=false }={}) {
