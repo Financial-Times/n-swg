@@ -6,12 +6,12 @@
 	{{/each}}
 {{/defineBlock}}
 
-<div class="o-grid-container mock-content" data-n-swg-demo-env="{{env}}" data-n-swg-demo-manual-mode="{{manualInit}}">
+<div class="o-grid-container mock-content" data-n-swg-demo-env="{{env}}" data-n-swg-demo-manual-mode="{{manualInit}}" data-n-swg-local-proxy="{{localProxy}}">
 
 	<h1>Demo of n-swg</h1>
 
 	<p>
-		Note: Using <strong>{{env}}</strong> environment. JSON-LD is that of a <strong>{{#if contentPaywall}}content paywall for "{{accessLevel}}" content{{else}} standalone paywall (i.e ft.com/products){{/if}}.</strong> SwG client will be initialised<strong>{{#if manualInit}} using manual init mode for "ft.com:subscribed"{{else}} automatically{{/if}}</strong>.
+		Note: Using <strong>{{env}}</strong> environment. JSON-LD is that of a <strong>{{#if contentPaywall}}content paywall for "{{accessLevel}}" content{{else}} standalone paywall (i.e ft.com/products){{/if}}.</strong> SwG client will be initialised<strong>{{#if manualInit}} using manual init mode for "ft.com:subscribed"{{else}} automatically{{/if}}</strong>. Outgoing requests on the same origin are routed via a local proxy <strong>{{#if localProxy}}with mocks in place{{else}}without any mocks{{/if}}</strong>.
 	</p>
 
 	<h2>Subscribe Buttons:</h2>

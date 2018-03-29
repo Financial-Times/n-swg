@@ -46,7 +46,8 @@ module.exports = (req, res, next) => {
 			contentPaywall,
 			manualInit: getManualInitMode(req.query, contentPaywall),
 			offers,
-			offersList: offers.map((offer) => offer.sku).join(',')
+			offersList: offers.map((offer) => offer.sku).join(','),
+			localProxy: process.env.DEMO_MODE
 		});
 	} catch (e) {
 		next(e);
