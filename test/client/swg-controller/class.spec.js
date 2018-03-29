@@ -227,7 +227,7 @@ describe('Swg Controller: class', function () {
 			subject = new SwgController(swgClient, { subscribeFromButton: true });
 			sinon.stub(SwgController, 'signal');
 			sinon.stub(SwgController, 'trackEvent');
-			redirectStub = sinon.stub(subject, 'redirectTo');
+			redirectStub = sinon.stub(SwgController, 'redirectTo');
 		});
 
 		afterEach(() => {
@@ -623,38 +623,72 @@ describe('Swg Controller: class', function () {
 
 	});
 
-	describe('onwardJourney()', function () {
+	context('Onward journeys', function () {
 		let subject;
 		let redirectStub;
+		let windowLocation;
+
+		function setHref (href) {
+			windowLocation.href = href;
+			windowLocation.search = href.split('?')[1];
+		}
 
 		beforeEach(() => {
+			windowLocation = { search: '', href: '' };
 			subject = new SwgController(swgClient);
 			subject.init();
-			redirectStub = sinon.stub(subject, 'redirectTo');
+			redirectStub = sinon.stub(SwgController, 'redirectTo');
+			sinon.stub(SwgController, 'getWindowLocation').returns(windowLocation);
 		});
 
 		afterEach(() => {
 			subject = null;
 			redirectStub.restore();
+			windowLocation = null;
+			SwgController.getWindowLocation.restore();
 		});
 
-		it('will redirect to a provided location', function () {
-			const LOCATION = 'https://foo.com';
-			subject.onwardJourney(LOCATION);
-			expect(redirectStub.calledWith(LOCATION));
+		describe('.onwardEntitledJourney()', function () {
+
+			it('will fallback to the homepage', function () {
+				subject.onwardEntitledJourney();
+				expect(redirectStub.calledWith('https://www.ft.com')).to.be.true;
+			});
+
+			it('will redirect to requested content if ft-content-uuid present', function () {
+				setHref('https://www.ft.com/barrier/trial?ft-content-uuid=12345&foo=bar');
+				subject.onwardEntitledJourney();
+				expect(redirectStub.calledWith('https://www.ft.com/content/12345')).to.be.true;
+			});
+
+			it('will redirect to requested content if on a content page', function () {
+				setHref('https://www.ft.com/content/12345?foo=bar');
+				subject.onwardEntitledJourney();
+				expect(redirectStub.calledWith('https://www.ft.com/content/12345')).to.be.true;
+			});
+
 		});
 
-		it('will fallback to the homepage', function () {
-			const LOCATION = 'https://www.ft.com';
-			subject.onwardJourney();
-			expect(redirectStub.calledWith(LOCATION));
-		});
 
-		it('will redirect to content if on a content page', function () {
-			sinon.stub(subject, 'getQueryStringParams').returns('?ft-content-uuid=12345&foo=bar');
-			subject.onwardJourney();
-			expect(redirectStub.calledWith('https://www.ft.com/content/12345'));
-			subject.getQueryStringParams.restore();
+		describe('.onwardSubscribedJourney()', function () {
+
+			it('will redirect to profile page', function () {
+				subject.onwardSubscribedJourney();
+				expect(redirectStub.calledWith(subject.POST_SUBSCRIBE_URL));
+			});
+
+			it('will redirect to profile page with ft-content-uuid if query param present', function () {
+				setHref('https://www.ft.com/barrier/trial?ft-content-uuid=12345&foo=bar');
+				subject.onwardSubscribedJourney();
+				expect(redirectStub.calledWith(subject.POST_SUBSCRIBE_URL + '&ft-content-uuid=12345')).to.be.true;
+			});
+
+			it('will redirect to profile page with ft-content-uuid if on a content page', function () {
+				setHref('https://www.ft.com/content/12345?foo=bar');
+				subject.onwardSubscribedJourney();
+				expect(redirectStub.calledWith(subject.POST_SUBSCRIBE_URL + '&ft-content-uuid=12345')).to.be.true;
+			});
+
 		});
 
 	});

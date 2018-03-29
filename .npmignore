@@ -9,6 +9,7 @@
 /src/client/*
 main-client.js
 main.scss
+*env*
 
 .babelrc
 .DS_Store
