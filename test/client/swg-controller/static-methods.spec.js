@@ -111,13 +111,27 @@ describe('Swg Controller: static methods', function () {
 			});
 		});
 
-		it('handles a 200 with res.json() and resolves with an object', function (done) {
-			const MOCK_BODY = mockResult.body = { example: 'json body' };
+		it('handles a 200 with json body and resolves with an object', function (done) {
+			const RESULT = { example: 'json body' };
+			mockResult.body = JSON.stringify(RESULT);
 			const MOCK_HEADERS = mockResult.headers = { 'content-type': 'application/json' };
 			const MOCK_STATUS = mockResult.status = 200;
 			const subject = SwgController.fetch('', '', _fetchMock);
 			subject.then(result => {
-				expect(result.json).to.deep.equal(MOCK_BODY);
+				expect(result.json).to.deep.equal(RESULT);
+				expect(result.headers).to.deep.equal(MOCK_HEADERS);
+				expect(result.status).to.deep.equal(MOCK_STATUS);
+				done();
+			});
+		});
+
+		it('handles a 201 without a json body and resolves with an empty object', function (done) {
+			mockResult.body = 'OK';
+			const MOCK_HEADERS = mockResult.headers = { 'content-type': 'text/html' };
+			const MOCK_STATUS = mockResult.status = 201;
+			const subject = SwgController.fetch('', '', _fetchMock);
+			subject.then(result => {
+				expect(result.json).to.deep.equal({});
 				expect(result.headers).to.deep.equal(MOCK_HEADERS);
 				expect(result.status).to.deep.equal(MOCK_STATUS);
 				done();

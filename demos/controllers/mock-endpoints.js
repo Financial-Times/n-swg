@@ -39,9 +39,7 @@ module.exports = (MOCK_MODE) => (req, res, next) => {
 			logger.info('handling a proxied request', JSON.stringify(req.body, null, 2));
 			generateMockCookie(res, generateCookieData(req));
 			setTimeout(() => {
-				return res.status(201).json({
-					example: 'body'
-				});
+				return res.sendStatus(201);
 			}, 2000); // fake slower async call
 			break;
 		default:
