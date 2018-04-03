@@ -169,6 +169,19 @@ class SwgController {
 	}
 
 	static fetch (url, options, _fetch=self.fetch) {
+		const safeJson = (res) => {
+			return res.text().then(text => {
+				let json;
+				try {
+					json = JSON.parse(text);
+				}
+				catch (e) {
+					json = {};
+				}
+				return json;
+			});
+		};
+
 		return new Promise((resolve, reject) => {
 			const defaults = {
 				credentials: 'same-origin',
@@ -178,7 +191,7 @@ class SwgController {
 			_fetch(url, Object.assign({}, defaults, options))
 				.then(res => {
 					if (res.status === 200 || res.status === 201) {
-						res.json().then(json => {
+						safeJson(res).then(json => {
 							resolve({
 								json,
 								headers: res.headers,
