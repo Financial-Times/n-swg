@@ -184,7 +184,7 @@ class SwgController {
 
 		return new Promise((resolve, reject) => {
 			const defaults = {
-				credentials: 'same-origin',
+				credentials: 'include',
 				method: 'GET'
 			};
 
