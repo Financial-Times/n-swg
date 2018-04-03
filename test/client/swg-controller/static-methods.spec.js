@@ -105,7 +105,7 @@ describe('Swg Controller: static methods', function () {
 				expect(url).to.equal(MOCK_URL);
 				expect(opts).to.contain(MOCK_OPTIONS);
 				expect(opts).to.deep.equal({
-					credentials: 'same-origin', method: 'GET', timeout: 5000
+					credentials: 'include', method: 'GET', timeout: 5000
 				});
 				done();
 			});
