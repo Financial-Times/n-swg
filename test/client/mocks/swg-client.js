@@ -10,6 +10,14 @@ class SwgClient {
 		return true;
 	}
 
+	setOnFlowCanceled () {
+		return true;
+	}
+
+	setOnFlowStarted () {
+		return true;
+	}
+
 	setOnSubscribeResponse () {
 		return true;
 	}
