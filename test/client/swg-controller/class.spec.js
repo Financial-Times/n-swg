@@ -428,7 +428,7 @@ describe('Swg Controller: class', function () {
 			subject = null;
 		});
 
-		it('signal \"flowCanceled.${flowName}\" on flowCanceled', function () {
+		it('signal and track appropriately on flowCanceled', function () {
 			sinon.stub(SwgController, 'signal');
 			sinon.stub(subject, 'track');
 
@@ -451,7 +451,7 @@ describe('Swg Controller: class', function () {
 			subject = null;
 		});
 
-		it('signal \"flowStarted.${flowName}\" on flowStarted', function () {
+		it('signal and track appropriately on flowStarted', function () {
 			sinon.stub(SwgController, 'signal');
 			sinon.stub(subject, 'track');
 
