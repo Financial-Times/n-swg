@@ -430,9 +430,11 @@ describe('Swg Controller: class', function () {
 
 		it('signal \"flowCanceled.${flowName}\" on flowCanceled', function () {
 			sinon.stub(SwgController, 'signal');
+			sinon.stub(subject, 'track');
 
 			subject.onFlowCanceled('someFlow');
 			expect(SwgController.signal.calledWith('flowCanceled.someFlow')).to.be.true;
+			expect(subject.track.calledWith({ action: 'flowCanceled', context: { flowName: 'someFlow' } })).to.be.true;
 			SwgController.signal.restore();
 		});
 
@@ -451,9 +453,11 @@ describe('Swg Controller: class', function () {
 
 		it('signal \"flowStarted.${flowName}\" on flowStarted', function () {
 			sinon.stub(SwgController, 'signal');
+			sinon.stub(subject, 'track');
 
 			subject.onFlowStarted('someFlow');
 			expect(SwgController.signal.calledWith('flowStarted.someFlow')).to.be.true;
+			expect(subject.track.calledWith({ action: 'flowStarted', context: { flowName: 'someFlow' } })).to.be.true;
 			SwgController.signal.restore();
 		});
 

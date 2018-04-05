@@ -103,10 +103,12 @@ class SwgController {
 
 	onFlowStarted (flowName) {
 		SwgController.signal(`flowStarted.${flowName}`);
+		this.track({ action: 'flowStarted', context: { flowName } });
 	}
 
 	onFlowCanceled (flowName) {
 		SwgController.signal(`flowCanceled.${flowName}`);
+		this.track({ action: 'flowCanceled', context: { flowName } });
 	}
 
 	onEntitlementsResponse (entitlementsPromise) {
