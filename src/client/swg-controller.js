@@ -15,11 +15,15 @@ class SwgController {
 
 		/* bind handlers */
 		this.handlers = Object.assign({
-			onSubscribeResponse: this.onSubscribeResponse,
-			onEntitlementsResponse: this.onEntitlementsResponse
+			onEntitlementsResponse: this.onEntitlementsResponse,
+			onFlowCanceled: this.onFlowCanceled,
+			onFlowStarted: this.onFlowStarted,
+			onSubscribeResponse: this.onSubscribeResponse
 		}, options.handlers);
-		this.swgClient.setOnSubscribeResponse(this.handlers.onSubscribeResponse.bind(this));
 		this.swgClient.setOnEntitlementsResponse(this.handlers.onEntitlementsResponse.bind(this));
+		this.swgClient.setOnFlowCanceled(this.handlers.onFlowCanceled.bind(this));
+		this.swgClient.setOnFlowStarted(this.handlers.onFlowStarted.bind(this));
+		this.swgClient.setOnSubscribeResponse(this.handlers.onSubscribeResponse.bind(this));
 
 		if (options.subscribeFromButton) {
 			/* setup buttons */
@@ -95,6 +99,16 @@ class SwgController {
 				errData: _get(err, 'activityResult.data'),
 			}});
 		});
+	}
+
+	onFlowStarted (flowName) {
+		SwgController.signal(`flowStarted.${flowName}`);
+		this.track({ action: 'flowStarted', context: { flowName } });
+	}
+
+	onFlowCanceled (flowName) {
+		SwgController.signal(`flowCanceled.${flowName}`);
+		this.track({ action: 'flowCanceled', context: { flowName } });
 	}
 
 	onEntitlementsResponse (entitlementsPromise) {

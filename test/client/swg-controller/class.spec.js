@@ -35,6 +35,8 @@ describe('Swg Controller: class', function () {
 			const subject = new SwgController(swgClient);
 			expect(subject.manualInitDomain).to.be.undefined;
 			expect(subject.alreadyInitialised).to.be.false;
+			expect(subject.handlers.onFlowCanceled).to.be.a('Function');
+			expect(subject.handlers.onFlowStarted).to.be.a('Function');
 			expect(subject.handlers.onSubscribeResponse).to.be.a('Function');
 			expect(subject.handlers.onEntitlementsResponse).to.be.a('Function');
 			expect(subject.swgClient).to.deep.equal(swgClient);
@@ -47,6 +49,8 @@ describe('Swg Controller: class', function () {
 			const OPTIONS = {
 				manualInitDomain: 'ft.com',
 				handlers: {
+					setOnFlowCanceled: () => 'canceled stub',
+					setOnFlowStarted: () => 'started stub',
 					onSubscribeResponse: () => 'stub',
 					onSomeOtherThing: () => 'stub again'
 				},
@@ -55,6 +59,8 @@ describe('Swg Controller: class', function () {
 			};
 			const subject = new SwgController(swgClient, OPTIONS);
 			expect(subject.manualInitDomain).to.equal(OPTIONS.manualInitDomain);
+			expect(subject.handlers.setOnFlowCanceled).to.equal(OPTIONS.handlers.setOnFlowCanceled);
+			expect(subject.handlers.setOnFlowStarted).to.equal(OPTIONS.handlers.setOnFlowStarted);
 			expect(subject.handlers.onSubscribeResponse).to.equal(OPTIONS.handlers.onSubscribeResponse);
 			expect(subject.handlers.setOnEntitlementsResponse).to.equal(OPTIONS.handlers.setOnEntitlementsResponse);
 			expect(subject.handlers.onSomeOtherThing).to.equal(OPTIONS.handlers.onSomeOtherThing);
@@ -407,6 +413,52 @@ describe('Swg Controller: class', function () {
 			.catch(done);
 
 			SwgController.signal('entitlementsResponse', MOCK_RESULT);
+		});
+
+	});
+
+	describe('.onFlowCanceled()', function () {
+		let subject;
+
+		beforeEach(() => {
+			subject = new SwgController(swgClient);
+		});
+
+		afterEach(() => {
+			subject = null;
+		});
+
+		it('signal and track appropriately on flowCanceled', function () {
+			sinon.stub(SwgController, 'signal');
+			sinon.stub(subject, 'track');
+
+			subject.onFlowCanceled('someFlow');
+			expect(SwgController.signal.calledWith('flowCanceled.someFlow')).to.be.true;
+			expect(subject.track.calledWith({ action: 'flowCanceled', context: { flowName: 'someFlow' } })).to.be.true;
+			SwgController.signal.restore();
+		});
+
+	});
+
+	describe('.onFlowStarted()', function () {
+		let subject;
+
+		beforeEach(() => {
+			subject = new SwgController(swgClient);
+		});
+
+		afterEach(() => {
+			subject = null;
+		});
+
+		it('signal and track appropriately on flowStarted', function () {
+			sinon.stub(SwgController, 'signal');
+			sinon.stub(subject, 'track');
+
+			subject.onFlowStarted('someFlow');
+			expect(SwgController.signal.calledWith('flowStarted.someFlow')).to.be.true;
+			expect(subject.track.calledWith({ action: 'flowStarted', context: { flowName: 'someFlow' } })).to.be.true;
+			SwgController.signal.restore();
 		});
 
 	});
