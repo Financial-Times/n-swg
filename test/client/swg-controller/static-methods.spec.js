@@ -104,9 +104,7 @@ describe('Swg Controller: static methods', function () {
 				const [ url, opts ] = fetchStub.getCall(0).args;
 				expect(url).to.equal(MOCK_URL);
 				expect(opts).to.contain(MOCK_OPTIONS);
-				expect(opts).to.deep.equal({
-					credentials: 'include', method: 'GET', timeout: 5000
-				});
+				expect(opts).to.deep.equal({ method: 'GET', timeout: 5000 });
 				done();
 			});
 		});
