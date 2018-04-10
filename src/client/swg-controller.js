@@ -20,14 +20,18 @@ class SwgController {
 			onEntitlementsResponse: this.onEntitlementsResponse,
 			onFlowCanceled: this.onFlowCanceled,
 			onFlowStarted: this.onFlowStarted,
-			onSubscribeResponse: this.onSubscribeResponse
+			onSubscribeResponse: this.onSubscribeResponse,
+			onLoginRequest: this.onLoginRequest
 		}, options.handlers);
 
 		/* bind handlers */
-		this.swgClient.setOnEntitlementsResponse(this.handlers.onEntitlementsResponse.bind(this));
-		this.swgClient.setOnFlowCanceled(this.handlers.onFlowCanceled.bind(this));
-		this.swgClient.setOnFlowStarted(this.handlers.onFlowStarted.bind(this));
-		this.swgClient.setOnSubscribeResponse(this.handlers.onSubscribeResponse.bind(this));
+		const mount = (name, handler) => this.swgClient[name] && handler && this.swgClient[name](handler.bind(this));
+		mount('setOnEntitlementsResponse', this.handlers.onEntitlementsResponse);
+		mount('setOnSubscribeResponse', this.handlers.onSubscribeResponse);
+		mount('setOnLoginRequest', this.handlers.onLoginRequest);
+		mount('setOnFlowCanceled', this.handlers.onFlowCanceled);
+		mount('setOnFlowStarted', this.handlers.onFlowStarted);
+		mount('setOnNativeSubscribeRequest', this.handlers.onNativeSubscribeRequest);
 
 		/* setup */
 		this.alreadyInitialised = false;
