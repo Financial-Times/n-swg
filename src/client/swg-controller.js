@@ -160,6 +160,15 @@ class SwgController {
 	}
 
 	/**
+	 * Redirect to the login page
+	 */
+	onLoginRequest () {
+		const uuid = SwgController.getContentUuidFromUrl();
+		const contentHref = uuid ? `https://www.ft.com/content/${uuid}` : 'https://www.ft.com';
+		SwgController.redirectTo(`https://www.ft.com/login?location=${encodeURIComponent(contentHref)}&socialEnabled=true`);
+	}
+
+	/**
 	 * Resolve a user state. Either by creating an FT account or auto login.
 	 * @param {string} scenario - the resolution scenario. new user || existing
 	 * @param {object} swgResponse - the SwG response object with user data
@@ -193,7 +202,7 @@ class SwgController {
 	onwardEntitledJourney ({ promptLogin=false }={}) {
 		const uuid = SwgController.getContentUuidFromUrl();
 		const contentHref = uuid ? `https://www.ft.com/content/${uuid}` : 'https://www.ft.com';
-		const loginHref = `https://www.ft.com/login?location=${encodeURIComponent(contentHref)}`;
+		const loginHref = `https://www.ft.com/login?location=${encodeURIComponent(contentHref)}&socialEnabled=true`;
 
 		if (promptLogin) {
 			this.overlay.show(`<p>It looks like you already have an FT.com subscription with Google.<br /><a href="${loginHref}">Please login</a><br /><br /><small>code: ENTITLED_LOGIN_REQUIRED</small></p>`);
