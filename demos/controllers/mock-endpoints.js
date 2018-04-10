@@ -1,4 +1,3 @@
-const _get = require('lodash.get');
 const logger = require('@financial-times/n-logger').default;
 const SESSION_COOKIE_EXPIRY = 15552000000;
 
@@ -15,7 +14,7 @@ const generateMockCookie = (res, cookies=[]) => {
 };
 
 const generateCookieData = ({ body }={}) => {
-	const purchaseData = _get(body, 'purchaseData');
+	const purchaseData = body && body.purchaseData;
 	if (!purchaseData) {
 		// entitlements success
 		return [{
