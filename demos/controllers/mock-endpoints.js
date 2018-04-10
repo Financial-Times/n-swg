@@ -20,14 +20,14 @@ const generateCookieData = ({ body }={}) => {
 		// entitlements success
 		return [{
 			key: 'N_SWG_MOCK_ENTITLEMENT_SESSION_S',
-			val: _get(body, 'entitlements[0].subscriptionToken')
+			val: 'success'
 		}];
 	} else {
 		// purchase success
 		return [
 			{
 				key: 'N_SWG_MOCK_PURCHASE_SESSION_S',
-				val: purchaseData
+				val: 'success'
 			},
 			{
 				key: 'FTLogin',
