@@ -787,16 +787,16 @@ describe('Swg Controller: class', function () {
 		describe('.onwardEntitledJourney()', function () {
 
 			context('promptLogin=true', function () {
-				it('show overlay will have link that defaults to login page with homepage location', function () {
+				it('show overlay will have link that defaults to login page', function () {
 					subject.onwardEntitledJourney({ promptLogin: true });
-					expect(overlayStub.calledWith(sinon.match('https://www.ft.com/login?location=https%3A%2F%2Fwww.ft.com'))).to.be.true;
+					expect(overlayStub.calledWith(sinon.match('https://www.ft.com/login?socialEnabled=true'))).to.be.true;
 					expect(overlayStub.calledWith(sinon.match('ENTITLED_LOGIN_REQUIRED'))).to.be.true;
 			});
 
 				it('show overlay will have login link with requested content url as location', function () {
 				setHref('https://www.ft.com/barrier/trial?ft-content-uuid=12345&foo=bar');
 					subject.onwardEntitledJourney({ promptLogin: true });
-					expect(overlayStub.calledWith(sinon.match('https://www.ft.com/login?location=https%3A%2F%2Fwww.ft.com%2Fcontent%2F12345'))).to.be.true;
+					expect(overlayStub.calledWith(sinon.match('https://www.ft.com/login?socialEnabled=true&location=https%3A%2F%2Fwww.ft.com%2Fcontent%2F12345'))).to.be.true;
 					expect(overlayStub.calledWith(sinon.match('ENTITLED_LOGIN_REQUIRED'))).to.be.true;
 				});
 			});

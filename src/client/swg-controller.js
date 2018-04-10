@@ -120,7 +120,7 @@ class SwgController {
 				response.complete().then(() => {
 					/* track confirmation event */
 					this.track({ action: 'confirmation', context: {
-						// subscriptionId: response.subscriptionId
+						// TODO subscriptionId: response.subscriptionId
 					}});
 					/* trigger onward journey */
 					this.onwardSubscribedJourney(res);
@@ -163,9 +163,7 @@ class SwgController {
 	 * Redirect to the login page
 	 */
 	onLoginRequest () {
-		const uuid = SwgController.getContentUuidFromUrl();
-		const contentHref = uuid ? `https://www.ft.com/content/${uuid}` : 'https://www.ft.com';
-		SwgController.redirectTo(`https://www.ft.com/login?location=${encodeURIComponent(contentHref)}&socialEnabled=true`);
+		SwgController.redirectTo(SwgController.generateLoginUrl());
 	}
 
 	/**
@@ -200,13 +198,12 @@ class SwgController {
 	 * @param {boolean} opts.promptLogin - determines overlay message
 	 */
 	onwardEntitledJourney ({ promptLogin=false }={}) {
-		const uuid = SwgController.getContentUuidFromUrl();
-		const contentHref = uuid ? `https://www.ft.com/content/${uuid}` : 'https://www.ft.com';
-		const loginHref = `https://www.ft.com/login?location=${encodeURIComponent(contentHref)}&socialEnabled=true`;
-
 		if (promptLogin) {
+			const loginHref = SwgController.generateLoginUrl();
 			this.overlay.show(`<p>It looks like you already have an FT.com subscription with Google.<br /><a href="${loginHref}">Please login</a><br /><br /><small>code: ENTITLED_LOGIN_REQUIRED</small></p>`);
 		} else {
+			const uuid = SwgController.getContentUuidFromUrl();
+			const contentHref = uuid ? `https://www.ft.com/content/${uuid}` : 'https://www.ft.com';
 			this.overlay.show(`<p>It looks like you already have an FT.com subscription with Google. You have been logged in.<br /><a href="${contentHref}">Go to content</a><br /><br /><small>code: ENTITLED_LOGIN_SUCCESS</small></p>`);
 		}
 	}
@@ -412,6 +409,16 @@ class SwgController {
 		const location = SwgController.getWindowLocation() || {};
 		const lookup = (regexp, str) => str && (str.match(regexp) || [])[1];
 		return lookup(ARTICLE_UUID_QS, location.search) || lookup(ARTICLE_UUID_PATH, location.href);
+	}
+
+	/**
+	 * Returns a login url with a relevant location
+	 * @returns {string}
+	 */
+	static generateLoginUrl () {
+		const uuid = SwgController.getContentUuidFromUrl();
+		const contentHref = uuid && `https://www.ft.com/content/${uuid}`;
+		return 'https://www.ft.com/login?socialEnabled=true' + (contentHref ? `&location=${encodeURIComponent(contentHref)}` : '');
 	}
 
 	/**
