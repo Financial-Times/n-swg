@@ -16,15 +16,17 @@ class SwgController {
 		this.M_SWG_ENTITLED_SUCCESS_ENDPOINT = options.M_SWG_ENTITLED_SUCCESS_ENDPOINT || null; // TODO: waiting on membership
 		this.POST_SUBSCRIBE_URL = options.POST_SUBSCRIBE_URL || 'https://www.ft.com/profile?splash=swg_checkout';
 		this.handlers = Object.assign({
-			onEntitlementsResponse: this.onEntitlementsResponse,
-			onFlowCanceled: this.onFlowCanceled,
-			onFlowStarted: this.onFlowStarted,
-			onSubscribeResponse: this.onSubscribeResponse,
-			onLoginRequest: this.onLoginRequest
+			onEntitlementsResponse: this.onEntitlementsResponse.bind(this),
+			onFlowCanceled: this.onFlowCanceled.bind(this),
+			onFlowStarted: this.onFlowStarted.bind(this),
+			onSubscribeResponse: this.onSubscribeResponse.bind(this),
+			onLoginRequest: this.onLoginRequest.bind(this),
+			onResolvedEntitlements: this.onwardEntitledJourney.bind(this),
+			onResolvedSubscribe: this.onwardSubscribedJourney.bind(this)
 		}, options.handlers);
 
 		/* bind handlers */
-		const mount = (name, handler) => this.swgClient[name] && handler && this.swgClient[name](handler.bind(this));
+		const mount = (name, handler) => this.swgClient[name] && handler && this.swgClient[name](handler);
 		mount('setOnEntitlementsResponse', this.handlers.onEntitlementsResponse);
 		mount('setOnSubscribeResponse', this.handlers.onSubscribeResponse);
 		mount('setOnLoginRequest', this.handlers.onLoginRequest);
@@ -71,13 +73,13 @@ class SwgController {
 				this.resolveUser(this.ENTITLED_USER, res.entitlements)
 					.then(() => {
 						/* set onward journey */
-						this.onwardEntitledJourney({ promptLogin: false });
+						this.handlers.onResolvedEntitlements({ promptLogin: false, entitlements: res.entitlements });
 					})
 					.catch(err => {
 						/* signal error */
 						SwgController.signalError(err);
 						/* set onward journey */
-						this.onwardEntitledJourney({ promptLogin: true });
+						this.handlers.onResolvedEntitlements({ promptLogin: true, entitlements: res.entitlements, error: err });
 					});
 			} else if (this.subscribeButtons) {
 				/* no entitlements, enable buttons */
@@ -122,7 +124,7 @@ class SwgController {
 						// TODO subscriptionId: response.subscriptionId
 					}});
 					/* trigger onward journey */
-					this.onwardSubscribedJourney(res);
+					this.handlers.onResolvedSubscribe(res);
 				});
 			});
 		}).catch((err) => {
