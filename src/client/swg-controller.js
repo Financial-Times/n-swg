@@ -1,6 +1,5 @@
-import { swgReady, importClient, Overlay } from './utils';
+import { swgReady, importClient, Overlay, _get } from './utils';
 import SubscribeButtons from './subscribe-button';
-import _get from 'lodash.get';
 
 class SwgController {
 	/**
