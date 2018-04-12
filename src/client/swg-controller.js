@@ -53,7 +53,7 @@ class SwgController {
 	 * Init SwG client if required. Add listeners. Check user's entitlements.
 	 * Enable any subscribe with google buttons.
 	 */
-	init () {
+	init ({ checkEntitlements=true }={}) {
 		if (this.alreadyInitialised) return;
 
 		if (this.manualInitDomain) {
@@ -66,26 +66,28 @@ class SwgController {
 		SwgController.listen('track', this.track.bind(this));
 		SwgController.listen('onError', this.errorEventHandler.bind(this));
 
-		/* check user entitlements */
-		this.checkEntitlements().then((res={}) => {
-			if (res.granted) {
-				/* resolve user if they have access via SwG */
-				this.resolveUser(this.ENTITLED_USER, res.entitlements)
-					.then(() => {
-						/* set onward journey */
-						this.handlers.onResolvedEntitlements({ promptLogin: false, entitlements: res.entitlements });
-					})
-					.catch(err => {
-						/* signal error */
-						SwgController.signalError(err);
-						/* set onward journey */
-						this.handlers.onResolvedEntitlements({ promptLogin: true, entitlements: res.entitlements, error: err });
-					});
-			} else if (this.subscribeButtons) {
-				/* no entitlements, enable buttons */
-				this.subscribeButtons.init();
-			}
-		});
+		if (checkEntitlements) {
+			/* check user entitlements */
+			this.checkEntitlements().then((res={}) => {
+				if (res.granted) {
+					/* resolve user if they have access via SwG */
+					this.resolveUser(this.ENTITLED_USER, res.entitlements)
+						.then(() => {
+							/* set onward journey */
+							this.handlers.onResolvedEntitlements({ promptLogin: false, entitlements: res.entitlements });
+						})
+						.catch(err => {
+							/* signal error */
+							SwgController.signalError(err);
+							/* set onward journey */
+							this.handlers.onResolvedEntitlements({ promptLogin: true, entitlements: res.entitlements, error: err });
+						});
+				} else if (this.subscribeButtons) {
+					/* no entitlements, enable buttons */
+					this.subscribeButtons.init();
+				}
+			});
+		}
 	}
 
 	/**
