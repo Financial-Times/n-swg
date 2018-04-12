@@ -143,21 +143,22 @@ describe('Swg Controller: class', function () {
 				.catch(done);
 			});
 
-			it('if granted access will showOverlay, resolve user and call onwardEntitledJourney(!promptLogin)', function (done) {
+			it('if granted access will showOverlay, resolve user and call handlers.onResolvedEntitlements(!promptLogin)', function (done) {
 				const subject = new SwgController(swgClient);
 				const checkEntitlementsPromise = Promise.resolve({ granted: true });
 				const resolveUserPromise = Promise.resolve();
 				sinon.stub(subject, 'checkEntitlements').returns(checkEntitlementsPromise);
 				sinon.stub(subject, 'resolveUser').returns(resolveUserPromise);
-				sinon.stub(subject, 'onwardEntitledJourney');
+				sinon.stub(subject.handlers, 'onResolvedEntitlements');
+
 
 				subject.init();
 				checkEntitlementsPromise.then(() => {
 					resolveUserPromise.then(() => {
-						expect(subject.onwardEntitledJourney.calledWith({ promptLogin: false })).to.be.true;
+						expect(subject.handlers.onResolvedEntitlements.calledWith(sinon.match({ promptLogin: false }))).to.be.true;
 						subject.resolveUser.restore();
 						subject.checkEntitlements.restore();
-						subject.onwardEntitledJourney.restore();
+						subject.handlers.onResolvedEntitlements.restore();
 						done();
 					})
 					.catch(done);
@@ -172,7 +173,7 @@ describe('Swg Controller: class', function () {
 				sinon.stub(subject, 'checkEntitlements').returns(checkEntitlementsPromise);
 				sinon.stub(subject, 'resolveUser').returns(resolveUserPromise);
 				sinon.stub(SwgController, 'signalError');
-				sinon.stub(subject, 'onwardEntitledJourney');
+				sinon.stub(subject.handlers, 'onResolvedEntitlements');
 
 				subject.init();
 				checkEntitlementsPromise.then(() => {
@@ -184,11 +185,11 @@ describe('Swg Controller: class', function () {
 					})
 					.then(() => {
 						expect(SwgController.signalError.calledOnce).to.be.true;
-						expect(subject.onwardEntitledJourney.calledWith({ promptLogin: true })).to.be.true;
+						expect(subject.handlers.onResolvedEntitlements.calledWith(sinon.match({ promptLogin: true }))).to.be.true;
 						subject.resolveUser.restore();
 						subject.checkEntitlements.restore();
 						SwgController.signalError.restore();
-						subject.onwardEntitledJourney.restore();
+						subject.handlers.onResolvedEntitlements.restore();
 						done();
 					})
 					.catch(done);
@@ -240,7 +241,7 @@ describe('Swg Controller: class', function () {
 			subject = null;
 		});
 
-		it('on subPromise success: disable buttons, signal return, track success, resolve user -> onwardSubscribedJourney()', function (done) {
+		it('on subPromise success: disable buttons, signal return, track success, resolve user -> handlers.onResolvedSubscribe()', function (done) {
 			const mockResponseComplete = Promise.resolve();
 			const MOCK_RESULT = { mock: 'swg-result', complete: () => mockResponseComplete };
 			const subPromise = Promise.resolve(MOCK_RESULT);
@@ -248,7 +249,7 @@ describe('Swg Controller: class', function () {
 
 			sinon.stub(subject, 'resolveUser').returns(resolveUserPromise);
 			sinon.stub(subject.subscribeButtons, 'disableButtons');
-			sinon.spy(subject, 'onwardSubscribedJourney');
+			sinon.spy(subject.handlers, 'onResolvedSubscribe');
 			subject.onSubscribeResponse(subPromise);
 
 			subPromise.then(() => {
@@ -260,11 +261,11 @@ describe('Swg Controller: class', function () {
 					expect(subject.resolveUser.calledWith(subject.NEW_USER, MOCK_RESULT)).to.be.true;
 					mockResponseComplete.then(() => {
 						expect(SwgController.trackEvent.calledTwice).to.be.true;
-						expect(subject.onwardSubscribedJourney.calledOnce).to.be.true;
+						expect(subject.handlers.onResolvedSubscribe.calledOnce).to.be.true;
 						expect(SwgController.trackEvent.calledWith(sinon.match({ action: 'confirmation' }))).to.be.true;
 						subject.resolveUser.restore();
 						subject.subscribeButtons.disableButtons.restore();
-						subject.onwardSubscribedJourney.restore();
+						subject.handlers.onResolvedSubscribe.restore();
 						done();
 					});
 				});
