@@ -87,6 +87,11 @@ class SwgController {
 					this.subscribeButtons.init();
 				}
 			});
+		} else {
+			if (this.subscribeButtons) {
+				/* no entitlements check, enable buttons */
+				this.subscribeButtons.init();
+			}
 		}
 	}
 
