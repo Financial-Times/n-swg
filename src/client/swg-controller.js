@@ -53,7 +53,7 @@ class SwgController {
 	 * Init SwG client if required. Add listeners. Check user's entitlements.
 	 * Enable any subscribe with google buttons.
 	 */
-	init ({ checkEntitlements=true }={}) {
+	init ({ disableEntitlementsCheck=false }={}) {
 		if (this.alreadyInitialised) return;
 
 		if (this.manualInitDomain) {
@@ -66,7 +66,7 @@ class SwgController {
 		SwgController.listen('track', this.track.bind(this));
 		SwgController.listen('onError', this.errorEventHandler.bind(this));
 
-		if (checkEntitlements) {
+		if (!disableEntitlementsCheck) {
 			/* check user entitlements */
 			this.checkEntitlements().then((res={}) => {
 				if (res.granted) {

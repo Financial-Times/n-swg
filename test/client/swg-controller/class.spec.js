@@ -129,7 +129,7 @@ describe('Swg Controller: class', function () {
 		it('will not check entitlements if passed option', function () {
 			const subject = new SwgController(swgClient);
 			sinon.stub(subject, 'checkEntitlements').resolves();
-			subject.init({ checkEntitlements: false });
+			subject.init({ disableEntitlementsCheck: true });
 			expect(subject.checkEntitlements.calledOnce).to.be.false;
 			subject.checkEntitlements.restore();
 		});
