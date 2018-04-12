@@ -118,11 +118,19 @@ describe('Swg Controller: class', function () {
 			expect(subject.alreadyInitialised).to.be.true;
 		});
 
-		it('will check entitlements', function () {
+		it('will check entitlements by default', function () {
 			const subject = new SwgController(swgClient);
 			sinon.stub(subject, 'checkEntitlements').resolves();
 			subject.init();
 			expect(subject.checkEntitlements.calledOnce).to.be.true;
+			subject.checkEntitlements.restore();
+		});
+
+		it('will not check entitlements if passed option', function () {
+			const subject = new SwgController(swgClient);
+			sinon.stub(subject, 'checkEntitlements').resolves();
+			subject.init({ disableEntitlementsCheck: true });
+			expect(subject.checkEntitlements.calledOnce).to.be.false;
 			subject.checkEntitlements.restore();
 		});
 
