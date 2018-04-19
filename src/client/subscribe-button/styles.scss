@@ -7,6 +7,7 @@
 	@include oButtonsCustomTheme('teal-50', 'white', primary);
 
 	border: 1px solid oColorsGetPaletteColor('teal-50');
+	color: rgba(0, 0, 0, 0.54);
 	font-size: 14px;
 	position: relative;
 	padding-left: 40px;
