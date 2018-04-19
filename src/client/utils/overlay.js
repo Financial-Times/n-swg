@@ -1,4 +1,4 @@
-class Overlay {
+module.exports = class Overlay {
 
 	constructor () {
 		this.el = document.createElement('div');
@@ -20,5 +20,3 @@ class Overlay {
 	}
 
 };
-
-module.exports = Overlay;
