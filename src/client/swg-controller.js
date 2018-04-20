@@ -1,7 +1,7 @@
-import { swgReady, importClient, Overlay, _get } from './utils';
-import SubscribeButtons from './subscribe-button';
+const { swgReady, importClient, Overlay, _get, events, smartFetch, browser } = require('./utils');
+const SubscribeButtons = require('./subscribe-button');
 
-class SwgController {
+module.exports = class SwgController {
 	/**
 	 * @param {object} swgClient - as provided by SwG client
 	 * @param {object} options
@@ -12,7 +12,7 @@ class SwgController {
 		/* options */
 		this.swgClient = swgClient;
 		this.manualInitDomain = options.manualInitDomain;
-		this.M_SWG_SUB_SUCCESS_ENDPOINT = options.M_SWG_SUB_SUCCESS_ENDPOINT || (options.sandbox ? 'https://swg-fulfilment-svc-eu-test.memb.ft.com/swg/v1/subscriptions' : 'https://swg-fulfilment-svc-eu-prod.memb.ft.com/swg/v1/subscriptions');
+		this.M_SWG_SUB_SUCCESS_ENDPOINT = options.M_SWG_SUB_SUCCESS_ENDPOINT || (options.sandbox ? 'https://api-t.ft.com/commerce/v1/swg/subscriptions' : 'https://api.ft.com/commerce/v1/swg/subscriptions');
 		this.M_SWG_ENTITLED_SUCCESS_ENDPOINT = options.M_SWG_ENTITLED_SUCCESS_ENDPOINT || (options.sandbox ? 'https://swg-fulfilment-svc-eu-test.memb.ft.com/swg/v1/subscriptions/entitlementsCheck' : 'https://swg-fulfilment-svc-eu-prod.memb.ft.com/swg/v1/subscriptions/entitlementsCheck');
 		this.POST_SUBSCRIBE_URL = options.POST_SUBSCRIBE_URL || 'https://www.ft.com/profile?splash=swg_checkout';
 		this.handlers = Object.assign({
@@ -21,8 +21,8 @@ class SwgController {
 			onFlowStarted: this.onFlowStarted.bind(this),
 			onSubscribeResponse: this.onSubscribeResponse.bind(this),
 			onLoginRequest: this.onLoginRequest.bind(this),
-			onResolvedEntitlements: this.onwardEntitledJourney.bind(this),
-			onResolvedSubscribe: this.onwardSubscribedJourney.bind(this)
+			onResolvedEntitlements: this.defaultOnwardEntitledJourney.bind(this),
+			onResolvedSubscribe: this.defaultOnwardSubscribedJourney.bind(this)
 		}, options.handlers);
 
 		/* bind handlers */
@@ -63,8 +63,8 @@ class SwgController {
 		this.alreadyInitialised = true;
 
 		/* bind own handlers */
-		SwgController.listen('track', this.track.bind(this));
-		SwgController.listen('onError', this.errorEventHandler.bind(this));
+		events.listen('track', this.track.bind(this));
+		events.listen('onError', this.errorEventHandler.bind(this));
 
 		if (!disableEntitlementsCheck) {
 			/* check user entitlements */
@@ -78,7 +78,7 @@ class SwgController {
 						})
 						.catch(err => {
 							/* signal error */
-							SwgController.signalError(err);
+							events.signalError(err);
 							/* set onward journey */
 							this.handlers.onResolvedEntitlements({ promptLogin: true, entitlements: res.entitlements, error: err });
 						});
@@ -115,7 +115,7 @@ class SwgController {
 			resolve({ granted, hasEntitlements, entitlements });
 		};
 		return new Promise((resolve) => {
-			SwgController.listen('entitlementsResponse', formatResponse(resolve));
+			events.listen('entitlementsResponse', formatResponse(resolve));
 			this.swgClient.getEntitlements();
 		});
 	}
@@ -129,7 +129,7 @@ class SwgController {
 			/* disable any buttons */
 			if (this.subscribeButtons) this.subscribeButtons.disableButtons();
 			/* signal a return event to any listeners */
-			SwgController.signal('onSubscribeReturn', response);
+			events.signal('onSubscribeReturn', response);
 			/* track success event */
 			this.track({ action: 'success', context: {} });
 			/* resolve user */
@@ -146,7 +146,7 @@ class SwgController {
 			});
 		}).catch((err) => {
 			/* signal error event to any listeners */
-			SwgController.signalError(err);
+			events.signalError(err);
 			/* track exit event */
 			this.track({ action: 'exit', context: {
 				errCode: _get(err, 'activityResult.code'),
@@ -156,12 +156,12 @@ class SwgController {
 	}
 
 	onFlowStarted (flowName) {
-		SwgController.signal(`flowStarted.${flowName}`);
+		events.signal(`flowStarted.${flowName}`);
 		this.track({ action: 'flowStarted', context: { flowName } });
 	}
 
 	onFlowCanceled (flowName) {
-		SwgController.signal(`flowCanceled.${flowName}`);
+		events.signal(`flowCanceled.${flowName}`);
 		this.track({ action: 'flowCanceled', context: { flowName } });
 	}
 
@@ -173,15 +173,15 @@ class SwgController {
 			/* suppress Google "Manage Subscription toast" */
 			entitlements.ack();
 			/* signal event to listeners */
-			SwgController.signal('entitlementsResponse', entitlements);
-		}).catch(SwgController.signalError);
+			events.signal('entitlementsResponse', entitlements);
+		}).catch(events.signalError);
 	}
 
 	/**
 	 * Redirect to the login page
 	 */
 	onLoginRequest () {
-		SwgController.redirectTo(SwgController.generateLoginUrl());
+		browser.redirectTo(SwgController.generateLoginUrl());
 	}
 
 	/**
@@ -195,7 +195,7 @@ class SwgController {
 			? this.M_SWG_SUB_SUCCESS_ENDPOINT
 			: this.M_SWG_ENTITLED_SUCCESS_ENDPOINT;
 		return new Promise((resolve, reject) => {
-			SwgController.fetch(endpoint, {
+			smartFetch.fetch(endpoint, {
 				method: 'POST',
 				credentials: 'include',
 				headers: { 'content-type': 'application/json' },
@@ -211,12 +211,12 @@ class SwgController {
 	 * them to login first.
 	 * @param {boolean} opts.promptLogin - determines overlay message
 	 */
-	onwardEntitledJourney ({ promptLogin=false }={}) {
+	defaultOnwardEntitledJourney ({ promptLogin=false }={}) {
 		if (promptLogin) {
-			const loginHref = SwgController.generateLoginUrl();
+			const loginHref = browser.generateLoginUrl();
 			this.overlay.show(`<p>It looks like you already have an FT.com subscription with Google.<br /><a href="${loginHref}">Please login</a><br /><br /><small>code: ENTITLED_LOGIN_REQUIRED</small></p>`);
 		} else {
-			const uuid = SwgController.getContentUuidFromUrl();
+			const uuid = browser.getContentUuidFromUrl();
 			const contentHref = uuid ? `https://www.ft.com/content/${uuid}` : 'https://www.ft.com';
 			this.overlay.show(`<p>It looks like you already have an FT.com subscription with Google. You have been logged in.<br /><a href="${contentHref}">Go to content</a><br /><br /><small>code: ENTITLED_LOGIN_SUCCESS</small></p>`);
 		}
@@ -225,10 +225,10 @@ class SwgController {
 	/**
 	 * Redirect the new user to a follow up page (defaults to consent form)
 	 */
-	onwardSubscribedJourney () {
-		const uuid = SwgController.getContentUuidFromUrl();
+	defaultOnwardSubscribedJourney () {
+		const uuid = browser.getContentUuidFromUrl();
 		const url = this.POST_SUBSCRIBE_URL + (uuid ? '&ft-content-uuid=' + uuid : '');
-		SwgController.redirectTo(url);
+		browser.redirectTo(url);
 	}
 
 	/**
@@ -245,7 +245,7 @@ class SwgController {
 			this.activeTrackingData = offerData;
 		}
 		const decoratedEvent = Object.assign({}, this.baseTrackingData, this.activeTrackingData, context, { action });
-		SwgController.trackEvent(decoratedEvent);
+		events.track(decoratedEvent);
 	}
 
 	/**
@@ -260,7 +260,7 @@ class SwgController {
 		document.body.dispatchEvent(new eventConstructor('oErrors.log', { detail: oErrorDetail, bubbles: true }));
 		/* dispatch custom error event */
 		const customErrorEvent = Object.assign({}, decoratedInfo, { error: detail.error }, { action: 'error' });
-		SwgController.trackEvent(customErrorEvent);
+		events.track(customErrorEvent);
 	}
 
 	/**
@@ -279,89 +279,6 @@ class SwgController {
 				reject(e);
 			}
 			swgPromise.then(resolve);
-		});
-	}
-
-	/**
-	 * Wrapped smarter fetch.
-	 * @param {string} url - absolute url (same as fetch interface)
-	 * @param {object} options - options object (same as fetch interface)
-	 * @param {function} _fetch - for mocking
-	 * @returns {promise}
-	 */
-	static fetch (url, options, _fetch=self.fetch) {
-		const safeJson = (res) => {
-			return res.text().then(text => {
-				let json;
-				try {
-					json = JSON.parse(text);
-				}
-				catch (e) {
-					json = {};
-				}
-				return json;
-			});
-		};
-
-		return new Promise((resolve, reject) => {
-			const defaults = { method: 'GET' };
-
-			_fetch(url, Object.assign({}, defaults, options))
-				.then(res => {
-					if (res.status === 200 || res.status === 201) {
-						safeJson(res).then(json => {
-							resolve({
-								json,
-								headers: res.headers,
-								status: res.status
-							});
-						});
-					} else {
-						res.text().then(txt => {
-							reject(new Error(`Bad response STATUS=${res.status} TEXT="${txt}"`));
-						});
-					}
-				})
-				.catch(reject);
-		});
-	}
-
-	/**
-	 * Dispatch oTracking event
-	 * @param {object} detail - event detail
-	 * @param {class} eventConstructor - for mocking
-	 */
-	static trackEvent (detail, eventConstructor=CustomEvent) {
-		document.body.dispatchEvent(new eventConstructor('oTracking.event', { detail, bubbles: true }));
-	}
-
-	/**
-	 * Dispatch namespaced event
-	 * @param {string} action - event action
-	 * @param {object} context - event data
-	 * @param {class} eventConstructor - for mocking
-	 */
-	static signal (action, context={}, eventConstructor=CustomEvent) {
-		document.body.dispatchEvent(new eventConstructor(`nSwg.${action}`, { detail: context, bubbles: true }));
-	}
-
-	/**
-	 * Signal a nampspaced error event
-	 * @param {error} error
-	 * @param {object} info - extra data
-	 */
-	static signalError (error, info={}) {
-		SwgController.signal('onError', { error, info });
-	}
-
-	/**
-	 * Listen to namespaced events
-	 * @param {string} action - event action to listen for
-	 * @param {function} callback
-	 */
-	static listen (action, callback) {
-		document.body.addEventListener(`nSwg.${action}`, (event={}) => {
-			callback(event.detail);
 		});
 	}
 
@@ -413,42 +330,4 @@ class SwgController {
 		}
 	}
 
-	/**
-	 * Extracts an ft content uuid from the window.location
-	 * @returns {string}
-	 */
-	static getContentUuidFromUrl () {
-		const ARTICLE_UUID_QS = /ft-content-uuid=([^&]+)/;
-		const ARTICLE_UUID_PATH = /content\/([^&?\/]+)/;
-		const location = SwgController.getWindowLocation() || {};
-		const lookup = (regexp, str) => str && (str.match(regexp) || [])[1];
-		return lookup(ARTICLE_UUID_QS, location.search) || lookup(ARTICLE_UUID_PATH, location.href);
-	}
-
-	/**
-	 * Returns a login url with a relevant location
-	 * @returns {string}
-	 */
-	static generateLoginUrl () {
-		const uuid = SwgController.getContentUuidFromUrl();
-		const contentHref = uuid && `https://www.ft.com/content/${uuid}`;
-		return 'https://www.ft.com/login?socialEnabled=true' + (contentHref ? `&location=${encodeURIComponent(contentHref)}` : '');
-	}
-
-	/**
-	 * @param {string} url
-	 */
-	static redirectTo (url) {
-		window.location.href = url;
-	}
-
-	/**
-	 * @returns {string}
-	 */
-	static getWindowLocation () {
-		return window.location;
-	}
-
-}
-
-module.exports = SwgController;
+};

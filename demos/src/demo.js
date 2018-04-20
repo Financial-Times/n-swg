@@ -1,5 +1,5 @@
 /* eslint no-console:0 */
-import { swgLoader } from '../../main-client';
+const { swgLoader } = require('../../main-client');
 
 document.addEventListener('oTracking.event', e => {
 	console.log('oTracking.event', e.detail.action, e);

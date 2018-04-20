@@ -1,7 +1,7 @@
 /**
  * Replicate the google swg library API
  */
-class SwgClient {
+module.exports = class SwgClient {
 
 	constructor () {
 	}
@@ -38,6 +38,12 @@ class SwgClient {
 		return true;
 	}
 
-}
+	showSubscribeOption () {
+		return true;
+	}
 
-module.exports = SwgClient;
+	showAbbrvOffer () {
+		return true;
+	}
+
+};
