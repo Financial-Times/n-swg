@@ -5,13 +5,15 @@ const { JSDOM } = require('../mocks/document');
 const SwgClient = require('../mocks/swg-client');
 const SwgController = require('../../../src/client/swg-controller');
 const SwgSubscribeButtons = require('../../../src/client/subscribe-button/index');
-const { Overlay } = require('../../../src/client/utils');
+const utils = require('../../../src/client/utils');
 
 describe('Swg Controller: class', function () {
 	let swgClient;
+	let sandbox;
 
 	beforeEach(() => {
 		const jsdom = new JSDOM();
+		sandbox = sinon.sandbox.create();
 		global.CustomEvent = jsdom.window.CustomEvent;
 		global.document = jsdom.window.document;
 		global.window = jsdom.window;
@@ -22,6 +24,7 @@ describe('Swg Controller: class', function () {
 		delete global.CustomEvent;
 		delete global.document;
 		delete global.window;
+		sandbox.restore();
 	});
 
 	it('exports a class', function () {
@@ -40,8 +43,8 @@ describe('Swg Controller: class', function () {
 			expect(subject.handlers.onSubscribeResponse).to.be.a('Function');
 			expect(subject.handlers.onEntitlementsResponse).to.be.a('Function');
 			expect(subject.swgClient).to.deep.equal(swgClient);
-			expect(subject.overlay).to.be.an.instanceOf(Overlay);
-			expect(subject.M_SWG_SUB_SUCCESS_ENDPOINT).to.equal('https://swg-fulfilment-svc-eu-prod.memb.ft.com/swg/v1/subscriptions');
+			expect(subject.overlay).to.be.an.instanceOf(utils.Overlay);
+			// expect(subject.M_SWG_SUB_SUCCESS_ENDPOINT).to.equal('https://swg-fulfilment-svc-eu-prod.memb.ft.com/swg/v1/subscriptions'); TODO
 			expect(subject.POST_SUBSCRIBE_URL).to.equal('https://www.ft.com/profile?splash=swg_checkout');
 		});
 
@@ -70,16 +73,13 @@ describe('Swg Controller: class', function () {
 		});
 
 		it('binds event handlers', function () {
-			sinon.stub(swgClient, 'setOnSubscribeResponse');
-			sinon.stub(swgClient, 'setOnEntitlementsResponse');
+			sandbox.stub(swgClient, 'setOnSubscribeResponse');
+			sandbox.stub(swgClient, 'setOnEntitlementsResponse');
 
 			const subject = new SwgController(swgClient);
 			expect(swgClient.setOnSubscribeResponse.calledOnce).to.be.true;
 			expect(swgClient.setOnEntitlementsResponse.calledOnce).to.be.true;
 			expect(subject.swgClient).to.deep.equal(swgClient);
-
-			swgClient.setOnSubscribeResponse.restore();
-			swgClient.setOnEntitlementsResponse.restore();
 	});
 
 	});
@@ -87,13 +87,8 @@ describe('Swg Controller: class', function () {
 	describe('.init()', function () {
 
 		beforeEach(() => {
-			sinon.stub(swgClient, 'init');
-			sinon.stub(swgClient, 'setOnSubscribeResponse');
-		});
-
-		afterEach(() => {
-			swgClient.init.restore();
-			swgClient.setOnSubscribeResponse.restore();
+			sandbox.stub(swgClient, 'init');
+			sandbox.stub(swgClient, 'setOnSubscribeResponse');
 		});
 
 		it('does not setup swgClient if .alreadyInitialised', function () {
@@ -120,71 +115,63 @@ describe('Swg Controller: class', function () {
 
 		it('will check entitlements by default', function () {
 			const subject = new SwgController(swgClient);
-			sinon.stub(subject, 'checkEntitlements').resolves();
+			sandbox.stub(subject, 'checkEntitlements').resolves();
 			subject.init();
 			expect(subject.checkEntitlements.calledOnce).to.be.true;
-			subject.checkEntitlements.restore();
 		});
 
 		it('will not check entitlements if passed option', function () {
 			const subject = new SwgController(swgClient);
-			sinon.stub(subject, 'checkEntitlements').resolves();
+			sandbox.stub(subject, 'checkEntitlements').resolves();
 			subject.init({ disableEntitlementsCheck: true });
 			expect(subject.checkEntitlements.calledOnce).to.be.false;
-			subject.checkEntitlements.restore();
 		});
 
 		context('and on checkEntitlements response', function () {
 
-			it('if not granted access and .subscribeButtons will init subscribe buttons', function (done) {
-				const buttonInitStub = sinon.stub();
+			it('if not granted access and .subscribeButtons will init subscribe buttons', function () {
+				const buttonInitStub = sandbox.stub();
 				const mockButtonConstructor = () => ({ init: buttonInitStub });
 				const subject = new SwgController(swgClient, { subscribeFromButton: true }, mockButtonConstructor);
 				const checkEntitlementsPromise = Promise.resolve({ granted: false });
-				sinon.stub(subject, 'checkEntitlements').resolves(checkEntitlementsPromise);
+
+				sandbox.stub(subject, 'checkEntitlements').resolves(checkEntitlementsPromise);
+
 				subject.init();
-				checkEntitlementsPromise.then(() => {
+				return checkEntitlementsPromise.then(() => {
 					expect(buttonInitStub.calledOnce).to.be.true;
-					subject.checkEntitlements.restore();
-					done();
-				})
-				.catch(done);
+				});
 			});
 
-			it('if granted access will showOverlay, resolve user and call handlers.onResolvedEntitlements(!promptLogin)', function (done) {
+			it('if granted access will showOverlay, resolve user and call handlers.onResolvedEntitlements(!promptLogin)', function () {
 				const subject = new SwgController(swgClient);
 				const checkEntitlementsPromise = Promise.resolve({ granted: true });
 				const resolveUserPromise = Promise.resolve();
-				sinon.stub(subject, 'checkEntitlements').returns(checkEntitlementsPromise);
-				sinon.stub(subject, 'resolveUser').returns(resolveUserPromise);
-				sinon.stub(subject.handlers, 'onResolvedEntitlements');
 
+				sandbox.stub(subject, 'checkEntitlements').returns(checkEntitlementsPromise);
+				sandbox.stub(subject, 'resolveUser').returns(resolveUserPromise);
+				sandbox.stub(subject.handlers, 'onResolvedEntitlements');
 
 				subject.init();
-				checkEntitlementsPromise.then(() => {
+				return checkEntitlementsPromise.then(() => {
 					resolveUserPromise.then(() => {
 						expect(subject.handlers.onResolvedEntitlements.calledWith(sinon.match({ promptLogin: false }))).to.be.true;
-						subject.resolveUser.restore();
-						subject.checkEntitlements.restore();
-						subject.handlers.onResolvedEntitlements.restore();
-						done();
-					})
-					.catch(done);
-				})
-				.catch(done);
+					});
+				});
 			});
 
-			it('if granted access but resolve user errors, signal error and call onwardEntitledJourney(promptLogin)', function (done) {
+			it('if granted access but resolve user errors, signal error and call defaultOnwardEntitledJourney(promptLogin)', function () {
 				const subject = new SwgController(swgClient);
 				const checkEntitlementsPromise = Promise.resolve({ granted: true });
 				const resolveUserPromise = Promise.reject(new Error('what!'));
-				sinon.stub(subject, 'checkEntitlements').returns(checkEntitlementsPromise);
-				sinon.stub(subject, 'resolveUser').returns(resolveUserPromise);
-				sinon.stub(SwgController, 'signalError');
-				sinon.stub(subject.handlers, 'onResolvedEntitlements');
+
+				sandbox.stub(subject, 'checkEntitlements').returns(checkEntitlementsPromise);
+				sandbox.stub(subject, 'resolveUser').returns(resolveUserPromise);
+				sandbox.stub(utils.events, 'signalError');
+				sandbox.stub(subject.handlers, 'onResolvedEntitlements');
 
 				subject.init();
-				checkEntitlementsPromise.then(() => {
+				return checkEntitlementsPromise.then(() => {
 					resolveUserPromise
 					.catch(() => {
 						/* slight hack to force the following block to be
@@ -192,96 +179,55 @@ describe('Swg Controller: class', function () {
 						return;
 					})
 					.then(() => {
-						expect(SwgController.signalError.calledOnce).to.be.true;
+						expect(utils.events.signalError.calledOnce).to.be.true;
 						expect(subject.handlers.onResolvedEntitlements.calledWith(sinon.match({ promptLogin: true }))).to.be.true;
-						subject.resolveUser.restore();
-						subject.checkEntitlements.restore();
-						SwgController.signalError.restore();
-						subject.handlers.onResolvedEntitlements.restore();
-						done();
-					})
-					.catch(done);
-				})
-				.catch(done);
+					});
+				});
 			});
 
-		});
-
-	});
-
-	describe('events and listeners', function () {
-
-		it('.signal() \"onError\" event calls all registered error listeners', function (done) {
-			const MOCK_ERROR = new Error('mock error');
-			SwgController.listen('onError', (error) => {
-				expect(error).to.equal(MOCK_ERROR);
-				done();
-			});
-			SwgController.signal('onError', MOCK_ERROR);
-		});
-
-		it('.signal() \"onReturn\" event calls all registered return listeners', function (done) {
-			const MOCK_RESULT = { example: 'object' };
-			SwgController.listen('onReturn', (error) => {
-				expect(error).to.equal(MOCK_RESULT);
-				done();
-			});
-			SwgController.signal('onReturn', MOCK_RESULT);
 		});
 
 	});
 
 	describe('.onSubscribeResponse() handler', function () {
 		let subject;
-		let redirectStub;
 
 		beforeEach(() => {
 			subject = new SwgController(swgClient, { subscribeFromButton: true });
-			sinon.stub(SwgController, 'signal');
-			sinon.stub(SwgController, 'trackEvent');
-			redirectStub = sinon.stub(SwgController, 'redirectTo');
+			sandbox.stub(utils.events, 'signal');
+			sandbox.stub(utils.events, 'track');
+			sandbox.stub(utils.browser, 'redirectTo');
 		});
 
-		afterEach(() => {
-			SwgController.signal.restore();
-			SwgController.trackEvent.restore();
-			redirectStub.restore();
-			subject = null;
-		});
-
-		it('on subPromise success: disable buttons, signal return, track success, resolve user -> handlers.onResolvedSubscribe()', function (done) {
+		it('on subPromise success: disable buttons, signal return, track success, resolve user -> handlers.onResolvedSubscribe()', function () {
 			const mockResponseComplete = Promise.resolve();
 			const MOCK_RESULT = { mock: 'swg-result', complete: () => mockResponseComplete };
 			const subPromise = Promise.resolve(MOCK_RESULT);
 			const resolveUserPromise = Promise.resolve();
 
-			sinon.stub(subject, 'resolveUser').returns(resolveUserPromise);
-			sinon.stub(subject.subscribeButtons, 'disableButtons');
+			sandbox.stub(subject, 'resolveUser').returns(resolveUserPromise);
+			sandbox.stub(subject.subscribeButtons, 'disableButtons');
 			sinon.spy(subject.handlers, 'onResolvedSubscribe');
-			subject.onSubscribeResponse(subPromise);
 
-			subPromise.then(() => {
+			subject.onSubscribeResponse(subPromise);
+			return subPromise.then(() => {
 				expect(subject.subscribeButtons.disableButtons.calledOnce).to.be.true;
-				expect(SwgController.signal.calledWith('onSubscribeReturn', MOCK_RESULT)).to.be.true;
-				expect(SwgController.trackEvent.calledOnce).to.be.true;
-				expect(SwgController.trackEvent.calledWith(sinon.match({ action: 'success' }))).to.be.true;
-				resolveUserPromise.then(() => {
+				expect(utils.events.signal.calledWith('onSubscribeReturn', MOCK_RESULT)).to.be.true;
+				expect(utils.events.track.calledOnce).to.be.true;
+				expect(utils.events.track.calledWith(sinon.match({ action: 'success' }))).to.be.true;
+
+				return resolveUserPromise.then(() => {
 					expect(subject.resolveUser.calledWith(subject.NEW_USER, MOCK_RESULT)).to.be.true;
 					mockResponseComplete.then(() => {
-						expect(SwgController.trackEvent.calledTwice).to.be.true;
+						expect(utils.events.track.calledTwice).to.be.true;
 						expect(subject.handlers.onResolvedSubscribe.calledOnce).to.be.true;
-						expect(SwgController.trackEvent.calledWith(sinon.match({ action: 'confirmation' }))).to.be.true;
-						subject.resolveUser.restore();
-						subject.subscribeButtons.disableButtons.restore();
-						subject.handlers.onResolvedSubscribe.restore();
-						done();
+						expect(utils.events.track.calledWith(sinon.match({ action: 'confirmation' }))).to.be.true;
 					});
 				});
-			})
-			.catch(done);
+			});
 		});
 
-		it('on subPromise error: signal error, track event', function (done) {
+		it('on subPromise error: signal error, track event', function () {
 			const MOCK_ERROR = new Error('mock error');
 			MOCK_ERROR.activityResult = {
 				code: '1234',
@@ -290,43 +236,38 @@ describe('Swg Controller: class', function () {
 			const subPromise = Promise.reject(MOCK_ERROR);
 
 			subject.onSubscribeResponse(subPromise);
-
-			subPromise
-			.then(() => {
-				/* slight hack to force the following catch block to be
-				registered after the genuine catch block in the
-				onSubscribeResponse > subPromise */
-				return;
-			})
-			.catch(() => {
-				expect(SwgController.signal.calledWith('onError', { error: MOCK_ERROR, info: {} }), 'signalError called').to.be.true;
-				expect(SwgController.trackEvent.calledOnce, 'trackEvent calledOnce').to.be.true;
-				expect(SwgController.trackEvent.calledWith(sinon.match({
-					action: 'exit',
-					errCode: MOCK_ERROR.activityResult.code,
-					errData: MOCK_ERROR.activityResult.data
-				})), 'track exit called').to.be.true;
-				done();
-			})
-			.catch(done);
+			return subPromise
+				.then(() => {
+					/* slight hack to force the following catch block to be
+					registered after the genuine catch block in the
+					onSubscribeResponse > subPromise */
+					return;
+				})
+				.catch(() => {
+					expect(utils.events.signal.calledWith('onError', { error: MOCK_ERROR, info: {} }), 'signalError called').to.be.true;
+					expect(utils.events.track.calledOnce, 'trackEvent calledOnce').to.be.true;
+					expect(utils.events.track.calledWith(sinon.match({
+						action: 'exit',
+						errCode: MOCK_ERROR.activityResult.code,
+						errData: MOCK_ERROR.activityResult.data
+					})), 'track exit called').to.be.true;
+				});
 		});
 
 	});
 
 	describe('.resolveUser()', function () {
 		let subject;
+		let fetchStub;
 		const MOCK_M_SWG_SUB_SUCCESS_ENDPOINT = 'https://www.ft.com/success';
 		const MOCK_M_SWG_ENTITLED_SUCCESS_ENDPOINT = 'https://www.ft.com/entitlements';
 
 		beforeEach(() => {
+			fetchStub = sandbox.stub(utils.smartFetch, 'fetch');
 			subject = new SwgController(swgClient, {
 				M_SWG_SUB_SUCCESS_ENDPOINT: MOCK_M_SWG_SUB_SUCCESS_ENDPOINT,
 				M_SWG_ENTITLED_SUCCESS_ENDPOINT: MOCK_M_SWG_ENTITLED_SUCCESS_ENDPOINT
 			});
-		});
-
-		afterEach(() => {
-			subject = null;
 		});
 
 		it('is a function', function () {
@@ -334,17 +275,16 @@ describe('Swg Controller: class', function () {
 		});
 
 		it('returns a promise', function () {
-			sinon.stub(SwgController, 'fetch').resolves({ json: {}});
+			fetchStub.resolves({ json: {}});
 			expect(subject.resolveUser()).to.be.a('Promise');
-			SwgController.fetch.restore();
 		});
 
 		it('correctly formats default (ENTITLEMENTS) request from passed options', function () {
 			const MOCK_SWG_RESPONSE = { swgToken: '123' };
 			const expectedBody = JSON.stringify(MOCK_SWG_RESPONSE);
-			sinon.stub(SwgController, 'fetch').resolves({ json: {}});
+			fetchStub.resolves({ json: {}});
 			subject.resolveUser(subject.ENTITLED_USER, MOCK_SWG_RESPONSE);
-			expect(SwgController.fetch.calledWith(MOCK_M_SWG_ENTITLED_SUCCESS_ENDPOINT, {
+			expect(fetchStub.calledWith(MOCK_M_SWG_ENTITLED_SUCCESS_ENDPOINT, {
 				method: 'POST',
 				body: expectedBody,
 				credentials: 'include',
@@ -352,24 +292,23 @@ describe('Swg Controller: class', function () {
 					'content-type': 'application/json'
 				}
 			})).to.be.true;
-			SwgController.fetch.restore();
 		});
 
 		it('scenario=ENTITLED_USER if no M_SWG_ENTITLED_SUCCESS_ENDPOINT reject with an error', function () {
 			subject.M_SWG_ENTITLED_SUCCESS_ENDPOINT = null;
 			const resultPromise = subject.resolveUser(subject.ENTITLED_USER, {});
-			resultPromise.catch(err => {
+			return resultPromise.catch(err => {
 				expect(err.message).to.contain('M_SWG_ENTITLED_SUCCESS_ENDPOINT not set');
-				SwgController.fetch.restore();
 			});
 		});
 
 		it('scenario=NEW_USER correctly formats (NEW USER) request from passed options', function () {
 			const MOCK_SWG_RESPONSE = { swgToken: '123' };
 			const expectedBody = JSON.stringify(MOCK_SWG_RESPONSE);
-			sinon.stub(SwgController, 'fetch').resolves({ json: {}});
+			fetchStub.resolves({ json: {}});
+
 			subject.resolveUser(subject.NEW_USER, MOCK_SWG_RESPONSE);
-			expect(SwgController.fetch.calledWith(MOCK_M_SWG_SUB_SUCCESS_ENDPOINT, {
+			expect(fetchStub.calledWith(MOCK_M_SWG_SUB_SUCCESS_ENDPOINT, {
 				method: 'POST',
 				body: expectedBody,
 				credentials: 'include',
@@ -377,27 +316,22 @@ describe('Swg Controller: class', function () {
 					'content-type': 'application/json'
 				}
 			})).to.be.true;
-			SwgController.fetch.restore();
 		});
 
-		it('extracts and resolves with json on fetch response', function (done) {
+		it('extracts and resolves with json on fetch response', function () {
 			const MOCK_RESULT = { end: 'result' };
-			sinon.stub(SwgController, 'fetch').resolves({ json: MOCK_RESULT });
-			subject.resolveUser().then(result => {
+			fetchStub.resolves({ json: MOCK_RESULT });
+			return subject.resolveUser().then(result => {
 				expect(result).to.deep.equal(MOCK_RESULT);
-				done();
 			});
-			SwgController.fetch.restore();
 		});
 
-		it('extracts and resolves with json on fetch error', function (done) {
+		it('extracts and resolves with json on fetch error', function () {
 			const MOCK_ERROR = new Error('Bad response!');
-			sinon.stub(SwgController, 'fetch').throws(MOCK_ERROR);
-			subject.resolveUser().catch(err => {
+			fetchStub.throws(MOCK_ERROR);
+			return subject.resolveUser().catch(err => {
 				expect(err).to.deep.equal(MOCK_ERROR);
-				done();
 			});
-			SwgController.fetch.restore();
 		});
 
 	});
@@ -423,34 +357,30 @@ describe('Swg Controller: class', function () {
 
 		it('resolves with formatted \"entitlementsResponse\" event and calls swgClient.getEntitlements()', function (done) {
 			const MOCK_RESULT = { enablesThis: () => true, other: 'data' };
-			sinon.stub(swgClient, 'getEntitlements');
+			sandbox.stub(swgClient, 'getEntitlements');
 
 			subject.checkEntitlements().then(res => {
 				expect(res.granted).to.be.true;
 				expect(res.entitlements).to.equal(MOCK_RESULT);
 				expect(swgClient.getEntitlements.calledOnce).to.true;
-				swgClient.getEntitlements.restore();
 				done();
 			})
 			.catch(done);
 
-			SwgController.signal('entitlementsResponse', MOCK_RESULT);
+			utils.events.signal('entitlementsResponse', MOCK_RESULT);
 		});
 
-		it('resolves with formatted \"entitlementsResponse\" where access is not granted', function (done) {
+		it('resolves with formatted \"entitlementsResponse\" where access is not granted', function () {
 			const MOCK_RESULT = { enablesThis: () => false, other: 'data' };
-			sinon.stub(swgClient, 'getEntitlements');
+			sandbox.stub(swgClient, 'getEntitlements');
 
 			subject.checkEntitlements().then(res => {
 				expect(res.granted).to.be.false;
 				expect(res.entitlements).to.equal(MOCK_RESULT);
 				expect(swgClient.getEntitlements.calledOnce).to.true;
-				swgClient.getEntitlements.restore();
-				done();
-			})
-			.catch(done);
+			});
 
-			SwgController.signal('entitlementsResponse', MOCK_RESULT);
+			utils.events.signal('entitlementsResponse', MOCK_RESULT);
 		});
 
 	});
@@ -467,13 +397,12 @@ describe('Swg Controller: class', function () {
 		});
 
 		it('signal and track appropriately on flowCanceled', function () {
-			sinon.stub(SwgController, 'signal');
-			sinon.stub(subject, 'track');
+			sandbox.stub(utils.events, 'signal');
+			sandbox.stub(subject, 'track');
 
 			subject.onFlowCanceled('someFlow');
-			expect(SwgController.signal.calledWith('flowCanceled.someFlow')).to.be.true;
+			expect(utils.events.signal.calledWith('flowCanceled.someFlow')).to.be.true;
 			expect(subject.track.calledWith({ action: 'flowCanceled', context: { flowName: 'someFlow' } })).to.be.true;
-			SwgController.signal.restore();
 		});
 
 	});
@@ -490,13 +419,12 @@ describe('Swg Controller: class', function () {
 		});
 
 		it('signal and track appropriately on flowStarted', function () {
-			sinon.stub(SwgController, 'signal');
-			sinon.stub(subject, 'track');
+			sandbox.stub(utils.events, 'signal');
+			sandbox.stub(subject, 'track');
 
 			subject.onFlowStarted('someFlow');
-			expect(SwgController.signal.calledWith('flowStarted.someFlow')).to.be.true;
+			expect(utils.events.signal.calledWith('flowStarted.someFlow')).to.be.true;
 			expect(subject.track.calledWith({ action: 'flowStarted', context: { flowName: 'someFlow' } })).to.be.true;
-			SwgController.signal.restore();
 		});
 
 	});
@@ -508,24 +436,19 @@ describe('Swg Controller: class', function () {
 			subject = new SwgController(swgClient);
 		});
 
-		afterEach(() => {
-			subject = null;
-		});
-
 		it('signal \"entitlementsResponse\" event on entitlementsPromise', function () {
-			sinon.stub(SwgController, 'signal');
+			sandbox.stub(utils.events, 'signal');
 			const MOCK_RESULT = { entitlments: 'object', ack: () => true };
 			const mockEntitlementsPromise = Promise.resolve(MOCK_RESULT);
 
 			subject.onEntitlementsResponse(mockEntitlementsPromise);
 			return mockEntitlementsPromise.then(() => {
-				expect(SwgController.signal.calledWith('entitlementsResponse', MOCK_RESULT)).to.be.true;
-				SwgController.signal.restore();
+				expect(utils.events.signal.calledWith('entitlementsResponse', MOCK_RESULT)).to.be.true;
 			});
 		});
 
 		it('suppress Google message with .ack()', function () {
-			const MOCK_RESULT = { entitlments: 'object', ack: sinon.stub() };
+			const MOCK_RESULT = { entitlments: 'object', ack: sandbox.stub() };
 			const mockEntitlementsPromise = Promise.resolve(MOCK_RESULT);
 
 			subject.onEntitlementsResponse(mockEntitlementsPromise);
@@ -535,14 +458,13 @@ describe('Swg Controller: class', function () {
 		});
 
 		it('signal \"Error\" event on entitlementsPromise', function () {
-			sinon.stub(SwgController, 'signalError');
+			sandbox.stub(utils.events, 'signalError');
 			const MOCK_ERROR = new Error('mock');
 			const mockEntitlementsPromise = Promise.reject(MOCK_ERROR);
 
 			subject.onEntitlementsResponse(mockEntitlementsPromise);
 			return mockEntitlementsPromise.then(() => true).catch(() => {
-					expect(SwgController.signalError.calledWith(MOCK_ERROR)).to.be.true;
-					SwgController.signalError.restore();
+					expect(utils.events.signalError.calledWith(MOCK_ERROR)).to.be.true;
 				});
 		});
 
@@ -554,20 +476,18 @@ describe('Swg Controller: class', function () {
 
 		beforeEach(() => {
 			subject = new SwgController(swgClient);
-			trackEventStub = sinon.stub(SwgController, 'trackEvent');
+			trackEventStub = sandbox.stub(utils.events, 'track');
 		});
 
 		afterEach(() => {
-			trackEventStub.restore();
 			subject = null;
 		});
 
 		it('can be invoked via a \"track\" signalled event', function () {
-			sinon.stub(subject, 'track');
+			sandbox.stub(subject, 'track');
 			subject.init();
-			SwgController.signal('track', { action: 'foo'} );
+			utils.events.signal('track', { action: 'foo'} );
 			expect(subject.track.calledOnce).to.be.true;
-			subject.track.restore();;
 		});
 
 		it('decorate basic events', function () {
@@ -706,11 +626,10 @@ describe('Swg Controller: class', function () {
 			subject.init();
 			subject.baseTrackingData = mockData.base;
 			subject.activeTrackingData = mockData.active;
-			dispatchEventStub = sinon.stub(global.document.body, 'dispatchEvent');
+			dispatchEventStub = sandbox.stub(global.document.body, 'dispatchEvent');
 		});
 
 		afterEach(() => {
-			dispatchEventStub.restore();
 			subject = null;
 			mockData = null;
 		});
@@ -780,31 +699,27 @@ describe('Swg Controller: class', function () {
 			windowLocation = { search: '', href: '' };
 			subject = new SwgController(swgClient);
 			subject.init();
-			redirectStub = sinon.stub(SwgController, 'redirectTo');
-			overlayStub = sinon.stub(subject.overlay, 'show');
-			sinon.stub(SwgController, 'getWindowLocation').returns(windowLocation);
+			redirectStub = sandbox.stub(utils.browser, 'redirectTo');
+			overlayStub = sandbox.stub(subject.overlay, 'show');
+			sandbox.stub(utils.browser, 'getWindowLocation').returns(windowLocation);
 		});
 
 		afterEach(() => {
-			subject = null;
-			overlayStub.restore();
-			redirectStub.restore();
 			windowLocation = null;
-			SwgController.getWindowLocation.restore();
 		});
 
-		describe('.onwardEntitledJourney()', function () {
+		describe('.defaultOnwardEntitledJourney()', function () {
 
 			context('promptLogin=true', function () {
 				it('show overlay will have link that defaults to login page', function () {
-					subject.onwardEntitledJourney({ promptLogin: true });
+					subject.defaultOnwardEntitledJourney({ promptLogin: true });
 					expect(overlayStub.calledWith(sinon.match('https://www.ft.com/login?socialEnabled=true'))).to.be.true;
 					expect(overlayStub.calledWith(sinon.match('ENTITLED_LOGIN_REQUIRED'))).to.be.true;
 			});
 
 				it('show overlay will have login link with requested content url as location', function () {
 				setHref('https://www.ft.com/barrier/trial?ft-content-uuid=12345&foo=bar');
-					subject.onwardEntitledJourney({ promptLogin: true });
+					subject.defaultOnwardEntitledJourney({ promptLogin: true });
 					expect(overlayStub.calledWith(sinon.match('https://www.ft.com/login?socialEnabled=true&location=https%3A%2F%2Fwww.ft.com%2Fcontent%2F12345'))).to.be.true;
 					expect(overlayStub.calledWith(sinon.match('ENTITLED_LOGIN_REQUIRED'))).to.be.true;
 				});
@@ -813,14 +728,14 @@ describe('Swg Controller: class', function () {
 			context('promptLogin=false', function () {
 				it('show overlay with link to requested content if ft-content-uuid present', function () {
 					setHref('https://www.ft.com/barrier/trial?ft-content-uuid=12345&foo=bar');
-					subject.onwardEntitledJourney({ promptLogin: false });
+					subject.defaultOnwardEntitledJourney({ promptLogin: false });
 					expect(overlayStub.calledWith(sinon.match('https://www.ft.com/content/12345'))).to.be.true;
 					expect(overlayStub.calledWith(sinon.match('ENTITLED_LOGIN_SUCCESS'))).to.be.true;
 			});
 
 				it('show overlay with link to requested content if on a content page promptLogin', function () {
 				setHref('https://www.ft.com/content/12345?foo=bar');
-					subject.onwardEntitledJourney({ promptLogin: false });
+					subject.defaultOnwardEntitledJourney({ promptLogin: false });
 					expect(overlayStub.calledWith(sinon.match('https://www.ft.com/content/12345'))).to.be.true;
 					expect(overlayStub.calledWith(sinon.match('ENTITLED_LOGIN_SUCCESS'))).to.be.true;
 				});
@@ -829,22 +744,22 @@ describe('Swg Controller: class', function () {
 		});
 
 
-		describe('.onwardSubscribedJourney()', function () {
+		describe('.defaultOnwardSubscribedJourney()', function () {
 
 			it('will redirect to profile page', function () {
-				subject.onwardSubscribedJourney();
+				subject.defaultOnwardSubscribedJourney();
 				expect(redirectStub.calledWith(subject.POST_SUBSCRIBE_URL));
 			});
 
 			it('will redirect to profile page with ft-content-uuid if query param present', function () {
 				setHref('https://www.ft.com/barrier/trial?ft-content-uuid=12345&foo=bar');
-				subject.onwardSubscribedJourney();
+				subject.defaultOnwardSubscribedJourney();
 				expect(redirectStub.calledWith(subject.POST_SUBSCRIBE_URL + '&ft-content-uuid=12345')).to.be.true;
 			});
 
 			it('will redirect to profile page with ft-content-uuid if on a content page', function () {
 				setHref('https://www.ft.com/content/12345?foo=bar');
-				subject.onwardSubscribedJourney();
+				subject.defaultOnwardSubscribedJourney();
 				expect(redirectStub.calledWith(subject.POST_SUBSCRIBE_URL + '&ft-content-uuid=12345')).to.be.true;
 			});
 
