@@ -13,7 +13,7 @@ class SwgController {
 		this.swgClient = swgClient;
 		this.manualInitDomain = options.manualInitDomain;
 		this.M_SWG_SUB_SUCCESS_ENDPOINT = options.M_SWG_SUB_SUCCESS_ENDPOINT || (options.sandbox ? 'https://swg-fulfilment-svc-eu-test.memb.ft.com/swg/v1/subscriptions' : 'https://swg-fulfilment-svc-eu-prod.memb.ft.com/swg/v1/subscriptions');
-		this.M_SWG_ENTITLED_SUCCESS_ENDPOINT = options.M_SWG_ENTITLED_SUCCESS_ENDPOINT || null; // TODO: waiting on membership
+		this.M_SWG_ENTITLED_SUCCESS_ENDPOINT = options.M_SWG_ENTITLED_SUCCESS_ENDPOINT || (options.sandbox ? 'https://swg-fulfilment-svc-eu-test.memb.ft.com/swg/v1/subscriptions/entitlementsCheck' : 'https://swg-fulfilment-svc-eu-prod.memb.ft.com/swg/v1/subscriptions/entitlementsCheck');
 		this.POST_SUBSCRIBE_URL = options.POST_SUBSCRIBE_URL || 'https://www.ft.com/profile?splash=swg_checkout';
 		this.handlers = Object.assign({
 			onEntitlementsResponse: this.onEntitlementsResponse.bind(this),
@@ -70,8 +70,8 @@ class SwgController {
 			/* check user entitlements */
 			this.checkEntitlements().then((res={}) => {
 				if (res.granted) {
-					/* resolve user if they have access via SwG */
-					this.resolveUser(this.ENTITLED_USER, res.entitlements)
+					/* resolve user with access to requested content via SwG */
+					this.resolveUser(this.ENTITLED_USER, res.entitlements.json())
 						.then(() => {
 							/* set onward journey */
 							this.handlers.onResolvedEntitlements({ promptLogin: false, entitlements: res.entitlements });
@@ -82,7 +82,18 @@ class SwgController {
 							/* set onward journey */
 							this.handlers.onResolvedEntitlements({ promptLogin: true, entitlements: res.entitlements, error: err });
 						});
-				} else if (this.subscribeButtons) {
+				}
+				else if (res.hasEntitlements) {
+					/**
+					 * User has entitlements but not to requested content
+					 * TODO
+					 * - check if user has an active FT.com session
+					 * - prompt login if they do not
+					 * - UX message
+					 * - FUTURE (?) enable "upgrade" SwG buttons
+					 * */
+				}
+				else if (this.subscribeButtons) {
 					/* no entitlements, enable buttons */
 					this.subscribeButtons.init();
 				}
@@ -100,7 +111,8 @@ class SwgController {
 	checkEntitlements () {
 		const formatResponse = (resolve) => (entitlements={}) => {
 			const granted = entitlements && entitlements.enablesThis();
-			resolve({ granted, entitlements });
+			const hasEntitlements = entitlements && entitlements.enablesAny();
+			resolve({ granted, hasEntitlements, entitlements });
 		};
 		return new Promise((resolve) => {
 			SwgController.listen('entitlementsResponse', formatResponse(resolve));
@@ -178,10 +190,6 @@ class SwgController {
 	 * @param {object} swgResponse - the SwG response object with user data
 	 */
 	resolveUser (scenario, swgResponse) {
-		/* reject if no entitlments endpoint setup so that we prompt login */
-		if (scenario === this.ENTITLED_USER && !this.M_SWG_ENTITLED_SUCCESS_ENDPOINT) {
-			return Promise.reject(new Error('M_SWG_ENTITLED_SUCCESS_ENDPOINT not set'));
-		}
 		/* cors POST to relevant membership endpoint with SwG payload */
 		const endpoint = scenario === this.NEW_USER
 			? this.M_SWG_SUB_SUCCESS_ENDPOINT
