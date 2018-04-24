@@ -60,7 +60,7 @@ describe('Swg Controller: custom handlers', function () {
 	});
 
 	it('after resolving a users entitlements at init(), call options.handlers.onResolvedEntitlments()', function () {
-		const checkEntitlementsPromise = Promise.resolve({ granted: true });
+		const checkEntitlementsPromise = Promise.resolve({ granted: true, json: () => ({ some: 'object' }) });
 		const resolveUserPromise = Promise.resolve();
 
 		sandbox.stub(subject, 'checkEntitlements').resolves(checkEntitlementsPromise);

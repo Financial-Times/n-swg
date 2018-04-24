@@ -13,7 +13,7 @@ module.exports = class SwgController {
 		this.swgClient = swgClient;
 		this.manualInitDomain = options.manualInitDomain;
 		this.M_SWG_SUB_SUCCESS_ENDPOINT = options.M_SWG_SUB_SUCCESS_ENDPOINT || (options.sandbox ? 'https://api-t.ft.com/commerce/v1/swg/subscriptions' : 'https://api.ft.com/commerce/v1/swg/subscriptions');
-		this.M_SWG_ENTITLED_SUCCESS_ENDPOINT = options.M_SWG_ENTITLED_SUCCESS_ENDPOINT || null; // TODO: waiting on membership
+		this.M_SWG_ENTITLED_SUCCESS_ENDPOINT = options.M_SWG_ENTITLED_SUCCESS_ENDPOINT || (options.sandbox ? 'https://swg-fulfilment-svc-eu-test.memb.ft.com/swg/v1/subscriptions/entitlementsCheck' : 'https://swg-fulfilment-svc-eu-prod.memb.ft.com/swg/v1/subscriptions/entitlementsCheck');
 		this.POST_SUBSCRIBE_URL = options.POST_SUBSCRIBE_URL || 'https://www.ft.com/profile?splash=swg_checkout';
 		this.handlers = Object.assign({
 			onEntitlementsResponse: this.onEntitlementsResponse.bind(this),
@@ -69,12 +69,12 @@ module.exports = class SwgController {
 		if (!disableEntitlementsCheck) {
 			/* check user entitlements */
 			this.checkEntitlements().then((res={}) => {
-				if (res.granted) {
-					/* resolve user if they have access via SwG */
-					this.resolveUser(this.ENTITLED_USER, res.entitlements)
-						.then(() => {
+				if (res.granted && res.json) {
+					/* resolve user with access to requested content via SwG */
+					this.resolveUser(this.ENTITLED_USER, res.json)
+						.then(({ consentRequired=false }={}) => {
 							/* set onward journey */
-							this.handlers.onResolvedEntitlements({ promptLogin: false, entitlements: res.entitlements });
+							this.handlers.onResolvedEntitlements({ promptLogin: false, entitlements: res.entitlements, consentRequired });
 						})
 						.catch(err => {
 							/* signal error */
@@ -82,6 +82,15 @@ module.exports = class SwgController {
 							/* set onward journey */
 							this.handlers.onResolvedEntitlements({ promptLogin: true, entitlements: res.entitlements, error: err });
 						});
+				} else if (res.hasEntitlements) {
+					/**
+					 * User has entitlements but not to requested content
+					 * TODO
+					 * - check if user has an active FT.com session
+					 * - prompt login if they do not
+					 * - UX message
+					 * - FUTURE (?) enable "upgrade" SwG buttons
+					 * */
 				} else if (this.subscribeButtons) {
 					/* no entitlements, enable buttons */
 					this.subscribeButtons.init();
@@ -99,8 +108,10 @@ module.exports = class SwgController {
 	 */
 	checkEntitlements () {
 		const formatResponse = (resolve) => (entitlements={}) => {
-			const granted = entitlements && entitlements.enablesThis();
-			resolve({ granted, entitlements });
+			const granted = entitlements && entitlements.enablesThis && entitlements.enablesThis();
+			const hasEntitlements = entitlements && entitlements.enablesAny && entitlements.enablesAny();
+			const json = entitlements && entitlements.json && entitlements.json();
+			resolve({ granted, hasEntitlements, entitlements, json });
 		};
 		return new Promise((resolve) => {
 			events.listen('entitlementsResponse', formatResponse(resolve));
@@ -138,7 +149,7 @@ module.exports = class SwgController {
 			/* track exit event */
 			this.track({ action: 'exit', context: {
 				errCode: _get(err, 'activityResult.code'),
-				errData: _get(err, 'activityResult.data'),
+				errData: _get(err, 'activityResult.data')
 			}});
 		});
 	}
@@ -178,10 +189,6 @@ module.exports = class SwgController {
 	 * @param {object} swgResponse - the SwG response object with user data
 	 */
 	resolveUser (scenario, swgResponse) {
-		/* reject if no entitlments endpoint setup so that we prompt login */
-		if (scenario === this.ENTITLED_USER && !this.M_SWG_ENTITLED_SUCCESS_ENDPOINT) {
-			return Promise.reject(new Error('M_SWG_ENTITLED_SUCCESS_ENDPOINT not set'));
-		}
 		/* cors POST to relevant membership endpoint with SwG payload */
 		const endpoint = scenario === this.NEW_USER
 			? this.M_SWG_SUB_SUCCESS_ENDPOINT
@@ -193,24 +200,37 @@ module.exports = class SwgController {
 				headers: { 'content-type': 'application/json' },
 				body: JSON.stringify(swgResponse)
 			})
-			.then(({ json }) => resolve(json))
+			.then(({ json }) => {
+				/**
+				 * Both subscription and entitlement callback endpoints return
+				 * a 200 with set-cookie headers for the resolved user session
+				 * and json about the new session
+				 */
+				resolve({
+					consentRequired: _get(json, 'userInfo.newlyCreated'),
+					raw: json
+				});
+			})
 			.catch(reject);
 		});
 	}
 
 	/**
 	 * User is entitled to content. Link to it if they are logged in, or prompt
-	 * them to login first.
+	 * them to login first. If we need to gather user consent, then go via the
+	 * POST_SUBSCRIBE_URL form
 	 * @param {boolean} opts.promptLogin - determines overlay message
+	 * @param {boolean} opts.consentRequired - user must complete profile
 	 */
-	defaultOnwardEntitledJourney ({ promptLogin=false }={}) {
+	defaultOnwardEntitledJourney ({ promptLogin=false, consentRequired=false }={}) {
 		if (promptLogin) {
 			const loginHref = browser.generateLoginUrl();
 			this.overlay.show(`<p>It looks like you already have an FT.com subscription with Google.<br /><a href="${loginHref}">Please login</a><br /><br /><small>code: ENTITLED_LOGIN_REQUIRED</small></p>`);
 		} else {
 			const uuid = browser.getContentUuidFromUrl();
 			const contentHref = uuid ? `https://www.ft.com/content/${uuid}` : 'https://www.ft.com';
-			this.overlay.show(`<p>It looks like you already have an FT.com subscription with Google. You have been logged in.<br /><a href="${contentHref}">Go to content</a><br /><br /><small>code: ENTITLED_LOGIN_SUCCESS</small></p>`);
+			const consentHref = consentRequired && this.POST_SUBSCRIBE_URL + (uuid ? '&ft-content-uuid=' + uuid : '');
+			this.overlay.show(`<p>It looks like you already have an FT.com subscription with Google. You have been logged in.<br /><a href="${consentHref || contentHref}">Go to content</a><br /><br /><small>code: ENTITLED_LOGIN_SUCCESS</small></p>`);
 		}
 	}
 
