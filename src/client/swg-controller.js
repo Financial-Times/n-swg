@@ -69,12 +69,12 @@ module.exports = class SwgController {
 		if (!disableEntitlementsCheck) {
 			/* check user entitlements */
 			this.checkEntitlements().then((res={}) => {
-				if (res.granted) {
+				if (res.granted && res.json) {
 					/* resolve user with access to requested content via SwG */
-					this.resolveUser(this.ENTITLED_USER, res.entitlements.json())
-						.then(() => {
+					this.resolveUser(this.ENTITLED_USER, res.json)
+						.then(({ consentRequired=false }={}) => {
 							/* set onward journey */
-							this.handlers.onResolvedEntitlements({ promptLogin: false, entitlements: res.entitlements });
+							this.handlers.onResolvedEntitlements({ promptLogin: false, entitlements: res.entitlements, consentRequired });
 						})
 						.catch(err => {
 							/* signal error */
@@ -110,9 +110,10 @@ module.exports = class SwgController {
 	 */
 	checkEntitlements () {
 		const formatResponse = (resolve) => (entitlements={}) => {
-			const granted = entitlements && entitlements.enablesThis();
-			const hasEntitlements = entitlements && entitlements.enablesAny();
-			resolve({ granted, hasEntitlements, entitlements });
+			const granted = entitlements && entitlements.enablesThis && entitlements.enablesThis();
+			const hasEntitlements = entitlements && entitlements.enablesAny && entitlements.enablesAny();
+			const json = entitlements && entitlements.json && entitlements.json();
+			resolve({ granted, hasEntitlements, entitlements, json });
 		};
 		return new Promise((resolve) => {
 			events.listen('entitlementsResponse', formatResponse(resolve));
@@ -150,7 +151,7 @@ module.exports = class SwgController {
 			/* track exit event */
 			this.track({ action: 'exit', context: {
 				errCode: _get(err, 'activityResult.code'),
-				errData: _get(err, 'activityResult.data'),
+				errData: _get(err, 'activityResult.data')
 			}});
 		});
 	}
@@ -201,24 +202,37 @@ module.exports = class SwgController {
 				headers: { 'content-type': 'application/json' },
 				body: JSON.stringify(swgResponse)
 			})
-			.then(({ json }) => resolve(json))
+			.then(({ json }) => {
+				/**
+				 * Both subscription and entitlement callback endpoints return
+				 * a 200 with set-cookie headers for the resolved user session
+				 * and json about the new session
+				 */
+				resolve({
+					consentRequired: _get(json, 'userInfo.newlyCreated'),
+					raw: json
+				});
+			})
 			.catch(reject);
 		});
 	}
 
 	/**
 	 * User is entitled to content. Link to it if they are logged in, or prompt
-	 * them to login first.
+	 * them to login first. If we need to gather user consent, then go via the
+	 * POST_SUBSCRIBE_URL form
 	 * @param {boolean} opts.promptLogin - determines overlay message
+	 * @param {boolean} opts.consentRequired - user must complete profile
 	 */
-	defaultOnwardEntitledJourney ({ promptLogin=false }={}) {
+	defaultOnwardEntitledJourney ({ promptLogin=false, consentRequired=false }={}) {
 		if (promptLogin) {
 			const loginHref = browser.generateLoginUrl();
 			this.overlay.show(`<p>It looks like you already have an FT.com subscription with Google.<br /><a href="${loginHref}">Please login</a><br /><br /><small>code: ENTITLED_LOGIN_REQUIRED</small></p>`);
 		} else {
 			const uuid = browser.getContentUuidFromUrl();
 			const contentHref = uuid ? `https://www.ft.com/content/${uuid}` : 'https://www.ft.com';
-			this.overlay.show(`<p>It looks like you already have an FT.com subscription with Google. You have been logged in.<br /><a href="${contentHref}">Go to content</a><br /><br /><small>code: ENTITLED_LOGIN_SUCCESS</small></p>`);
+			const consentHref = consentRequired && this.POST_SUBSCRIBE_URL + (uuid ? '&ft-content-uuid=' + uuid : '');
+			this.overlay.show(`<p>It looks like you already have an FT.com subscription with Google. You have been logged in.<br /><a href="${consentHref || contentHref}">Go to content</a><br /><br /><small>code: ENTITLED_LOGIN_SUCCESS</small></p>`);
 		}
 	}
 

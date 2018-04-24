@@ -44,7 +44,8 @@ describe('Swg Controller: class', function () {
 			expect(subject.handlers.onEntitlementsResponse).to.be.a('Function');
 			expect(subject.swgClient).to.deep.equal(swgClient);
 			expect(subject.overlay).to.be.an.instanceOf(utils.Overlay);
-			// expect(subject.M_SWG_SUB_SUCCESS_ENDPOINT).to.equal('https://swg-fulfilment-svc-eu-prod.memb.ft.com/swg/v1/subscriptions'); TODO
+			expect(subject.M_SWG_SUB_SUCCESS_ENDPOINT).to.equal('https://api.ft.com/commerce/v1/swg/subscriptions');
+			expect(subject.M_SWG_ENTITLED_SUCCESS_ENDPOINT).to.equal('https://swg-fulfilment-svc-eu-prod.memb.ft.com/swg/v1/subscriptions/entitlementsCheck');
 			expect(subject.POST_SUBSCRIBE_URL).to.equal('https://www.ft.com/profile?splash=swg_checkout');
 		});
 
@@ -294,39 +295,67 @@ describe('Swg Controller: class', function () {
 			})).to.be.true;
 		});
 
-		it('scenario=ENTITLED_USER if no M_SWG_ENTITLED_SUCCESS_ENDPOINT reject with an error', function () {
-			subject.M_SWG_ENTITLED_SUCCESS_ENDPOINT = null;
-			const resultPromise = subject.resolveUser(subject.ENTITLED_USER, {});
-			return resultPromise.catch(err => {
-				expect(err.message).to.contain('M_SWG_ENTITLED_SUCCESS_ENDPOINT not set');
+		it('scenario=ENTITLED_USER correctly formats (ENTITLED USER) and handles request from passed options', function () {
+			const MOCK_SWG_RESPONSE = { swgToken: '123' };
+			const expectedBody = JSON.stringify(MOCK_SWG_RESPONSE);
+			const MOCK_RESULT = { userInfo: { newlyCreated: false } };
+			fetchStub.resolves({ json: MOCK_RESULT });
+
+			return subject.resolveUser(subject.ENTITLED_USER, MOCK_SWG_RESPONSE).then(result => {
+				expect(result).to.deep.equal({
+					consentRequired: false,
+					raw: MOCK_RESULT
+				});
+				expect(fetchStub.calledWith(MOCK_M_SWG_ENTITLED_SUCCESS_ENDPOINT, {
+					method: 'POST',
+					body: expectedBody,
+					credentials: 'include',
+					headers: {
+						'content-type': 'application/json'
+					}
+				})).to.be.true;
 			});
 		});
 
-		it('scenario=NEW_USER correctly formats (NEW USER) request from passed options', function () {
+		it('scenario=NEW_USER correctly formats (NEW USER) and handles request from passed options', function () {
 			const MOCK_SWG_RESPONSE = { swgToken: '123' };
 			const expectedBody = JSON.stringify(MOCK_SWG_RESPONSE);
-			fetchStub.resolves({ json: {}});
+			const MOCK_RESULT = { userInfo: { newlyCreated: true } };
+			fetchStub.resolves({ json: MOCK_RESULT });
 
-			subject.resolveUser(subject.NEW_USER, MOCK_SWG_RESPONSE);
-			expect(fetchStub.calledWith(MOCK_M_SWG_SUB_SUCCESS_ENDPOINT, {
-				method: 'POST',
-				body: expectedBody,
-				credentials: 'include',
-				headers: {
-					'content-type': 'application/json'
-				}
-			})).to.be.true;
+			return subject.resolveUser(subject.NEW_USER, MOCK_SWG_RESPONSE).then(result => {
+				expect(result).to.deep.equal({
+					consentRequired: true,
+					raw: MOCK_RESULT
+				});
+				expect(fetchStub.calledWith(MOCK_M_SWG_SUB_SUCCESS_ENDPOINT, {
+					method: 'POST',
+					body: expectedBody,
+					credentials: 'include',
+					headers: {
+						'content-type': 'application/json'
+					}
+				})).to.be.true;
+			});
 		});
 
 		it('extracts and resolves with json on fetch response', function () {
 			const MOCK_RESULT = { end: 'result' };
 			fetchStub.resolves({ json: MOCK_RESULT });
 			return subject.resolveUser().then(result => {
-				expect(result).to.deep.equal(MOCK_RESULT);
+				expect(result).to.deep.equal({ consentRequired: undefined, raw: MOCK_RESULT });
 			});
 		});
 
-		it('extracts and resolves with json on fetch error', function () {
+		it('correctly formats result json and consentRequired boolean', function () {
+			const MOCK_RESULT = { userInfo: { newlyCreated: true } };
+			fetchStub.resolves({ json: MOCK_RESULT });
+			return subject.resolveUser().then(result => {
+				expect(result).to.deep.equal({ consentRequired: true, raw: MOCK_RESULT });
+			});
+		});
+
+		it('rejects with error on fetch error', function () {
 			const MOCK_ERROR = new Error('Bad response!');
 			fetchStub.throws(MOCK_ERROR);
 			return subject.resolveUser().catch(err => {
@@ -356,11 +385,14 @@ describe('Swg Controller: class', function () {
 		});
 
 		it('resolves with formatted \"entitlementsResponse\" event and calls swgClient.getEntitlements()', function (done) {
-			const MOCK_RESULT = { enablesThis: () => true, other: 'data' };
+			const MOCK_JSON_FUNC_RESULT = { other: 'data' };
+			const MOCK_RESULT = { enablesThis: () => true, enablesAny: () => true, other: 'data', json: () => MOCK_JSON_FUNC_RESULT };
 			sandbox.stub(swgClient, 'getEntitlements');
 
 			subject.checkEntitlements().then(res => {
 				expect(res.granted).to.be.true;
+				expect(res.hasEntitlements).to.be.true;
+				expect(res.json).to.deep.equal(MOCK_JSON_FUNC_RESULT);
 				expect(res.entitlements).to.equal(MOCK_RESULT);
 				expect(swgClient.getEntitlements.calledOnce).to.true;
 				done();
@@ -371,11 +403,12 @@ describe('Swg Controller: class', function () {
 		});
 
 		it('resolves with formatted \"entitlementsResponse\" where access is not granted', function () {
-			const MOCK_RESULT = { enablesThis: () => false, other: 'data' };
+			const MOCK_RESULT = { enablesThis: () => false, enablesAny: () => false, other: 'data' };
 			sandbox.stub(swgClient, 'getEntitlements');
 
 			subject.checkEntitlements().then(res => {
 				expect(res.granted).to.be.false;
+				expect(res.hasEntitlements).to.be.false;
 				expect(res.entitlements).to.equal(MOCK_RESULT);
 				expect(swgClient.getEntitlements.calledOnce).to.true;
 			});
@@ -715,7 +748,7 @@ describe('Swg Controller: class', function () {
 					subject.defaultOnwardEntitledJourney({ promptLogin: true });
 					expect(overlayStub.calledWith(sinon.match('https://www.ft.com/login?socialEnabled=true'))).to.be.true;
 					expect(overlayStub.calledWith(sinon.match('ENTITLED_LOGIN_REQUIRED'))).to.be.true;
-			});
+				});
 
 				it('show overlay will have login link with requested content url as location', function () {
 				setHref('https://www.ft.com/barrier/trial?ft-content-uuid=12345&foo=bar');
@@ -731,13 +764,37 @@ describe('Swg Controller: class', function () {
 					subject.defaultOnwardEntitledJourney({ promptLogin: false });
 					expect(overlayStub.calledWith(sinon.match('https://www.ft.com/content/12345'))).to.be.true;
 					expect(overlayStub.calledWith(sinon.match('ENTITLED_LOGIN_SUCCESS'))).to.be.true;
-			});
+				});
 
-				it('show overlay with link to requested content if on a content page promptLogin', function () {
-				setHref('https://www.ft.com/content/12345?foo=bar');
+				it('show overlay with link to content if on a content page', function () {
+					setHref('https://www.ft.com/content/12345?foo=bar');
 					subject.defaultOnwardEntitledJourney({ promptLogin: false });
 					expect(overlayStub.calledWith(sinon.match('https://www.ft.com/content/12345'))).to.be.true;
 					expect(overlayStub.calledWith(sinon.match('ENTITLED_LOGIN_SUCCESS'))).to.be.true;
+				});
+
+				it('show overlay with link to homepage if not on a content page', function () {
+					setHref('https://www.ft.com/products');
+					subject.defaultOnwardEntitledJourney({ promptLogin: false });
+					expect(overlayStub.calledWith(sinon.match('https://www.ft.com'))).to.be.true;
+					expect(overlayStub.calledWith(sinon.match('ENTITLED_LOGIN_SUCCESS'))).to.be.true;
+				});
+
+				describe('consentRequired=true', function () {
+
+					it('show overlay with link to consent page (\/profile)', function () {
+						subject.defaultOnwardEntitledJourney({ promptLogin: false, consentRequired: true });
+						expect(overlayStub.calledWith(sinon.match(subject.POST_SUBSCRIBE_URL))).to.be.true;
+						expect(overlayStub.calledWith(sinon.match('ENTITLED_LOGIN_SUCCESS'))).to.be.true;
+					});
+
+					it('show overlay with link to consent page (\/profile) with ft-content-uuid of requested content', function () {
+						setHref('https://www.ft.com/content/12345?foo=bar');
+						subject.defaultOnwardEntitledJourney({ promptLogin: false, consentRequired: true });
+						expect(overlayStub.calledWith(sinon.match(subject.POST_SUBSCRIBE_URL + '&ft-content-uuid=12345'))).to.be.true;
+						expect(overlayStub.calledWith(sinon.match('ENTITLED_LOGIN_SUCCESS'))).to.be.true;
+					});
+
 				});
 			});
 
