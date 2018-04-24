@@ -1,4 +1,4 @@
-const { swgReady, importClient, Overlay, _get, events, smartFetch, browser } = require('./utils');
+const { swgReady, importClient, importCss, Overlay, _get, events, smartFetch, browser } = require('./utils');
 const SubscribeButtons = require('./subscribe-button');
 
 module.exports = class SwgController {
@@ -283,7 +283,8 @@ module.exports = class SwgController {
 	 * @param {boolean} sandbox - load sandbox swg client lib, defaults to prod
 	 * @returns {promise}
 	 */
-	static load ({ manual=false, swgPromise=swgReady(), loadClient=importClient, sandbox=false }={}) {
+	static load ({ manual=false, swgPromise=swgReady(), loadClient=importClient, sandbox=false, loadCss=importCss, withCss=false }={}) {
+		if (withCss) loadCss(document)();
 		return new Promise((resolve, reject) => {
 			try {
 				loadClient(document)({ manual, sandbox });
