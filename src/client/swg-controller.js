@@ -72,9 +72,9 @@ module.exports = class SwgController {
 				if (res.granted && res.json) {
 					/* resolve user with access to requested content via SwG */
 					this.resolveUser(this.ENTITLED_USER, res.json)
-						.then(({ consentRequired=false }={}) => {
+						.then(({ consentRequired=false, loginRequired=false }={}) => {
 							/* set onward journey */
-							this.handlers.onResolvedEntitlements({ promptLogin: false, entitlements: res.entitlements, consentRequired });
+							this.handlers.onResolvedEntitlements({ promptLogin: loginRequired, entitlements: res.entitlements, consentRequired });
 						})
 						.catch(err => {
 							/* signal error */
@@ -189,25 +189,35 @@ module.exports = class SwgController {
 	 * @param {object} swgResponse - the SwG response object with user data
 	 */
 	resolveUser (scenario, swgResponse, createSession=true) {
+		const newPurchaseFlow = scenario === this.NEW_USER;
 		/* cors POST to relevant membership endpoint with SwG payload */
-		const endpoint = scenario === this.NEW_USER
+		const endpoint = newPurchaseFlow
 			? this.M_SWG_SUB_SUCCESS_ENDPOINT
 			: this.M_SWG_ENTITLED_SUCCESS_ENDPOINT;
+
+		/* generate relevant payload */
+		const payload = newPurchaseFlow
+			? JSON.stringify(swgResponse)
+			: JSON.stringify({ createSession, swg: swgResponse });
+
 		return new Promise((resolve, reject) => {
 			smartFetch.fetch(endpoint, {
 				method: 'POST',
 				credentials: 'include',
 				headers: { 'content-type': 'application/json' },
-				body: JSON.stringify({ createSession, swg: swgResponse })
+				body: payload
 			})
 			.then(({ json }) => {
 				/**
 				 * Both subscription and entitlement callback endpoints return
 				 * a 200 with set-cookie headers for the resolved user session
-				 * and json about the new session
+				 * and json about the new session.
+				 * Unless createSession was false we can assume user now has
+				 * active session cookies
 				 */
 				resolve({
 					consentRequired: _get(json, 'userInfo.newlyCreated'),
+					loginRequired: !newPurchaseFlow && createSession === false,
 					raw: json
 				});
 			})
@@ -236,11 +246,13 @@ module.exports = class SwgController {
 
 	/**
 	 * Redirect the new user to a follow up page (defaults to consent form)
+	 * @param {boolean} opts.consentRequired - user must complete profile
 	 */
-	defaultOnwardSubscribedJourney () {
+	defaultOnwardSubscribedJourney ({ consentRequired=true }={}) {
 		const uuid = browser.getContentUuidFromUrl();
-		const url = this.POST_SUBSCRIBE_URL + (uuid ? '&ft-content-uuid=' + uuid : '');
-		browser.redirectTo(url);
+		const contentHref = uuid ? `https://www.ft.com/content/${uuid}` : 'https://www.ft.com';
+		const consentForm = this.POST_SUBSCRIBE_URL + (uuid ? '&ft-content-uuid=' + uuid : '');
+		browser.redirectTo(consentRequired ? consentForm : contentHref);
 	}
 
 	/**
