@@ -82,8 +82,7 @@ module.exports = class SwgController {
 							/* set onward journey */
 							this.handlers.onResolvedEntitlements({ promptLogin: true, entitlements: res.entitlements, error: err });
 						});
-				}
-				else if (res.hasEntitlements) {
+				} else if (res.hasEntitlements) {
 					/**
 					 * User has entitlements but not to requested content
 					 * TODO
@@ -92,8 +91,7 @@ module.exports = class SwgController {
 					 * - UX message
 					 * - FUTURE (?) enable "upgrade" SwG buttons
 					 * */
-				}
-				else if (this.subscribeButtons) {
+				} else if (this.subscribeButtons) {
 					/* no entitlements, enable buttons */
 					this.subscribeButtons.init();
 				}
