@@ -188,7 +188,7 @@ module.exports = class SwgController {
 	 * @param {string} scenario - the resolution scenario. new user || existing
 	 * @param {object} swgResponse - the SwG response object with user data
 	 */
-	resolveUser (scenario, swgResponse) {
+	resolveUser (scenario, swgResponse, createSession=true) {
 		/* cors POST to relevant membership endpoint with SwG payload */
 		const endpoint = scenario === this.NEW_USER
 			? this.M_SWG_SUB_SUCCESS_ENDPOINT
@@ -198,7 +198,7 @@ module.exports = class SwgController {
 				method: 'POST',
 				credentials: 'include',
 				headers: { 'content-type': 'application/json' },
-				body: JSON.stringify(swgResponse)
+				body: JSON.stringify({ createSession, swg: swgResponse })
 			})
 			.then(({ json }) => {
 				/**

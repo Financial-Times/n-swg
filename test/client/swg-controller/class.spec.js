@@ -282,7 +282,7 @@ describe('Swg Controller: class', function () {
 
 		it('correctly formats default (ENTITLEMENTS) request from passed options', function () {
 			const MOCK_SWG_RESPONSE = { swgToken: '123' };
-			const expectedBody = JSON.stringify(MOCK_SWG_RESPONSE);
+			const expectedBody = JSON.stringify({ createSession: true, swg: MOCK_SWG_RESPONSE });
 			fetchStub.resolves({ json: {}});
 			subject.resolveUser(subject.ENTITLED_USER, MOCK_SWG_RESPONSE);
 			expect(fetchStub.calledWith(MOCK_M_SWG_ENTITLED_SUCCESS_ENDPOINT, {
@@ -297,11 +297,11 @@ describe('Swg Controller: class', function () {
 
 		it('scenario=ENTITLED_USER correctly formats (ENTITLED USER) and handles request from passed options', function () {
 			const MOCK_SWG_RESPONSE = { swgToken: '123' };
-			const expectedBody = JSON.stringify(MOCK_SWG_RESPONSE);
+			const expectedBody = JSON.stringify({ createSession: false, swg: MOCK_SWG_RESPONSE });
 			const MOCK_RESULT = { userInfo: { newlyCreated: false } };
 			fetchStub.resolves({ json: MOCK_RESULT });
 
-			return subject.resolveUser(subject.ENTITLED_USER, MOCK_SWG_RESPONSE).then(result => {
+			return subject.resolveUser(subject.ENTITLED_USER, MOCK_SWG_RESPONSE, false).then(result => {
 				expect(result).to.deep.equal({
 					consentRequired: false,
 					raw: MOCK_RESULT
@@ -319,7 +319,7 @@ describe('Swg Controller: class', function () {
 
 		it('scenario=NEW_USER correctly formats (NEW USER) and handles request from passed options', function () {
 			const MOCK_SWG_RESPONSE = { swgToken: '123' };
-			const expectedBody = JSON.stringify(MOCK_SWG_RESPONSE);
+			const expectedBody = JSON.stringify({ createSession: true, swg: MOCK_SWG_RESPONSE });
 			const MOCK_RESULT = { userInfo: { newlyCreated: true } };
 			fetchStub.resolves({ json: MOCK_RESULT });
 
