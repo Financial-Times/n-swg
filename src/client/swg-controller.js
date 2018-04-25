@@ -180,7 +180,7 @@ module.exports = class SwgController {
 	 * Redirect to the login page
 	 */
 	onLoginRequest () {
-		browser.redirectTo(SwgController.generateLoginUrl());
+		browser.redirectTo(browser.generateLoginUrl());
 	}
 
 	/**

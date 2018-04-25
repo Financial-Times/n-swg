@@ -257,6 +257,16 @@ describe('Swg Controller: class', function () {
 
 	});
 
+	describe('.onLoginRequest()', function () {
+		it('calls browser.redirectTo with a correct url', function () {
+			const subject = new SwgController(swgClient);
+			const redirectStub = sandbox.stub(utils.browser, 'redirectTo');
+			subject.init();
+			subject.onLoginRequest();
+			expect(redirectStub.calledWith('https://www.ft.com/login?socialEnabled=true')).to.be.true;
+		});
+	});
+
 	describe('.resolveUser()', function () {
 		let subject;
 		let fetchStub;
