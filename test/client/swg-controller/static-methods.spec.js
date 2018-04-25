@@ -76,16 +76,16 @@ describe('Swg Controller: static methods', function () {
 
 	});
 
-	describe('.generateOfferDataFromSku()', function () {
+	describe('.generateOfferDataFromSkus()', function () {
 
 		it('returns an empty object if mutiple skus', function () {
-			const result = SwgController.generateOfferDataFromSku(['1', '2']);
+			const result = SwgController.generateOfferDataFromSkus(['1', '2']);
 			expect(result).to.be.an('object');
 			expect(result).to.be.empty;
 		});
 
 		it('returns an empty object sku does not start with \"ft.com\"', function () {
-			const result = SwgController.generateOfferDataFromSku(['1']);
+			const result = SwgController.generateOfferDataFromSkus(['1']);
 			expect(result).to.be.an('object');
 			expect(result).to.be.empty;
 		});
@@ -93,7 +93,7 @@ describe('Swg Controller: static methods', function () {
 		describe('returns an object with extracted offer data from sku id', function () {
 
 			it('standard non trial', function () {
-				const result = SwgController.generateOfferDataFromSku(['ft.com_abcd38.efg89_p1y_standard_31.05.18']);
+				const result = SwgController.generateOfferDataFromSkus(['ft.com_abcd38.efg89_p1y_standard_31.05.18']);
 				expect(result).to.deep.equal({
 					offerId: 'abcd38-efg89',
 					skuId: 'ft.com_abcd38.efg89_p1y_standard_31.05.18',
@@ -106,7 +106,7 @@ describe('Swg Controller: static methods', function () {
 			});
 
 			it('premium trial', function () {
-				const result = SwgController.generateOfferDataFromSku(['ft.com_abcd38.efg89_p1m_premium.trial_31.05.18']);
+				const result = SwgController.generateOfferDataFromSkus(['ft.com_abcd38.efg89_p1m_premium.trial_31.05.18']);
 				expect(result).to.deep.equal({
 					offerId: 'abcd38-efg89',
 					skuId: 'ft.com_abcd38.efg89_p1m_premium.trial_31.05.18',

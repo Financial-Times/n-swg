@@ -145,11 +145,6 @@ describe('FEATURE: subscribe-button.js', function () {
 					expect(mockEvent.preventDefault.calledOnce).to.be.true;
 				});
 
-				it('signals a landing tracking event', function () {
-					subject.handleClick(mockEvent);
-					expect(utils.events.signal.calledWith('track', { action: 'landing', context: { skus: [ MOCK_SKU ] }, journeyStart: true })).to.be.true;
-				});
-
 				it('calls swgClient.subscribe with the single SKU from the event target', function () {
 					subject.handleClick(mockEvent);
 					expect(swgClient.subscribe.calledWith(MOCK_SKU)).to.be.true;

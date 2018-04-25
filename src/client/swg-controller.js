@@ -155,13 +155,11 @@ module.exports = class SwgController {
 	}
 
 	onFlowStarted (flowName, data) {
-		events.signal(`flowStarted.${flowName}`);
-		this.track({ action: 'flowStarted', context: { flowName, data } });
+		this.track({ action: `flowStarted.${flowName}`, context: { flowName, skus: [data.sku] }, journeyStart: true });
 	}
 
 	onFlowCanceled (flowName, data) {
-		events.signal(`flowCanceled.${flowName}`);
-		this.track({ action: 'flowCanceled', context: { flowName, data } });
+		this.track({ action: `flowCanceled.${flowName}`, context: { flowName, skus: [data.sku] } });
 	}
 
 	/**
@@ -263,7 +261,7 @@ module.exports = class SwgController {
 	 * @param {boolean} journeyStart - will update activeTrackingData
 	 */
 	track ({ action, context={}, journeyStart=false }={}) {
-		const offerData = SwgController.generateOfferDataFromSku(context.skus);
+		const offerData = SwgController.generateOfferDataFromSkus(context.skus);
 		if (offerData && journeyStart) {
 			/* if starting a new "flow" update the activeTrackingData state */
 			this.activeTrackingData = offerData;
@@ -327,7 +325,7 @@ module.exports = class SwgController {
 	 * @param {array} skus - contains sku ids
 	 * @returns {object}
 	 */
-	static generateOfferDataFromSku (skus=[]) {
+	static generateOfferDataFromSkus (skus=[]) {
 		if (skus.length !== 1) return {};
 		/**
 		 * skus SHOULD follow the format
