@@ -2,29 +2,30 @@ const { expect } = require('chai');
 const sinon = require('sinon');
 
 const { JSDOM, _helpers } = require('./mocks/document');
+const mockSwgClient = require('./mocks/swg-client');
 const SubscribeButtons = require('../../src/client/subscribe-button/index');
+const utils = require('../../src/client/utils');
 
 const HTML = '<body><div id="other-element"></div><div class="n-swg-button"></div><div class="n-swg-button"></div><div class="n-swg-button"></div><div class="n-swg-button"></div></body>';
 
 describe('FEATURE: subscribe-button.js', function () {
-	let mockSwgClient = { subscribe: () => true };
-	let mockOverlay;
 	let helpers;
+	let swgClient;
+	let sandbox;
 	const customSelector = '.n-swg-button';
 
 	beforeEach(() => {
+		sandbox = sinon.sandbox.create();
+		swgClient = new mockSwgClient();
 		const jsdom = new JSDOM(HTML);
 		global.document = jsdom.window.document;
 		helpers = _helpers(jsdom);
-		mockOverlay = {
-			show: sinon.stub(),
-			hide: sinon.stub()
-		};
-		sinon.stub(mockSwgClient, 'subscribe');
+		sandbox.stub(swgClient, 'subscribe');
+		sandbox.stub(swgClient, 'showOffers');
 	});
 
 	afterEach(() => {
-		mockSwgClient.subscribe.restore();
+		sandbox.restore();
 		delete global.document;
 	});
 
@@ -36,31 +37,14 @@ describe('FEATURE: subscribe-button.js', function () {
 		let subject;
 		let buttons;
 		let mockDomListeners;
-		let trackEvent;
 
 		beforeEach(() => {
 			mockDomListeners = [];
-			/* Dummy class with static methods */
-			class MockSwgController {
-				static trackEvent () {
-					return true;
-				}
-				static onError (l) {
-					mockDomListeners.push({ t: 'error', l });
-				}
-				static onReturn (l) {
-					mockDomListeners.push({ t: 'return', l });
-				}
-			};
-
-			trackEvent = sinon.stub(MockSwgController, 'trackEvent');
-			subject = new SubscribeButtons(mockSwgClient, { SwgController: MockSwgController, selector: customSelector, overlay: mockOverlay });
+			const listen = (ev, l) => mockDomListeners.push({ t: ev, l });
+			sandbox.stub(utils.events, 'listen').callsFake(listen);
+			sandbox.stub(utils.events, 'signal');
+			subject = new SubscribeButtons(swgClient, { selector: customSelector });
 			buttons = global.document.querySelectorAll(customSelector);
-		});
-
-		afterEach(() => {
-			trackEvent.restore();
-			mockDomListeners = subject = null;
 		});
 
 		describe('constructor()', function () {
@@ -80,7 +64,7 @@ describe('FEATURE: subscribe-button.js', function () {
 			});
 
 			it('adds "click" event listeners for each button', function () {
-				const handleClickStub = sinon.stub(subject, 'handleClick');
+				const handleClickStub = sandbox.stub(subject, 'handleClick');
 
 				subject.init();
 				const btn = buttons[3];
@@ -101,29 +85,25 @@ describe('FEATURE: subscribe-button.js', function () {
 
 			it('attatches swgEventListener callbacks for onReturn and onError events', function () {
 				const triggerEvent = (type, ev) => mockDomListeners.find(({ t }={}) => t === type).l.call(ev);
-				const onReturnStub = sinon.stub(subject, 'onReturn');
+				const onReturnStub = sandbox.stub(subject, 'onReturn');
 
 				subject.init();
 
-				triggerEvent('error', new Error('mock error'));
-				expect(onReturnStub.calledOnce).to.be.true;
-
-				triggerEvent('return', { success: true });
-				expect(onReturnStub.calledTwice).to.be.true;
+				triggerEvent('onReturn', { success: true });
+				expect(onReturnStub.calledOnce, 'return called').to.be.true;
 
 				subject.onReturn.restore();
 			});
 
-			it('hide overlay onReturn and onError events', function () {
+			it('disable buttons onReturn events', function () {
 				const triggerEvent = (type, ev) => mockDomListeners.find(({ t }={}) => t === type).l.call(ev);
+				sandbox.stub(subject, 'disableButtons');
 
 				subject.init();
 
-				triggerEvent('error', new Error('mock error'));
-				expect(mockOverlay.hide.calledOnce, 'overlay hidden onSwgError').to.be.true;
-
-				triggerEvent('return', { success: true });
-				expect(mockOverlay.hide.calledTwice, 'overlay hidden onSwgReturn').to.be.true;
+				triggerEvent('onReturn', { success: true });
+				expect(subject.disableButtons.calledOnce).to.be.true;
+				subject.disableButtons.restore();
 			});
 
 		});
@@ -149,15 +129,11 @@ describe('FEATURE: subscribe-button.js', function () {
 
 				beforeEach(() => {
 					mockEvent = {
-						preventDefault: sinon.stub(),
+						preventDefault: sandbox.stub(),
 						target: {
-							getAttribute: sinon.stub().returns(MOCK_SKU)
+							getAttribute: sandbox.stub().returns(MOCK_SKU)
 						}
 					};
-				});
-
-				afterEach(() => {
-					mockEvent = null;
 				});
 
 				it('is a function', function () {
@@ -169,28 +145,29 @@ describe('FEATURE: subscribe-button.js', function () {
 					expect(mockEvent.preventDefault.calledOnce).to.be.true;
 				});
 
-				it('shows the overlay', function () {
+				it('signals a landing tracking event', function () {
 					subject.handleClick(mockEvent);
-					expect(mockOverlay.show.calledOnce).to.be.true;
-					expect(mockOverlay.hide.notCalled).to.be.true;
+					expect(utils.events.signal.calledWith('track', { action: 'landing', context: { skus: [ MOCK_SKU ] }, journeyStart: true })).to.be.true;
 				});
 
-				it('triggers a landing event', function () {
+				it('calls swgClient.subscribe with the single SKU from the event target', function () {
 					subject.handleClick(mockEvent);
-					expect(trackEvent.calledWith('landing', {})).to.be.true;
+					expect(swgClient.subscribe.calledWith(MOCK_SKU)).to.be.true;
 				});
 
-				it('calls swgClient.subscribe with the SKU from the event', function () {
+				it('calls swgClient.showOffers with the mutiple SKUs from the event target', function () {
+					const MOCK_SKUS = 'foo,bar';
+					mockEvent.target.getAttribute.returns(MOCK_SKUS);
 					subject.handleClick(mockEvent);
-					expect(mockSwgClient.subscribe.calledWith(MOCK_SKU)).to.be.true;
+					expect(swgClient.showOffers.calledWith({ skus: MOCK_SKUS.split(',') })).to.be.true;
 				});
 
-				it('hides the overlay if there is an error', function () {
-					mockEvent.target.getAttribute = sinon.stub().throws(new Error('mock'));
+				it('signals an error event in case of an error', function () {
+					const ERR = new Error('mock');
+					mockEvent.target.getAttribute = sandbox.stub().throws(ERR);
 
 					subject.handleClick(mockEvent);
-					expect(mockOverlay.show.calledOnce).to.be.true;
-					expect(mockOverlay.hide.calledOnce).to.be.true;
+					expect(utils.events.signal.calledWith('onError', { error: ERR })).to.be.true;
 				});
 
 			});

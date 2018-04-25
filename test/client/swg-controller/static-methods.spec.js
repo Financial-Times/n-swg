@@ -1,21 +1,17 @@
 const { expect } = require('chai');
-const sinon = require('sinon');
 
 const { JSDOM } = require('../mocks/document');
 const SwgController = require('../../../src/client/swg-controller');
 
 describe('Swg Controller: static methods', function () {
-	let dom;
 
 	beforeEach(() => {
 		const jsdom = new JSDOM();
-		global.CustomEvent = jsdom.window.CustomEvent;
-		dom = global.document = jsdom.window.document;
+		global.document = jsdom.window.document;
 	});
 
 	afterEach(() => {
 		delete global.document;
-		delete global.CustomEvent;
 	});
 
 	it('exports a class', function () {
@@ -65,103 +61,63 @@ describe('Swg Controller: static methods', function () {
 
 	});
 
-	describe('.fetch()', function () {
-		let _fetchMock;
-		let mockResult;
+	describe('.generateTrackingData()', function () {
 
-		beforeEach(() => {
-			mockResult = {
-				status: 200,
-				headers: {},
-				json: function () {
-					return Promise.resolve(this.body);
-				},
-				text: function () {
-					return Promise.resolve(this.body);
-				},
-				body: {}
-			};
-			_fetchMock = () => Promise.resolve(mockResult);
-		});
-
-		afterEach(() => {
-			mockResult = null;
-			_fetchMock = null;
-		});
-
-		it('returns a promise', function () {
-			const subject = SwgController.fetch('', '', _fetchMock);
-			expect(subject).to.be.a('Promise');
-		});
-
-		it('formats request from options passed', function (done) {
-			const MOCK_URL = 'https://ft.com';
-			const MOCK_OPTIONS = { timeout: 5000 };
-			const fetchStub = sinon.stub().resolves(mockResult);
-			const subject = SwgController.fetch(MOCK_URL, MOCK_OPTIONS, fetchStub);
-			subject.then(() => {
-				expect(fetchStub.calledOnce).to.be.true;
-				const [ url, opts ] = fetchStub.getCall(0).args;
-				expect(url).to.equal(MOCK_URL);
-				expect(opts).to.contain(MOCK_OPTIONS);
-				expect(opts).to.deep.equal({
-					credentials: 'same-origin', method: 'GET', timeout: 5000
-				});
-				done();
-			});
-		});
-
-		it('handles a 200 with res.json() and resolves with an object', function (done) {
-			const MOCK_BODY = mockResult.body = { example: 'json body' };
-			const MOCK_HEADERS = mockResult.headers = { 'content-type': 'application/json' };
-			const MOCK_STATUS = mockResult.status = 200;
-			const subject = SwgController.fetch('', '', _fetchMock);
-			subject.then(result => {
-				expect(result.json).to.deep.equal(MOCK_BODY);
-				expect(result.headers).to.deep.equal(MOCK_HEADERS);
-				expect(result.status).to.deep.equal(MOCK_STATUS);
-				done();
-			});
-		});
-
-		it('handles a bad response with res.text() and rejects with an error', function (done) {
-			const MOCK_BODY = mockResult.body = 'System Down';
-			const MOCK_STATUS = mockResult.status = 500;
-			const subject = SwgController.fetch('', '', _fetchMock);
-			subject.catch(err => {
-				expect(err).to.be.an('Error');
-				expect(err.message).to.deep.equal(`Bad response STATUS=${MOCK_STATUS} TEXT="${MOCK_BODY}"`);
-				done();
+		it('generates basic tracking data', function () {
+			const result = SwgController.generateTrackingData({ sandbox: true });
+			expect(result).to.deep.equal({
+				category: 'SwG',
+				formType: 'signup:swg',
+				production: false,
+				paymentMethod: 'SWG',
+				system: { source: 'n-swg' }
 			});
 		});
 
 	});
 
-	describe('.trackEvent()', function () {
+	describe('.generateOfferDataFromSku()', function () {
 
-		it('dispatches a custom oTracking.event on the document.body', function (done) {
-			dom.body.addEventListener('oTracking.event', (event) => {
-				expect(event.type).to.equal('oTracking.event');
-				done();
-			});
-			SwgController.trackEvent(null, {}, CustomEvent);
+		it('returns an empty object if mutiple skus', function () {
+			const result = SwgController.generateOfferDataFromSku(['1', '2']);
+			expect(result).to.be.an('object');
+			expect(result).to.be.empty;
 		});
 
-		it('correctly formats event detail', function (done) {
-			const MOCK_ACTION = 'swg-error';
-			const MOCK_CONTEXT = { message: 'something went wrong' };
+		it('returns an empty object sku does not start with \"ft.com\"', function () {
+			const result = SwgController.generateOfferDataFromSku(['1']);
+			expect(result).to.be.an('object');
+			expect(result).to.be.empty;
+		});
 
-			dom.body.addEventListener('oTracking.event', (event) => {
-				expect(event.type).to.equal('oTracking.event');
-				expect(event.bubbles).to.be.true;
-				expect(event.detail).to.contain(MOCK_CONTEXT);
-				expect(event.detail.action).to.equal(MOCK_ACTION);
-				expect(event.detail.category).to.equal('SwG');
-				expect(event.detail.system).to.deep.equal({ source: 'n-swg' });
-				done();
+		describe('returns an object with extracted offer data from sku id', function () {
+
+			it('standard non trial', function () {
+				const result = SwgController.generateOfferDataFromSku(['ft.com_abcd38.efg89_p1y_standard_31.05.18']);
+				expect(result).to.deep.equal({
+					offerId: 'abcd38-efg89',
+					skuId: 'ft.com_abcd38.efg89_p1y_standard_31.05.18',
+					productName: 'standard',
+					term: 'p1y',
+					productType: 'Digital',
+					isTrial: false,
+					isPremium: false
+				});
 			});
 
-			SwgController.trackEvent(MOCK_ACTION, MOCK_CONTEXT, CustomEvent);
+			it('premium trial', function () {
+				const result = SwgController.generateOfferDataFromSku(['ft.com_abcd38.efg89_p1m_premium.trial_31.05.18']);
+				expect(result).to.deep.equal({
+					offerId: 'abcd38-efg89',
+					skuId: 'ft.com_abcd38.efg89_p1m_premium.trial_31.05.18',
+					productName: 'premium trial',
+					term: 'p1m',
+					productType: 'Digital',
+					isTrial: true,
+					isPremium: true
+				});
+			});
+
 		});
 
 	});

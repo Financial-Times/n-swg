@@ -1,14 +1,43 @@
-@import './src/client/subscribe-button/styles';
-
 .o-overlay-shadow {
-		background-color: rgba(255, 255, 255, 0.5);
-		height: 150%;
+	background-color: rgba(32, 33, 36, 0.6);
+	height: 150%;
+	width: 100%;
+	top: 0;
+	left: 0;
+	position: fixed;
+	z-index: 10;
+	opacity: 1;
+	-webkit-transition: opacity 0.3s ease-in-out;
+	transition: opacity 0.3s ease-in-out;
+	text-align: center;
+}
+
+.o-overlay-inner {
+	width: 240px;
+	padding: 30px;
+	margin: 10% auto 0;
+	border-radius: 10px;
+	font-family: MetricWeb, sans-serif;
+	font-size: 18px;
+	background-color: #FFFFFF;
+	border: 1px solid #ececec;
+
+	&::before {
+		background-image: url('https://www.ft.com/__origami/service/image/v2/images/raw/https%3A%2F%2Fwww.ft.com%2F__assets%2Fcreatives%2FG_active_focused_pressed.svg?source=m-login&width=20&height=20&format=png'), none;
+		background-image: url('https://www.ft.com/__origami/service/image/v2/images/raw/https%3A%2F%2Fwww.ft.com%2F__assets%2Fcreatives%2FG_active_focused_pressed.svg?source=m-login&width=20&height=20&format=svg'), none;
+		background-repeat: no-repeat;
+		background-size: contain;
+		background-position: 50%;
+		content: '';
+		display: inline-block;
 		width: 100%;
-		top: 0;
-		left: 0;
-		position: fixed;
-		z-index: 10;
-		opacity: 1;
-		-webkit-transition: opacity 0.3s ease-in-out;
-		transition: opacity 0.3s ease-in-out;
+		height: 30px;
+		vertical-align: baseline;
+	}
+
+	small {
+		font-size: 12px;
+		font-family: Consolas,Menlo,Monaco,Lucida Console,Courier New,monospace,sans-serif;
+	}
+
 }

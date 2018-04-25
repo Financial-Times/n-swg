@@ -18,10 +18,10 @@ demo-build-watch: link-views
 	@$(DONE)
 
 demo: demo-build-watch
-	@DEMO_MODE=true nodemon --ext html,css --watch public --watch views demos/app.js
+	@DEMO_MODE=true nodemon --ext html,css --watch public --watch views demos/start.js
 
 run:
-	@DEMO_MODE=true node demos/app
+	@DEMO_MODE=true HTTP_MODE=true node demos/app
 
 a11y: demo-build
 	@PA11Y=true DEMO_MODE=true node demos/app

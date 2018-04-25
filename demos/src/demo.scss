@@ -20,13 +20,19 @@
 	}
 
 	.code {
-		display: inline-block;
+		display: block;
+		overflow-wrap: break-word;
 		background: #eff0f1;
 		border: 1px solid #cccccc;
 		padding: 2px 5px;
 		border-radius: 3px;
-		font-size: 0.8;
+		font-size: 12px;
 		font-family: Consolas,Menlo,Monaco,Lucida Console,Courier New,monospace,sans-serif;
+	}
+
+	.offer {
+		display: inline-block;
+		width: 45%;
 	}
 
 }

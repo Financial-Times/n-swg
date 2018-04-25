@@ -1,3 +1,6 @@
-<a class="swg-button" data-trackable="swg-{{appName}}" data-n-swg-button="" data-n-swg-button-sku="{{sku}}" disabled>
-	Subscribe with Google
-</a>
+<button class="swg-button" disabled
+	data-trackable="swg-{{appName}}"
+	data-n-swg-button=""
+	{{#if skus}}data-n-swg-button-skus="{{skus}}"{{/if}}
+	title="Subscribe with Google">
+</button>

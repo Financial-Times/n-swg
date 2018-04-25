@@ -1,9 +1,10 @@
 {
   "name": "n-swg",
   "homepage": "https://github.com/Financial-Times/n-swg",
-  "description": "Styling, components, and templates for our Subscribe with Google work.",
+  "description": "JS, Styles, Templates and utils for FT.com Subscribe with Google implementation",
   "ignore": [
     "**/.*",
+    "*env*",
     "node_modules",
     "bower_components",
     "test",
@@ -19,17 +20,20 @@
     ".scss-lint.yml",
     ".pa11yci.js",
     ".stylelintrc",
+    "package.json",
     "package-lock.json",
     "circle.yml",
     "ft.yml",
     "Makefile",
-    "secret-squirrel.js"
+    "secret-squirrel.js",
+    "src/server/*",
+    "main.js"
   ],
   "main": [
     "main.scss",
     "main-client.js"
   ],
-  "dependencies": {
+  "devDependencies": {
     "n-ui-foundations": "^3.0.0"
   }
 }
