@@ -41,9 +41,25 @@
 		<a href="/?production=true&manual=true">Production with forced manual init mode</a>,
 	</p>
 
-	<p>Markup found in head "application/ld+json" script tag:</p>
+	<h2>Markup found in head "application/ld+json" script tag:</h2>
 	{{#each jsonLd}}
 	<p class="code">{{{json this}}}</p>
 	{{/each}}
+
+	<h2>Example button styles</h2>
+	<div>
+		<p>standard</p>
+		<button class="swg-button" title="Subscribe with Google"></button>
+		<p>disabled</p>
+		<button class="swg-button" title="Subscribe with Google" disabled></button>
+	</div>
+	<div>
+		<p>light</p>
+		<button class="swg-button-light" title="Subscribe with Google"></button>
+	</div>
+	<div>
+		<p>dark</p>
+		<button class="swg-button-dark" title="Subscribe with Google"></button>
+	</div>
 
 </div>

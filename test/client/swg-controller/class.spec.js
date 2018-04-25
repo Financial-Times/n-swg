@@ -282,7 +282,7 @@ describe('Swg Controller: class', function () {
 
 		it('correctly formats default (ENTITLEMENTS) request from passed options', function () {
 			const MOCK_SWG_RESPONSE = { swgToken: '123' };
-			const expectedBody = JSON.stringify(MOCK_SWG_RESPONSE);
+			const expectedBody = JSON.stringify({ createSession: true, swg: MOCK_SWG_RESPONSE });
 			fetchStub.resolves({ json: {}});
 			subject.resolveUser(subject.ENTITLED_USER, MOCK_SWG_RESPONSE);
 			expect(fetchStub.calledWith(MOCK_M_SWG_ENTITLED_SUCCESS_ENDPOINT, {
@@ -297,12 +297,13 @@ describe('Swg Controller: class', function () {
 
 		it('scenario=ENTITLED_USER correctly formats (ENTITLED USER) and handles request from passed options', function () {
 			const MOCK_SWG_RESPONSE = { swgToken: '123' };
-			const expectedBody = JSON.stringify(MOCK_SWG_RESPONSE);
+			const expectedBody = JSON.stringify({ createSession: false, swg: MOCK_SWG_RESPONSE });
 			const MOCK_RESULT = { userInfo: { newlyCreated: false } };
 			fetchStub.resolves({ json: MOCK_RESULT });
 
-			return subject.resolveUser(subject.ENTITLED_USER, MOCK_SWG_RESPONSE).then(result => {
+			return subject.resolveUser(subject.ENTITLED_USER, MOCK_SWG_RESPONSE, false).then(result => {
 				expect(result).to.deep.equal({
+					loginRequired: true,
 					consentRequired: false,
 					raw: MOCK_RESULT
 				});
@@ -325,6 +326,7 @@ describe('Swg Controller: class', function () {
 
 			return subject.resolveUser(subject.NEW_USER, MOCK_SWG_RESPONSE).then(result => {
 				expect(result).to.deep.equal({
+					loginRequired: false,
 					consentRequired: true,
 					raw: MOCK_RESULT
 				});
@@ -343,7 +345,7 @@ describe('Swg Controller: class', function () {
 			const MOCK_RESULT = { end: 'result' };
 			fetchStub.resolves({ json: MOCK_RESULT });
 			return subject.resolveUser().then(result => {
-				expect(result).to.deep.equal({ consentRequired: undefined, raw: MOCK_RESULT });
+				expect(result).to.deep.equal({ consentRequired: undefined, loginRequired: false, raw: MOCK_RESULT });
 			});
 		});
 
@@ -351,7 +353,15 @@ describe('Swg Controller: class', function () {
 			const MOCK_RESULT = { userInfo: { newlyCreated: true } };
 			fetchStub.resolves({ json: MOCK_RESULT });
 			return subject.resolveUser().then(result => {
-				expect(result).to.deep.equal({ consentRequired: true, raw: MOCK_RESULT });
+				expect(result).to.deep.equal({ loginRequired: false, consentRequired: true, raw: MOCK_RESULT });
+			});
+		});
+
+		it('correctly formats result json and loginRequired boolean', function () {
+			const MOCK_RESULT = { userInfo: { newlyCreated: true } };
+			fetchStub.resolves({ json: MOCK_RESULT });
+			return subject.resolveUser(null, {}, false).then(result => {
+				expect(result).to.deep.equal({ loginRequired: true, consentRequired: true, raw: MOCK_RESULT });
 			});
 		});
 
@@ -803,21 +813,46 @@ describe('Swg Controller: class', function () {
 
 		describe('.defaultOnwardSubscribedJourney()', function () {
 
-			it('will redirect to profile page', function () {
-				subject.defaultOnwardSubscribedJourney();
-				expect(redirectStub.calledWith(subject.POST_SUBSCRIBE_URL));
+			describe('consentRequired=true (default)', function () {
+
+				it('will redirect to profile page', function () {
+					subject.defaultOnwardSubscribedJourney();
+					expect(redirectStub.calledWith(subject.POST_SUBSCRIBE_URL));
+				});
+
+				it('will redirect to profile page with ft-content-uuid if query param present', function () {
+					setHref('https://www.ft.com/barrier/trial?ft-content-uuid=12345&foo=bar');
+					subject.defaultOnwardSubscribedJourney();
+					expect(redirectStub.calledWith(subject.POST_SUBSCRIBE_URL + '&ft-content-uuid=12345')).to.be.true;
+				});
+
+				it('will redirect to profile page with ft-content-uuid if on a content page', function () {
+					setHref('https://www.ft.com/content/12345?foo=bar');
+					subject.defaultOnwardSubscribedJourney();
+					expect(redirectStub.calledWith(subject.POST_SUBSCRIBE_URL + '&ft-content-uuid=12345')).to.be.true;
+				});
+
 			});
 
-			it('will redirect to profile page with ft-content-uuid if query param present', function () {
-				setHref('https://www.ft.com/barrier/trial?ft-content-uuid=12345&foo=bar');
-				subject.defaultOnwardSubscribedJourney();
-				expect(redirectStub.calledWith(subject.POST_SUBSCRIBE_URL + '&ft-content-uuid=12345')).to.be.true;
-			});
+			describe('consentRequired=false', function () {
 
-			it('will redirect to profile page with ft-content-uuid if on a content page', function () {
-				setHref('https://www.ft.com/content/12345?foo=bar');
-				subject.defaultOnwardSubscribedJourney();
-				expect(redirectStub.calledWith(subject.POST_SUBSCRIBE_URL + '&ft-content-uuid=12345')).to.be.true;
+				it('will redirect to homepage', function () {
+					subject.defaultOnwardSubscribedJourney({ consentRequired: false });
+					expect(redirectStub.calledWith('https://www.ft.com')).to.be.true;
+				});
+
+				it('will redirect to content if  ft-content-uuid query param present', function () {
+					setHref('https://www.ft.com/barrier/trial?ft-content-uuid=12345&foo=bar');
+					subject.defaultOnwardSubscribedJourney({ consentRequired: false });
+					expect(redirectStub.calledWith('https://www.ft.com/content/12345')).to.be.true;
+				});
+
+				it('will redirect content if on a content page', function () {
+					setHref('https://www.ft.com/content/12345?foo=bar');
+					subject.defaultOnwardSubscribedJourney({ consentRequired: false });
+					expect(redirectStub.calledWith('https://www.ft.com/content/12345')).to.be.true;
+				});
+
 			});
 
 		});
