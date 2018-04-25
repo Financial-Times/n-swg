@@ -428,6 +428,31 @@ describe('Swg Controller: class', function () {
 
 	});
 
+	describe('.onFlowStarted()', function () {
+		let subject;
+
+		beforeEach(() => {
+			subject = new SwgController(swgClient);
+			sandbox.stub(utils.events, 'signal');
+			sandbox.stub(subject, 'track');
+		});
+
+		afterEach(() => {
+			subject = null;
+		});
+
+		it('signal and track appropriately on flowStarted', function () {
+			subject.onFlowStarted('someFlow', { sku: 'foo' });
+			expect(subject.track.calledWith({ action: 'flowStarted.someFlow', context: { flowName: 'someFlow', skus: ['foo'] }, journeyStart: true })).to.be.true;
+		});
+
+		it('signal and track appropriately on flowStarted when flowName === subscribe', function () {
+			subject.onFlowStarted('subscribe', { sku: 'foo' });
+			expect(subject.track.calledWith({ action: 'landing', context: { flowName: 'subscribe', skus: ['foo'] }, journeyStart: true })).to.be.true;
+		});
+
+	});
+
 	describe('.onFlowCanceled()', function () {
 		let subject;
 
@@ -445,27 +470,6 @@ describe('Swg Controller: class', function () {
 
 			subject.onFlowCanceled('someFlow', { sku: 'foo' });
 			expect(subject.track.calledWith({ action: 'flowCanceled.someFlow', context: { flowName: 'someFlow', skus: ['foo'] } })).to.be.true;
-		});
-
-	});
-
-	describe('.onFlowStarted()', function () {
-		let subject;
-
-		beforeEach(() => {
-			subject = new SwgController(swgClient);
-		});
-
-		afterEach(() => {
-			subject = null;
-		});
-
-		it('signal and track appropriately on flowStarted', function () {
-			sandbox.stub(utils.events, 'signal');
-			sandbox.stub(subject, 'track');
-
-			subject.onFlowStarted('someFlow', { sku: 'foo' });
-			expect(subject.track.calledWith({ action: 'flowStarted.someFlow', context: { flowName: 'someFlow', skus: ['foo'] }, journeyStart: true })).to.be.true;
 		});
 
 	});
