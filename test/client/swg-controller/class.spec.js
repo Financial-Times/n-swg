@@ -443,9 +443,9 @@ describe('Swg Controller: class', function () {
 			sandbox.stub(utils.events, 'signal');
 			sandbox.stub(subject, 'track');
 
-			subject.onFlowCanceled('someFlow');
+			subject.onFlowCanceled('someFlow', { sku: 'foo' });
 			expect(utils.events.signal.calledWith('flowCanceled.someFlow')).to.be.true;
-			expect(subject.track.calledWith({ action: 'flowCanceled', context: { flowName: 'someFlow' } })).to.be.true;
+			expect(subject.track.calledWith({ action: 'flowCanceled', context: { flowName: 'someFlow', data: { sku: 'foo' } } })).to.be.true;
 		});
 
 	});
@@ -465,9 +465,9 @@ describe('Swg Controller: class', function () {
 			sandbox.stub(utils.events, 'signal');
 			sandbox.stub(subject, 'track');
 
-			subject.onFlowStarted('someFlow');
+			subject.onFlowStarted('someFlow', { sku: 'foo' });
 			expect(utils.events.signal.calledWith('flowStarted.someFlow')).to.be.true;
-			expect(subject.track.calledWith({ action: 'flowStarted', context: { flowName: 'someFlow' } })).to.be.true;
+			expect(subject.track.calledWith({ action: 'flowStarted', context: { flowName: 'someFlow', data: { sku: 'foo' } } })).to.be.true;
 		});
 
 	});

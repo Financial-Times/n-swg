@@ -154,14 +154,14 @@ module.exports = class SwgController {
 		});
 	}
 
-	onFlowStarted (flowName) {
+	onFlowStarted (flowName, data) {
 		events.signal(`flowStarted.${flowName}`);
-		this.track({ action: 'flowStarted', context: { flowName } });
+		this.track({ action: 'flowStarted', context: { flowName, data } });
 	}
 
-	onFlowCanceled (flowName) {
+	onFlowCanceled (flowName, data) {
 		events.signal(`flowCanceled.${flowName}`);
-		this.track({ action: 'flowCanceled', context: { flowName } });
+		this.track({ action: 'flowCanceled', context: { flowName, data } });
 	}
 
 	/**
