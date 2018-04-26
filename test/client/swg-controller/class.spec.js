@@ -458,6 +458,8 @@ describe('Swg Controller: class', function () {
 
 		beforeEach(() => {
 			subject = new SwgController(swgClient);
+			sandbox.stub(utils.events, 'signal');
+			sandbox.stub(subject, 'track');
 		});
 
 		afterEach(() => {
@@ -465,11 +467,13 @@ describe('Swg Controller: class', function () {
 		});
 
 		it('signal and track appropriately on flowCanceled', function () {
-			sandbox.stub(utils.events, 'signal');
-			sandbox.stub(subject, 'track');
-
 			subject.onFlowCanceled('someFlow', { sku: 'foo' });
 			expect(subject.track.calledWith({ action: 'flowCanceled.someFlow', context: { flowName: 'someFlow', skus: ['foo'] } })).to.be.true;
+		});
+
+		it('signal and track appropriately on flowCanceled when flowName === subscribe', function () {
+			subject.onFlowCanceled('subscribe', { sku: 'foo' });
+			expect(subject.track.calledWith({ action: 'exit', context: { flowName: 'subscribe', skus: ['foo'] } })).to.be.true;
 		});
 
 	});

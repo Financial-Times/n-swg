@@ -166,7 +166,14 @@ module.exports = class SwgController {
 	}
 
 	onFlowCanceled (flowName, data) {
-		this.track({ action: `flowCanceled.${flowName}`, context: { flowName, skus: [data.sku] } });
+		let trackingData = { action: `flowCanceled.${flowName}`, context: { flowName, skus: [data.sku] } };
+
+		// For the sake of simplicity for the data/analytics team, map this to something they already know and use.
+		if (flowName === 'subscribe') {
+			trackingData.action = 'exit';
+		}
+
+		this.track(trackingData);
 	}
 
 	/**
