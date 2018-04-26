@@ -1,3 +1,5 @@
+// TODO: remove once Google have native disabled styling
+// from here
 .swg-button,
 .swg-button-light {
 	&:disabled,
@@ -12,6 +14,7 @@
 		background: #6c747a;
 	}
 }
+// until here
 
 .o-overlay-shadow {
 	background-color: rgba(32, 33, 36, 0.6);
