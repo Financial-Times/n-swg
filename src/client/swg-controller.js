@@ -155,7 +155,8 @@ module.exports = class SwgController {
 	}
 
 	onFlowStarted (flowName, data) {
-		let trackingData = { action: `flowStarted.${flowName}`, context: { flowName, skus: [data.sku] }, journeyStart: true };
+		let skus = data && [data.sku];
+		let trackingData = { action: `flowStarted.${flowName}`, context: { flowName, skus }, journeyStart: true };
 
 		// For the sake of simplicity for the data/analytics team, map this to something they already know and use.
 		if (flowName === 'subscribe') {
@@ -166,7 +167,8 @@ module.exports = class SwgController {
 	}
 
 	onFlowCanceled (flowName, data) {
-		let trackingData = { action: `flowCanceled.${flowName}`, context: { flowName, skus: [data.sku] } };
+		let skus = data && [data.sku];
+		let trackingData = { action: `flowCanceled.${flowName}`, context: { flowName, skus } };
 
 		// For the sake of simplicity for the data/analytics team, map this to something they already know and use.
 		if (flowName === 'subscribe') {
