@@ -22,8 +22,6 @@ module.exports = class SubscribeButtons {
 		try {
 			const skus = event.target.getAttribute('data-n-swg-button-skus').split(',');
 
-			events.signal('track', { action: 'landing', context: { skus }, journeyStart: true });
-
 			if (skus.length > 1) {
 				this.swgClient.showOffers({ skus });
 			} else if (skus.length === 1) {
