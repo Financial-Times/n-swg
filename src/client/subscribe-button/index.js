@@ -23,7 +23,7 @@ module.exports = class SubscribeButtons {
 			const skus = event.target.getAttribute('data-n-swg-button-skus').split(',');
 
 			if (skus.length > 1) {
-				this.swgClient.showOffers({ skus });
+				this.swgClient.showOffers({ skus, isClosable: true });
 			} else if (skus.length === 1) {
 				this.swgClient.subscribe(skus[0]);
 			} else {

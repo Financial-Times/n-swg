@@ -154,7 +154,7 @@ describe('FEATURE: subscribe-button.js', function () {
 					const MOCK_SKUS = 'foo,bar';
 					mockEvent.target.getAttribute.returns(MOCK_SKUS);
 					subject.handleClick(mockEvent);
-					expect(swgClient.showOffers.calledWith({ skus: MOCK_SKUS.split(',') })).to.be.true;
+					expect(swgClient.showOffers.calledWith({ skus: MOCK_SKUS.split(','), isClosable: true })).to.be.true;
 				});
 
 				it('signals an error event in case of an error', function () {
