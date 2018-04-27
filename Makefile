@@ -32,6 +32,7 @@ test: verify
 	make a11y-demo
 
 unit-test:
+	mocha test/server --recursive --require test/server/setup
 	mocha test/client --recursive --require test/client/setup
 
 a11y-demo:
