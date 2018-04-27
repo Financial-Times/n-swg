@@ -37,4 +37,8 @@ swgLoader(options).then(swg => {
 		console.log(ev.target.dataset);
 		swg.swgClient.subscribe(ev.target.dataset['sku']);
 	});
+	document.querySelector('#func-link').addEventListener('click', (ev) => {
+		console.log(ev.target.dataset);
+		swg.swgClient.linkAccount();
+	});
 });
