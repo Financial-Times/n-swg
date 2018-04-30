@@ -328,7 +328,7 @@ module.exports = class SwgController {
 	static generateTrackingData (options={}) {
 		return {
 			category: 'SwG',
-			formType: 'signup:swg',
+			formType: 'swg.signup',
 			production: !options.sandbox,
 			paymentMethod: 'SWG',
 			system: { source: 'n-swg' }
@@ -351,8 +351,18 @@ module.exports = class SwgController {
 		 * ft.com_abcd38.efg89_p1m_premium.trial_31.05.18
 		 * ft.com_abcd38.efg89_p1y_standard_31.05.18
 		 */
-		const [ domain, offerId, term, name ] = skus[0].toLowerCase().split('_');
 		const strContainsVal = (s, v) => s && s.indexOf(v) !== -1;
+
+		const [ domain, offerId, termCode, name ] = skus[0].toLowerCase().split('_');
+		const isTrial = strContainsVal(name, 'trial');
+		// trial / monthly / annual / termCode fallback
+		const term = isTrial
+			? 'trial'
+			: strContainsVal(termCode, '1m')
+				? 'monthly'
+				: strContainsVal(termCode, '1y')
+					? 'annual'
+					: termCode;
 		if (domain && domain === 'ft.com') {
 			return {
 				offerId: offerId && offerId.replace(/\./g, '-'),
@@ -360,7 +370,7 @@ module.exports = class SwgController {
 				productName: name && name.replace('.', ' '),
 				term,
 				productType: 'Digital',
-				isTrial: strContainsVal(name, 'trial'),
+				isTrial,
 				isPremium: strContainsVal(name, 'premium')
 			};
 		} else {

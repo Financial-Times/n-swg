@@ -67,7 +67,7 @@ describe('Swg Controller: static methods', function () {
 			const result = SwgController.generateTrackingData({ sandbox: true });
 			expect(result).to.deep.equal({
 				category: 'SwG',
-				formType: 'signup:swg',
+				formType: 'swg.signup',
 				production: false,
 				paymentMethod: 'SWG',
 				system: { source: 'n-swg' }
@@ -98,7 +98,7 @@ describe('Swg Controller: static methods', function () {
 					offerId: 'abcd38-efg89',
 					skuId: 'ft.com_abcd38.efg89_p1y_standard_31.05.18',
 					productName: 'standard',
-					term: 'p1y',
+					term: 'annual',
 					productType: 'Digital',
 					isTrial: false,
 					isPremium: false
@@ -111,11 +111,35 @@ describe('Swg Controller: static methods', function () {
 					offerId: 'abcd38-efg89',
 					skuId: 'ft.com_abcd38.efg89_p1m_premium.trial_31.05.18',
 					productName: 'premium trial',
-					term: 'p1m',
+					term: 'trial',
 					productType: 'Digital',
 					isTrial: true,
 					isPremium: true
 				});
+			});
+
+			describe('term codes', function () {
+
+				it('p1y = annual', function () {
+					const result = SwgController.generateOfferDataFromSkus(['ft.com_abcd38.efg89_p1y_premium_31.05.18']);
+					expect(result.term).to.equal('annual');
+				});
+
+				it('p1m = monthly', function () {
+					const result = SwgController.generateOfferDataFromSkus(['ft.com_abcd38.efg89_p1m_premium_31.05.18']);
+					expect(result.term).to.equal('monthly');
+				});
+
+				it('if trial product = monthly', function () {
+					const result = SwgController.generateOfferDataFromSkus(['ft.com_abcd38.efg89_p1m_premium.trial_31.05.18']);
+					expect(result.term).to.equal('trial');
+				});
+
+				it('unknown term code = fallback to the code', function () {
+					const result = SwgController.generateOfferDataFromSkus(['ft.com_abcd38.efg89_p3m_premium_31.05.18']);
+					expect(result.term).to.equal('p3m');
+				});
+
 			});
 
 		});
