@@ -355,14 +355,18 @@ module.exports = class SwgController {
 
 		const [ domain, offerId, termCode, name ] = skus[0].toLowerCase().split('_');
 		const isTrial = strContainsVal(name, 'trial');
-		// trial / monthly / annual / termCode fallback
-		const term = isTrial
-			? 'trial'
-			: strContainsVal(termCode, '1m')
-				? 'monthly'
-				: strContainsVal(termCode, '1y')
-					? 'annual'
-					: termCode;
+		let term = termCode;
+		switch (true) {
+			case isTrial:
+				term = 'trial';
+				break;
+			case strContainsVal(termCode, '1m'):
+				term = 'monthly';
+				break;
+			case strContainsVal(termCode, '1y'):
+				term = 'annual';
+				break;
+		}
 		if (domain && domain === 'ft.com') {
 			return {
 				offerId: offerId && offerId.replace(/\./g, '-'),
