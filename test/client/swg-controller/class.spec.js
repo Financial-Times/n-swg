@@ -552,7 +552,7 @@ describe('Swg Controller: class', function () {
 		it('decorate basic events', function () {
 			const RESULT = {
 				category: 'SwG',
-				formType: 'signup:swg',
+				formType: 'swg.signup',
 				production: true,
 				paymentMethod: 'SWG',
 				system: { source: 'n-swg' },
@@ -567,14 +567,14 @@ describe('Swg Controller: class', function () {
 			const context = { skus: ['ft.com_abcd38.efg89_p1m_premium.trial_31.05.18'] };
 			const RESULT = {
 				category: 'SwG',
-				formType: 'signup:swg',
+				formType: 'swg.signup',
 				production: true,
 				paymentMethod: 'SWG',
 				system: { source: 'n-swg' },
 				offerId: 'abcd38-efg89',
 				skuId: 'ft.com_abcd38.efg89_p1m_premium.trial_31.05.18',
 				productName: 'premium trial',
-				term: 'p1m',
+				term: 'trial',
 				productType: 'Digital',
 				isTrial: true,
 				isPremium: true,
@@ -591,7 +591,7 @@ describe('Swg Controller: class', function () {
 			const context = { skus: ['ft.com_abcd38.efg89_p1m_premium.trial_31.05.18'] };
 			const RESULT = {
 				category: 'SwG',
-				formType: 'signup:swg',
+				formType: 'swg.signup',
 				production: true,
 				paymentMethod: 'SWG',
 				system: { source: 'n-swg' },
@@ -608,7 +608,7 @@ describe('Swg Controller: class', function () {
 			const context = { skus: ['ft.com_abcd38.efg89_p1m_premium.trial_31.05.18', 'ft.com_abcd38.efg89_p1m_standard.trial_31.05.18'] };
 			const RESULT = {
 				category: 'SwG',
-				formType: 'signup:swg',
+				formType: 'swg.signup',
 				production: true,
 				paymentMethod: 'SWG',
 				system: { source: 'n-swg' },
