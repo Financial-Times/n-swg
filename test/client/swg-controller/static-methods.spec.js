@@ -38,25 +38,22 @@ describe('Swg Controller: static methods', function () {
 			expect(subject).to.be.a('Promise');
 		});
 
-		it('rejects if loading the swg client fails', function (done) {
+		it('rejects if loading the swg client fails', function () {
 			mockImportClient = () => () => {
 				throw new Error('failure!');
 			};
 			const subject = SwgController.load({ swgPromise: swgReadyMock, loadClient: mockImportClient });
-			subject.catch(err => {
+			return subject.catch(err => {
 				expect(err.message).to.equal('failure!');
-				done();
 			});
 		});
 
-		it('resolves if when the loaded swg client invokes the callback', function (done) {
+		it('resolves if when the loaded swg client invokes the callback', async function () {
 			const mockCallbackResult = { mock: 'result' };
 			swgReadyMock = Promise.resolve(mockCallbackResult);
 			const subject = SwgController.load({ swgPromise: swgReadyMock, loadClient: mockImportClient });
-			subject.then(res => {
-				expect(res).to.deep.equal(mockCallbackResult);
-				done();
-			});
+			const res = await subject
+			expect(res).to.deep.equal(mockCallbackResult);
 		});
 
 	});

@@ -68,7 +68,7 @@ module.exports = class SwgController {
 
 		if (!disableEntitlementsCheck) {
 			/* check user entitlements */
-			this.checkEntitlements().then((res={}) => {
+			return this.checkEntitlements().then((res={}) => {
 				if (res.granted && res.json) {
 					/* resolve user with access to requested content via SwG */
 					this.resolveUser(this.ENTITLED_USER, res.json)
@@ -99,6 +99,7 @@ module.exports = class SwgController {
 		} else if (this.subscribeButtons) {
 			/* no entitlements check, enable buttons */
 			this.subscribeButtons.init();
+			return Promise.resolve();
 		}
 	}
 
@@ -124,7 +125,7 @@ module.exports = class SwgController {
 	 * @param {promise} subPromise - as returned by SwG
 	 */
 	onSubscribeResponse (subPromise) {
-		subPromise.then((response) => {
+		return subPromise.then((response) => {
 			/* disable any buttons */
 			if (this.subscribeButtons) this.subscribeButtons.disableButtons();
 			/* signal a return event to any listeners */
