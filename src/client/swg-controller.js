@@ -211,33 +211,35 @@ module.exports = class SwgController {
 			: this.M_SWG_ENTITLED_SUCCESS_ENDPOINT;
 
 		/* generate relevant payload */
-		const payload = newPurchaseFlow
-			? JSON.stringify(swgResponse)
-			: JSON.stringify({ createSession, swg: swgResponse });
+		const generatePayload = newPurchaseFlow
+			? Promise.resolve(JSON.stringify(swgResponse))
+			: Promise.resolve(JSON.stringify({ createSession, swg: swgResponse }));
 
-		return new Promise((resolve, reject) => {
-			smartFetch.fetch(endpoint, {
-				method: 'POST',
-				credentials: 'include',
-				headers: { 'content-type': 'application/json' },
-				body: payload
+		return generatePayload.then(payload =>
+			new Promise((resolve, reject) => {
+				smartFetch.fetch(endpoint, {
+					method: 'POST',
+					credentials: 'include',
+					headers: { 'content-type': 'application/json' },
+					body: payload
+				})
+				.then(({ json }) => {
+					/**
+					 * Both subscription and entitlement callback endpoints return
+					 * a 200 with set-cookie headers for the resolved user session
+					 * and json about the new session.
+					 * Unless createSession was false we can assume user now has
+					 * active session cookies
+					 */
+					resolve({
+						consentRequired: _get(json, 'userInfo.newlyCreated'),
+						loginRequired: !newPurchaseFlow && createSession === false,
+						raw: json
+					});
+				})
+				.catch(reject);
 			})
-			.then(({ json }) => {
-				/**
-				 * Both subscription and entitlement callback endpoints return
-				 * a 200 with set-cookie headers for the resolved user session
-				 * and json about the new session.
-				 * Unless createSession was false we can assume user now has
-				 * active session cookies
-				 */
-				resolve({
-					consentRequired: _get(json, 'userInfo.newlyCreated'),
-					loginRequired: !newPurchaseFlow && createSession === false,
-					raw: json
-				});
-			})
-			.catch(reject);
-		});
+		);
 	}
 
 	/**
