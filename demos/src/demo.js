@@ -14,6 +14,7 @@ const options = {
 	sandbox: !!(document.querySelector('[data-n-swg-demo-env=sandbox]')),
 	subscribeFromButton: true,
 	M_SWG_SUB_SUCCESS_ENDPOINT: !!(document.querySelector('[data-n-swg-local-proxy=true]')) && '/cors-endpoint/success',
+	M_SWG_ENTITLED_SUCCESS_ENDPOINT: !!(document.querySelector('[data-n-swg-local-proxy=true]')) && '/cors-endpoint/entitled',
 	handlers: {
 		onNativeSubscribeRequest: () => {
 			console.log('native sub request received. This is an example of passing a handler into the class');
