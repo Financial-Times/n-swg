@@ -137,7 +137,7 @@ module.exports = class SwgController {
 				/* when user clicks SwG "continue" cta */
 				response.complete().then(() => {
 					/* track confirmation event */
-					this.track({ action: 'confirmation', context: {
+					this.track({ action: 'google-confirmed', context: {
 						// TODO subscriptionId: response.subscriptionId
 					}});
 					/* trigger onward journey */

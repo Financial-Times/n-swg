@@ -216,7 +216,7 @@ describe('Swg Controller: class', function () {
 					expect(subject.resolveUser.calledWith(subject.NEW_USER, MOCK_RESULT)).to.be.true;
 			expect(subject.track.calledTwice).to.be.true;
 						expect(subject.handlers.onResolvedSubscribe.calledOnce).to.be.true;
-			expect(subject.track.getCall(1).calledWith(sinon.match({ action: 'confirmation' }))).to.be.true;
+			expect(subject.track.getCall(1).calledWith(sinon.match({ action: 'google-confirmed' }))).to.be.true;
 					});
 
 		it('on subPromise error: signal error, track event', async function () {
