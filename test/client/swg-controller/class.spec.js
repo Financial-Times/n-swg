@@ -114,61 +114,76 @@ describe('Swg Controller: class', function () {
 			expect(subject.alreadyInitialised).to.be.true;
 		});
 
-		it('will check entitlements by default', function () {
+		it('will add handler for onInitialEntitlementsEvent event', function () {
 			const subject = new SwgController(swgClient);
-			sandbox.stub(subject, 'checkEntitlements').resolves();
+			sandbox.stub(utils.events, 'listen');
 			subject.init();
-			expect(subject.checkEntitlements.calledOnce).to.be.true;
+			expect(utils.events.listen.calledWith('onInitialEntitlementsEvent')).to.be.true;
 		});
 
-		it('will not check entitlements if passed option', function () {
+		it('will not action entitlements if passed disableEntitlementsCheck option', async function () {
+			const mockEntitlementResponse = Promise.resolve({ granted: true, json: {} });
 			const subject = new SwgController(swgClient);
-			sandbox.stub(subject, 'checkEntitlements').resolves();
-			subject.init({ disableEntitlementsCheck: true });
-			expect(subject.checkEntitlements.calledOnce).to.be.false;
+			sandbox.stub(subject, 'resolveUser').resolves();
+
+			const initResult = subject.init({ disableEntitlementsCheck: true });
+			utils.events.signal('onInitialEntitlementsEvent', mockEntitlementResponse);
+			await initResult;
+			expect(subject.resolveUser.calledOnce).to.be.false;
 		});
 
 		context('and on checkEntitlements response', function () {
 
 			it('if not granted access and .subscribeButtons will init subscribe buttons', async function () {
+				const promiseStubCheck = sandbox.stub();
 				const buttonInitStub = sandbox.stub();
 				const mockButtonConstructor = () => ({ init: buttonInitStub });
 				const subject = new SwgController(swgClient, { subscribeFromButton: true }, mockButtonConstructor);
-				const checkEntitlementsPromise = Promise.resolve({ granted: false });
-
-				sandbox.stub(subject, 'checkEntitlements').resolves(checkEntitlementsPromise);
-
-				await subject.init();
-					expect(buttonInitStub.calledOnce).to.be.true;
+				const checkEntitlementsPromise = Promise.resolve().then(() => {
+					promiseStubCheck();
+					return { granted: false };
 				});
+
+				const initResult = subject.init();
+				utils.events.signal('onInitialEntitlementsEvent', checkEntitlementsPromise);
+
+				await initResult;
+				expect(buttonInitStub.calledOnce).to.be.true;
+				expect(promiseStubCheck.calledOnce).to.be.true;
+			});
 
 			it('if granted access will showOverlay, resolve user and call handlers.onResolvedEntitlements(!promptLogin)', async function () {
 				const subject = new SwgController(swgClient);
 				const checkEntitlementsPromise = Promise.resolve({ granted: true, json: {} });
 				const resolveUserPromise = Promise.resolve();
 
-				sandbox.stub(subject, 'checkEntitlements').returns(checkEntitlementsPromise);
 				sandbox.stub(subject, 'resolveUser').returns(resolveUserPromise);
 				sandbox.stub(subject.handlers, 'onResolvedEntitlements');
 
-				await subject.init();
-						expect(subject.handlers.onResolvedEntitlements.calledWith(sinon.match({ promptLogin: false }))).to.be.true;
-					});
+				const initResult = subject.init();
+				utils.events.signal('onInitialEntitlementsEvent', checkEntitlementsPromise);
+
+				await initResult;
+				expect(subject.handlers.onResolvedEntitlements.calledWith(sinon.match({ promptLogin: false }))).to.be.true;
+			});
 
 			it('if granted access but resolve user errors, signal error and call defaultOnwardEntitledJourney(promptLogin)', async function () {
+				const MOCK_ERR = new Error('what!');
 				const subject = new SwgController(swgClient);
 				const checkEntitlementsPromise = Promise.resolve({ granted: true, json: {} });
-				const resolveUserPromise = Promise.reject(new Error('what!'));
+				const resolveUserPromise = Promise.reject(MOCK_ERR);
 
-				sandbox.stub(subject, 'checkEntitlements').returns(checkEntitlementsPromise);
 				sandbox.stub(subject, 'resolveUser').returns(resolveUserPromise);
 				sandbox.stub(utils.events, 'signalError');
 				sandbox.stub(subject.handlers, 'onResolvedEntitlements');
 
-				await subject.init().catch(); // attatch catch to force the block to execute
-						expect(utils.events.signalError.calledOnce).to.be.true;
-						expect(subject.handlers.onResolvedEntitlements.calledWith(sinon.match({ promptLogin: true }))).to.be.true;
-					});
+				const initResult = subject.init();
+				utils.events.signal('onInitialEntitlementsEvent', checkEntitlementsPromise);
+
+				await initResult.catch(); // attatch catch to wait on block to execute
+				expect(utils.events.signalError.calledWith(MOCK_ERR), 'signal err').to.be.true;
+				expect(subject.handlers.onResolvedEntitlements.calledWith(sinon.match({ promptLogin: true }))).to.be.true;
+			});
 
 		});
 
@@ -192,7 +207,7 @@ describe('Swg Controller: class', function () {
 
 			sandbox.stub(subject, 'resolveUser').returns(resolveUserPromise);
 			sandbox.stub(subject.subscribeButtons, 'disableButtons');
-			sinon.spy(subject.handlers, 'onResolvedSubscribe');
+			sandbox.spy(subject.handlers, 'onResolvedSubscribe');
 
 			await subject.onSubscribeResponse(subPromise);
 				expect(subject.subscribeButtons.disableButtons.calledOnce).to.be.true;
@@ -303,42 +318,42 @@ describe('Swg Controller: class', function () {
 			const MOCK_RESULT = { userInfo: { newlyCreated: true } };
 			fetchStub.resolves({ json: MOCK_RESULT });
 
-			const result = await subject.resolveUser(subject.NEW_USER, MOCK_SWG_RESPONSE)
-				expect(result).to.deep.equal({
-					loginRequired: false,
-					consentRequired: true,
-					raw: MOCK_RESULT
-				});
-				expect(fetchStub.calledWith(MOCK_M_SWG_SUB_SUCCESS_ENDPOINT, {
-					method: 'POST',
-					body: expectedBody,
-					credentials: 'include',
-					headers: {
-						'content-type': 'application/json'
-					}
-				})).to.be.true;
+			const result = await subject.resolveUser(subject.NEW_USER, MOCK_SWG_RESPONSE);
+			expect(result).to.deep.equal({
+				loginRequired: false,
+				consentRequired: true,
+				raw: MOCK_RESULT
 			});
+			expect(fetchStub.calledWith(MOCK_M_SWG_SUB_SUCCESS_ENDPOINT, {
+				method: 'POST',
+				body: expectedBody,
+				credentials: 'include',
+				headers: {
+					'content-type': 'application/json'
+				}
+			})).to.be.true;
+		});
 
 		it('extracts and resolves with json on fetch response', async function () {
 			const MOCK_RESULT = { end: 'result' };
 			fetchStub.resolves({ json: MOCK_RESULT });
 			const result = await subject.resolveUser();
-				expect(result).to.deep.equal({ consentRequired: undefined, loginRequired: false, raw: MOCK_RESULT });
-			});
+			expect(result).to.deep.equal({ consentRequired: undefined, loginRequired: false, raw: MOCK_RESULT });
+		});
 
 		it('correctly formats result json and consentRequired boolean', async function () {
 			const MOCK_RESULT = { userInfo: { newlyCreated: true } };
 			fetchStub.resolves({ json: MOCK_RESULT });
 			const result = await subject.resolveUser();
-				expect(result).to.deep.equal({ loginRequired: false, consentRequired: true, raw: MOCK_RESULT });
-			});
+			expect(result).to.deep.equal({ loginRequired: false, consentRequired: true, raw: MOCK_RESULT });
+		});
 
 		it('correctly formats result json and loginRequired boolean', async function () {
 			const MOCK_RESULT = { userInfo: { newlyCreated: true } };
 			fetchStub.resolves({ json: MOCK_RESULT });
 			const result = await subject.resolveUser(null, {}, false);
-				expect(result).to.deep.equal({ loginRequired: true, consentRequired: true, raw: MOCK_RESULT });
-			});
+			expect(result).to.deep.equal({ loginRequired: true, consentRequired: true, raw: MOCK_RESULT });
+		});
 
 		it('rejects with error on fetch error', function () {
 			const MOCK_ERROR = new Error('Bad response!');
@@ -368,36 +383,27 @@ describe('Swg Controller: class', function () {
 			expect(subject.checkEntitlements()).to.be.a('Promise');
 		});
 
-		it('resolves with formatted \"entitlementsResponse\" event and calls swgClient.getEntitlements()', function (done) {
+		it('resolves with formatted \"entitlementsResponse\" event', async function () {
 			const MOCK_JSON_FUNC_RESULT = { other: 'data' };
-			const MOCK_RESULT = { enablesThis: () => true, enablesAny: () => true, other: 'data', json: () => MOCK_JSON_FUNC_RESULT };
-			sandbox.stub(swgClient, 'getEntitlements');
+			const MOCK_RESULT = { enablesThis: () => true, enablesAny: () => true, other: 'data', json: () => MOCK_JSON_FUNC_RESULT, ack: () => true };
+			sandbox.stub(swgClient, 'getEntitlements').resolves(MOCK_RESULT);
 
-			subject.checkEntitlements().then(res => {
-				expect(res.granted).to.be.true;
-				expect(res.hasEntitlements).to.be.true;
-				expect(res.json).to.deep.equal(MOCK_JSON_FUNC_RESULT);
-				expect(res.entitlements).to.equal(MOCK_RESULT);
-				expect(swgClient.getEntitlements.calledOnce).to.true;
-				done();
-			})
-			.catch(done);
-
-			utils.events.signal('entitlementsResponse', MOCK_RESULT);
+			const res = await subject.checkEntitlements();
+			expect(res.granted).to.be.true;
+			expect(res.hasEntitlements).to.be.true;
+			expect(res.json).to.deep.equal(MOCK_JSON_FUNC_RESULT);
+			expect(res.entitlements).to.equal(MOCK_RESULT);
 		});
 
-		it('resolves with formatted \"entitlementsResponse\" where access is not granted', function () {
-			const MOCK_RESULT = { enablesThis: () => false, enablesAny: () => false, other: 'data' };
-			sandbox.stub(swgClient, 'getEntitlements');
+		it('resolves with formatted \"entitlementsResponse\" where access is not granted', async function () {
+			const MOCK_RESULT = { enablesThis: () => false, enablesAny: () => false, other: 'data', ack: () => true };
+			sandbox.stub(swgClient, 'getEntitlements').resolves(MOCK_RESULT);
 
-			subject.checkEntitlements().then(res => {
-				expect(res.granted).to.be.false;
-				expect(res.hasEntitlements).to.be.false;
-				expect(res.entitlements).to.equal(MOCK_RESULT);
-				expect(swgClient.getEntitlements.calledOnce).to.true;
-			});
-
-			utils.events.signal('entitlementsResponse', MOCK_RESULT);
+			const res = await subject.checkEntitlements();
+			expect(res.granted).to.be.false;
+			expect(res.hasEntitlements).to.be.false;
+			expect(res.entitlements).to.equal(MOCK_RESULT);
+			expect(swgClient.getEntitlements.calledOnce).to.true;
 		});
 
 	});
@@ -459,13 +465,14 @@ describe('Swg Controller: class', function () {
 			subject = new SwgController(swgClient);
 		});
 
-		it('signal \"entitlementsResponse\" event on entitlementsPromise', async function () {
+		it('signal \"onInitialEntitlementsEvent\" event on entitlementsPromise with formatted data', async function () {
 			sandbox.stub(utils.events, 'signal');
-			const MOCK_RESULT = { entitlments: 'object', ack: () => true };
-			const mockEntitlementsPromise = Promise.resolve(MOCK_RESULT);
+			const MOCK_RAW_RESULT = { entitlments: 'object', ack: () => true };
+			const mockEntitlementsPromise = Promise.resolve(MOCK_RAW_RESULT);
+			const FORMATTED_RESULT = { granted: undefined, hasEntitlements: undefined, json: undefined, entitlements: MOCK_RAW_RESULT };
 
 			await subject.onEntitlementsResponse(mockEntitlementsPromise);
-			expect(utils.events.signal.calledWith('entitlementsResponse', MOCK_RESULT)).to.be.true;
+			expect(utils.events.signal.calledWith('onInitialEntitlementsEvent', FORMATTED_RESULT)).to.be.true;
 		});
 
 		it('suppress Google message with .ack()', async function () {
@@ -476,15 +483,13 @@ describe('Swg Controller: class', function () {
 			expect(MOCK_RESULT.ack.calledOnce).to.be.true;
 		});
 
-		it('signal \"Error\" event on entitlementsPromise', function () {
+		it('signal \"Error\" event on entitlementsPromise', async function () {
 			sandbox.stub(utils.events, 'signalError');
 			const MOCK_ERROR = new Error('mock');
 			const mockEntitlementsPromise = Promise.reject(MOCK_ERROR);
 
-			subject.onEntitlementsResponse(mockEntitlementsPromise);
-			return mockEntitlementsPromise.then(() => true).catch(() => {
-				expect(utils.events.signalError.calledWith(MOCK_ERROR)).to.be.true;
-			});
+			await subject.onEntitlementsResponse(mockEntitlementsPromise);
+			expect(utils.events.signalError.calledWith(MOCK_ERROR)).to.be.true;
 		});
 
 	});

@@ -24,7 +24,6 @@ describe('Swg Controller: custom handlers', function () {
 			onResolvedSubscribe: sandbox.stub()
 		};
 		subject = new SwgController(swgClient, { handlers: customHandlers });
-		sandbox.stub(utils.events, 'signal');
 		sandbox.stub(subject, 'track');
 	});
 
@@ -41,6 +40,7 @@ describe('Swg Controller: custom handlers', function () {
 		const subPromise = Promise.resolve(MOCK_RESULT);
 		const resolveUserPromise = Promise.resolve({});
 
+		sandbox.stub(utils.events, 'signal');
 		sandbox.stub(subject, 'resolveUser').returns(resolveUserPromise);
 		await subject.onSubscribeResponse(subPromise);
 
@@ -52,13 +52,15 @@ describe('Swg Controller: custom handlers', function () {
 	});
 
 	it('after resolving a users entitlements at init(), call options.handlers.onResolvedEntitlments()', async function () {
-		const checkEntitlementsPromise = Promise.resolve({ granted: true, json: () => ({ some: 'object' }) });
+		const checkEntitlementsPromise = Promise.resolve({ granted: true, json: { some: 'object' } });
 		const resolveUserPromise = Promise.resolve();
 
-		sandbox.stub(subject, 'checkEntitlements').resolves(checkEntitlementsPromise);
 		sandbox.stub(subject, 'resolveUser').returns(resolveUserPromise);
 
-		await subject.init();
+		const initResult = subject.init();
+		utils.events.signal('onInitialEntitlementsEvent', checkEntitlementsPromise);
+
+		await initResult;
 		expect(customHandlers.onResolvedEntitlements.calledOnce).to.be.true;
 	});
 

@@ -50,25 +50,32 @@ module.exports = class SwgController {
 	}
 
 	/**
-	 * Init SwG client if required. Add listeners. Check user's entitlements.
+	 * Init SwG client if required. Add listeners. Handle entitlements check.
 	 * Enable any subscribe with google buttons.
 	 */
 	init ({ disableEntitlementsCheck=false }={}) {
 		if (this.alreadyInitialised) return;
 
+		/* bind own handlers */
+		events.listen('track', this.track.bind(this));
+		events.listen('onError', this.errorEventHandler.bind(this));
+		const initialEntitlementsCheck = new Promise(resolve => events.listen('onInitialEntitlementsEvent', resolve));
+
 		if (this.manualInitDomain) {
 			this.swgClient.init(this.manualInitDomain);
+			/**
+			 * this.swgClient.start() should start entitlements check in manual
+			 * mode but does not appear to be working. so...
+			 * manually kick off check
+			 */
+			this.swgClient.getEntitlements();
 		}
 
 		this.alreadyInitialised = true;
 
-		/* bind own handlers */
-		events.listen('track', this.track.bind(this));
-		events.listen('onError', this.errorEventHandler.bind(this));
-
 		if (!disableEntitlementsCheck) {
-			/* check user entitlements */
-			return this.checkEntitlements().then((res={}) => {
+			/* handle entitlements check invoked by Google on init */
+			return initialEntitlementsCheck.then((res={}) => {
 				if (res.granted && res.json) {
 					/* resolve user with access to requested content via SwG */
 					this.resolveUser(this.ENTITLED_USER, res.json)
@@ -100,24 +107,17 @@ module.exports = class SwgController {
 			/* no entitlements check, enable buttons */
 			this.subscribeButtons.init();
 			return Promise.resolve();
+		} else {
+			return Promise.resolve();
 		}
 	}
 
 	/**
-	 * Check a users Google / SwG entitlments
-	 * @returns {promise} - resolves with decorated SwG .getEntitlements response
+	 * Manually check a users Google / SwG entitlments
+	 * @returns {promise} - resolves with decorated SwG.getEntitlements response
 	 */
 	checkEntitlements () {
-		const formatResponse = (resolve) => (entitlements={}) => {
-			const granted = entitlements && entitlements.enablesThis && entitlements.enablesThis();
-			const hasEntitlements = entitlements && entitlements.enablesAny && entitlements.enablesAny();
-			const json = entitlements && entitlements.json && entitlements.json();
-			resolve({ granted, hasEntitlements, entitlements, json });
-		};
-		return new Promise((resolve) => {
-			events.listen('entitlementsResponse', formatResponse(resolve));
-			this.swgClient.getEntitlements();
-		});
+		return this.swgClient.getEntitlements().then(SwgController.handleEntitlementsCallback);
 	}
 
 	/**
@@ -181,14 +181,16 @@ module.exports = class SwgController {
 
 	/**
 	 * @param {promise} entitlementsPromise - as returned by SwG
+	 * note: according to the docs this should be invoked every time there is an
+	 * entitlements check, but this does not seem to be the case.
 	 */
 	onEntitlementsResponse (entitlementsPromise) {
-		entitlementsPromise.then((entitlements) => {
-			/* suppress Google "Manage Subscription toast" */
-			entitlements.ack();
-			/* signal event to listeners */
-			events.signal('entitlementsResponse', entitlements);
-		}).catch(events.signalError);
+		return entitlementsPromise
+			.then(SwgController.handleEntitlementsCallback)
+			.then(formattedEntitlements => {
+				/* signal event to listeners */
+				events.signal('onInitialEntitlementsEvent', formattedEntitlements);
+			}).catch(events.signalError);
 	}
 
 	/**
@@ -212,7 +214,7 @@ module.exports = class SwgController {
 
 		/* generate relevant payload */
 		const generatePayload = newPurchaseFlow
-			? Promise.resolve(JSON.stringify(swgResponse))
+			? this.decorateWithEntitlements(swgResponse)
 			: Promise.resolve(JSON.stringify({ createSession, swg: swgResponse }));
 
 		return generatePayload.then(payload =>
@@ -240,6 +242,23 @@ module.exports = class SwgController {
 				.catch(reject);
 			})
 		);
+	}
+
+	/**
+	 * TODO: temporary hack
+	 * @param {object} swgSubPromiseResponse
+	 * This is a temporary fix to manually fetch entitlements and add to the
+	 * membershup subscribe callback data until Google provide this natively
+	 */
+	decorateWithEntitlements (swgSubPromiseResponse) {
+		return this.checkEntitlements().then(({ json } ={}) => {
+			swgSubPromiseResponse.entitlements = json;
+			return JSON.stringify(swgSubPromiseResponse);
+		})
+		.catch(err => {
+			events.signalError(err);
+			return JSON.stringify(swgSubPromiseResponse);
+		});
 	}
 
 	/**
@@ -321,6 +340,17 @@ module.exports = class SwgController {
 			}
 			swgPromise.then(resolve);
 		});
+	}
+
+	static handleEntitlementsCallback (entitlements) {
+		/* suppress Google "Manage Subscription toast" */
+		entitlements.ack();
+		return {
+			granted: entitlements && entitlements.enablesThis && entitlements.enablesThis(),
+			hasEntitlements: entitlements && entitlements.enablesAny && entitlements.enablesAny(),
+			json: entitlements && entitlements.json && entitlements.json(),
+			entitlements
+		};
 	}
 
 	/**

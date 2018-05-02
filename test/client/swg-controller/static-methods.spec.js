@@ -52,7 +52,7 @@ describe('Swg Controller: static methods', function () {
 			const mockCallbackResult = { mock: 'result' };
 			swgReadyMock = Promise.resolve(mockCallbackResult);
 			const subject = SwgController.load({ swgPromise: swgReadyMock, loadClient: mockImportClient });
-			const res = await subject
+			const res = await subject;
 			expect(res).to.deep.equal(mockCallbackResult);
 		});
 
