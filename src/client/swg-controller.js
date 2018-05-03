@@ -154,6 +154,7 @@ module.exports = class SwgController {
 				/**
 				 * TODO: UX
 				 * Could not resolve the user on our end.
+				 * TODO: maybe try again?
 				 * The Google modal will timeout and still show the confirmation
 				 * modaul so we should still ensure there is an onward journey
 				 */
@@ -238,51 +239,32 @@ module.exports = class SwgController {
 			: this.M_SWG_ENTITLED_SUCCESS_ENDPOINT;
 
 		/* generate relevant payload */
-		const generatePayload = newPurchaseFlow
-			? this.decorateWithEntitlements(swgResponse)
-			: Promise.resolve(JSON.stringify({ createSession, swg: swgResponse }));
+		const payload = newPurchaseFlow
+			? JSON.stringify(swgResponse)
+			: JSON.stringify({ createSession, swg: swgResponse });
 
-		return generatePayload.then(payload =>
-			new Promise((resolve, reject) => {
-				smartFetch.fetch(endpoint, {
-					method: 'POST',
-					credentials: 'include',
-					headers: { 'content-type': 'application/json' },
-					body: payload
-				})
-				.then(({ json }) => {
-					/**
-					 * Both subscription and entitlement callback endpoints return
-					 * a 200 with set-cookie headers for the resolved user session
-					 * and json about the new session.
-					 * Unless createSession was false we can assume user now has
-					 * active session cookies
-					 */
-					resolve({
-						consentRequired: _get(json, 'userInfo.newlyCreated'),
-						loginRequired: !newPurchaseFlow && createSession === false,
-						raw: json
-					});
-				})
-				.catch(reject);
+		return new Promise((resolve, reject) => {
+			smartFetch.fetch(endpoint, {
+				method: 'POST',
+				credentials: 'include',
+				headers: { 'content-type': 'application/json' },
+				body: payload
 			})
-		);
-	}
-
-	/**
-	 * TODO: temporary hack
-	 * @param {object} swgSubPromiseResponse
-	 * This is a temporary fix to manually fetch entitlements and add to the
-	 * membershup subscribe callback data until Google provide this natively
-	 */
-	decorateWithEntitlements (swgSubPromiseResponse) {
-		return this.checkEntitlements().then(({ json } ={}) => {
-			swgSubPromiseResponse.entitlements = json;
-			return JSON.stringify(swgSubPromiseResponse);
-		})
-		.catch(err => {
-			events.signalError(err);
-			return JSON.stringify(swgSubPromiseResponse);
+			.then(({ json }) => {
+				/**
+				 * Both subscription and entitlement callback endpoints return
+				 * a 200 with set-cookie headers for the resolved user session
+				 * and json about the new session.
+				 * Unless createSession was false we can assume user now has
+				 * active session cookies
+				 */
+				resolve({
+					consentRequired: _get(json, 'userInfo.newlyCreated'),
+					loginRequired: !newPurchaseFlow && createSession === false,
+					raw: json
+				});
+			})
+			.catch(reject);
 		});
 	}
 

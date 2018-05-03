@@ -237,12 +237,10 @@ describe('Swg Controller: class', function () {
 			expect(subject.resolveUser.calledWith(subject.NEW_USER, MOCK_RESULT)).to.be.true;
 			expect(utils.events.signal.getCall(1).calledWith('onError', { error: MOCK_ERROR, info: {} })).to.be.true;
 			expect(subject.track.getCall(1).calledWith(sinon.match({
-				action: 'exit',
-				context: {
-					errCode: undefined,
-					errData: undefined
-				}
+				action: 'failure',
+				context: { stage: 'user-resolution' }
 			}))).to.be.true;
+			expect(subject.track.getCall(2).calledWith(sinon.match({ action: 'exit' }))).to.be.true;
 		});
 
 		it('on subPromise error: signal error, track event', async function () {

@@ -81,10 +81,12 @@ describe('Swg Controller: static methods', function () {
 			expect(result).to.be.empty;
 		});
 
-		it('returns an empty object sku does not start with \"ft.com\"', function () {
+		it('defaults to an object with skuId', function () {
 			const result = SwgController.generateOfferDataFromSkus(['1']);
 			expect(result).to.be.an('object');
-			expect(result).to.be.empty;
+			expect(result).to.deep.equal({
+				skuId: '1'
+			});
 		});
 
 		describe('returns an object with extracted offer data from sku id', function () {
