@@ -50,73 +50,80 @@ module.exports = class SwgController {
 	}
 
 	/**
-	 * Init SwG client if required. Add listeners. Check user's entitlements.
+	 * Init SwG client if required. Add listeners. Handle entitlements check.
 	 * Enable any subscribe with google buttons.
+	 * @param {boolean} disableEntitlementsCheck - ignore initial entitlements result
+	 * @returns {promise}
 	 */
 	init ({ disableEntitlementsCheck=false }={}) {
-		if (this.alreadyInitialised) return;
+		return new Promise(resolve => {
+			if (this.alreadyInitialised) resolve();
 
-		if (this.manualInitDomain) {
-			this.swgClient.init(this.manualInitDomain);
-		}
+			/* bind own handlers */
+			events.listen('track', this.track.bind(this));
+			events.listen('onError', this.errorEventHandler.bind(this));
+			const initialEntitlementsCheck = new Promise(resolve => events.listen('onInitialEntitlementsEvent', resolve));
 
-		this.alreadyInitialised = true;
+			if (this.manualInitDomain) {
+				this.swgClient.init(this.manualInitDomain);
+				/**
+				 * this.swgClient.start() should start entitlements check in manual
+				 * mode but does not appear to be working. so...
+				 * manually kick off check
+				 */
+				this.swgClient.getEntitlements();
+			}
 
-		/* bind own handlers */
-		events.listen('track', this.track.bind(this));
-		events.listen('onError', this.errorEventHandler.bind(this));
+			this.alreadyInitialised = true;
 
-		if (!disableEntitlementsCheck) {
-			/* check user entitlements */
-			this.checkEntitlements().then((res={}) => {
-				if (res.granted && res.json) {
-					/* resolve user with access to requested content via SwG */
-					this.resolveUser(this.ENTITLED_USER, res.json)
-						.then(({ consentRequired=false, loginRequired=false }={}) => {
-							/* set onward journey */
-							this.handlers.onResolvedEntitlements({ promptLogin: loginRequired, entitlements: res.entitlements, consentRequired });
-						})
-						.catch(err => {
-							/* signal error */
-							events.signalError(err);
-							/* set onward journey */
-							this.handlers.onResolvedEntitlements({ promptLogin: true, entitlements: res.entitlements, error: err });
-						});
-				} else if (res.hasEntitlements) {
-					/**
-					 * User has entitlements but not to requested content
-					 * TODO
-					 * - check if user has an active FT.com session
-					 * - prompt login if they do not
-					 * - UX message
-					 * - FUTURE (?) enable "upgrade" SwG buttons
-					 * */
-				} else if (this.subscribeButtons) {
-					/* no entitlements, enable buttons */
-					this.subscribeButtons.init();
-				}
-			});
-		} else if (this.subscribeButtons) {
-			/* no entitlements check, enable buttons */
-			this.subscribeButtons.init();
-		}
+			/* handle entitlements check invoked by Google on init */
+			if (disableEntitlementsCheck) {
+				/* no entitlements check, enable buttons */
+				if (this.subscribeButtons) this.subscribeButtons.init();
+				resolve();
+			} else {
+				/* handle entitlements check invoked by Google on init */
+				initialEntitlementsCheck.then((res={}) => {
+					if (res.granted && res.json) {
+						/* resolve user with access to requested content via SwG */
+						return this.resolveUser(this.ENTITLED_USER, res.json)
+							.then(({ consentRequired=false, loginRequired=false }={}) => {
+								/* set onward journey */
+								this.handlers.onResolvedEntitlements({ promptLogin: loginRequired, entitlements: res.entitlements, consentRequired });
+							})
+							.catch(err => {
+								/* signal error */
+								events.signalError(err);
+								/* set onward journey */
+								this.handlers.onResolvedEntitlements({ promptLogin: true, entitlements: res.entitlements, error: err });
+							})
+							.then(resolve);
+					} else if (res.hasEntitlements) {
+						/**
+						 * User has entitlements but not to requested content
+						 * TODO
+						 * - check if user has an active FT.com session
+						 * - prompt login if they do not
+						 * - UX message
+						 * - FUTURE (?) enable "upgrade" SwG buttons
+						 * */
+						resolve();
+					} else {
+						/* no entitlements, enable buttons */
+						if (this.subscribeButtons) this.subscribeButtons.init();
+						resolve();
+					}
+				});
+			}
+		});
 	}
 
 	/**
-	 * Check a users Google / SwG entitlments
-	 * @returns {promise} - resolves with decorated SwG .getEntitlements response
+	 * Manually check a users Google / SwG entitlments
+	 * @returns {promise} - resolves with decorated SwG.getEntitlements response
 	 */
 	checkEntitlements () {
-		const formatResponse = (resolve) => (entitlements={}) => {
-			const granted = entitlements && entitlements.enablesThis && entitlements.enablesThis();
-			const hasEntitlements = entitlements && entitlements.enablesAny && entitlements.enablesAny();
-			const json = entitlements && entitlements.json && entitlements.json();
-			resolve({ granted, hasEntitlements, entitlements, json });
-		};
-		return new Promise((resolve) => {
-			events.listen('entitlementsResponse', formatResponse(resolve));
-			this.swgClient.getEntitlements();
-		});
+		return this.swgClient.getEntitlements().then(SwgController.handleEntitlementsCallback);
 	}
 
 	/**
@@ -124,7 +131,7 @@ module.exports = class SwgController {
 	 * @param {promise} subPromise - as returned by SwG
 	 */
 	onSubscribeResponse (subPromise) {
-		subPromise.then((response) => {
+		return subPromise.then((response) => {
 			/* disable any buttons */
 			if (this.subscribeButtons) this.subscribeButtons.disableButtons();
 			/* signal a return event to any listeners */
@@ -132,18 +139,37 @@ module.exports = class SwgController {
 			/* track success event */
 			this.track({ action: 'success', context: {} });
 			/* resolve user */
-			this.resolveUser(this.NEW_USER, response).then((res) => {
+			return this.resolveUser(this.NEW_USER, response).then(res => {
 				/* when user clicks SwG "continue" cta */
 				response.complete().then(() => {
 					/* track confirmation event */
-					this.track({ action: 'confirmation', context: {
+					this.track({ action: 'google-confirmed', context: {
 						// TODO subscriptionId: response.subscriptionId
 					}});
 					/* trigger onward journey */
 					this.handlers.onResolvedSubscribe(res);
 				});
+			})
+			.catch(err => {
+				/**
+				 * TODO: UX
+				 * Could not resolve the user on our end.
+				 * TODO: maybe try again?
+				 * The Google modal will timeout and still show the confirmation
+				 * modaul so we should still ensure there is an onward journey
+				 */
+				response.complete().then(() => {
+					/* track failure event */
+					this.track({ action: 'failure', context: {
+						stage: 'user-resolution'
+						// TODO subscriptionId: response.subscriptionId
+					}});
+					/* trigger onward journey */
+					this.onwardSubscriptionErrorJourney();
+				});
+				return Promise.reject(err); // re-throw for tracking
 			});
-		}).catch((err) => {
+		}).catch(err => {
 			/* signal error event to any listeners */
 			events.signalError(err);
 			/* track exit event */
@@ -180,14 +206,17 @@ module.exports = class SwgController {
 
 	/**
 	 * @param {promise} entitlementsPromise - as returned by SwG
+	 * note: according to the docs this should be invoked every time there is an
+	 * entitlements check, but this does not seem to be the case.
 	 */
 	onEntitlementsResponse (entitlementsPromise) {
-		entitlementsPromise.then((entitlements) => {
-			/* suppress Google "Manage Subscription toast" */
-			entitlements.ack();
-			/* signal event to listeners */
-			events.signal('entitlementsResponse', entitlements);
-		}).catch(events.signalError);
+		return entitlementsPromise
+			.then(SwgController.handleEntitlementsCallback)
+			.then(formattedEntitlements => {
+				/* signal event to listeners */
+				events.signal('onInitialEntitlementsEvent', formattedEntitlements);
+			})
+			.catch(events.signalError);
 	}
 
 	/**
@@ -270,6 +299,13 @@ module.exports = class SwgController {
 	}
 
 	/**
+	 * Buy flow error onward journey
+	 */
+	onwardSubscriptionErrorJourney () {
+		this.overlay.show('<p>Something went wrong!</p>');
+	};
+
+	/**
 	 * Track interactions. Keeps the state of active "flow" i.e offer choice.
 	 * Decorates events with relevant extra data for conversion metrics.
 	 * @param {string} action - name of the event action
@@ -318,6 +354,17 @@ module.exports = class SwgController {
 			}
 			swgPromise.then(resolve);
 		});
+	}
+
+	static handleEntitlementsCallback (entitlements) {
+		/* suppress Google "Manage Subscription toast" */
+		entitlements.ack();
+		return {
+			granted: entitlements && entitlements.enablesThis && entitlements.enablesThis(),
+			hasEntitlements: entitlements && entitlements.enablesAny && entitlements.enablesAny(),
+			json: entitlements && entitlements.json && entitlements.json(),
+			entitlements
+		};
 	}
 
 	/**
@@ -378,7 +425,10 @@ module.exports = class SwgController {
 				isPremium: strContainsVal(name, 'premium')
 			};
 		} else {
-			return {};
+			/* default to sku id */
+			return {
+				skuId: skus[0]
+			};
 		}
 	}
 

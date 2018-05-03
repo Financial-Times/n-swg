@@ -24,8 +24,7 @@ describe('Swg Controller: custom handlers', function () {
 			onResolvedSubscribe: sandbox.stub()
 		};
 		subject = new SwgController(swgClient, { handlers: customHandlers });
-		sandbox.stub(utils.events, 'signal');
-		sandbox.stub(utils.events, 'track');
+		sandbox.stub(subject, 'track');
 	});
 
 	afterEach(() => {
@@ -35,43 +34,34 @@ describe('Swg Controller: custom handlers', function () {
 		sandbox.restore();
 	});
 
-	it('after successful subscribe, call options.handlers.onResolvedSubscribe()', function () {
+	it('after successful subscribe, call options.handlers.onResolvedSubscribe()', async function () {
 		const mockResponseComplete = Promise.resolve();
 		const MOCK_RESULT = { mock: 'swg-result', complete: () => mockResponseComplete };
 		const subPromise = Promise.resolve(MOCK_RESULT);
-		const resolveUserPromise = Promise.resolve();
+		const resolveUserPromise = Promise.resolve({});
 
+		sandbox.stub(utils.events, 'signal');
 		sandbox.stub(subject, 'resolveUser').returns(resolveUserPromise);
-		subject.onSubscribeResponse(subPromise);
+		await subject.onSubscribeResponse(subPromise);
 
-		subject.init();
-		return subPromise.then(() => {
-			expect(utils.events.signal.calledWith('onSubscribeReturn', MOCK_RESULT)).to.be.true;
-			expect(utils.events.track.calledOnce).to.be.true;
-			expect(utils.events.track.calledWith(sinon.match({ action: 'success' }))).to.be.true;
-			return resolveUserPromise.then(() => {
-				expect(subject.resolveUser.calledWith(subject.NEW_USER, MOCK_RESULT)).to.be.true;
-				return mockResponseComplete.then(() => {
-					expect(utils.events.track.calledTwice).to.be.true;
-					expect(customHandlers.onResolvedSubscribe.calledOnce).to.be.true;
-				});
-			});
-		});
+		expect(utils.events.signal.calledWith('onSubscribeReturn', MOCK_RESULT)).to.be.true;
+		expect(subject.track.getCall(0).calledWith(sinon.match({ action: 'success' }))).to.be.true;
+		expect(subject.resolveUser.calledWith(subject.NEW_USER, MOCK_RESULT)).to.be.true;
+		expect(subject.track.calledTwice).to.be.true;
+		expect(customHandlers.onResolvedSubscribe.calledOnce).to.be.true;
 	});
 
-	it('after resolving a users entitlements at init(), call options.handlers.onResolvedEntitlments()', function () {
-		const checkEntitlementsPromise = Promise.resolve({ granted: true, json: () => ({ some: 'object' }) });
+	it('after resolving a users entitlements at init(), call options.handlers.onResolvedEntitlments()', async function () {
+		const checkEntitlementsPromise = Promise.resolve({ granted: true, json: { some: 'object' } });
 		const resolveUserPromise = Promise.resolve();
 
-		sandbox.stub(subject, 'checkEntitlements').resolves(checkEntitlementsPromise);
 		sandbox.stub(subject, 'resolveUser').returns(resolveUserPromise);
 
-		subject.init();
-		return checkEntitlementsPromise.then(() => {
-			return resolveUserPromise.then(() => {
-				expect(customHandlers.onResolvedEntitlements.calledOnce).to.be.true;
-			});
-		});
+		const initResult = subject.init();
+		utils.events.signal('onInitialEntitlementsEvent', checkEntitlementsPromise);
+
+		await initResult;
+		expect(customHandlers.onResolvedEntitlements.calledOnce).to.be.true;
 	});
 
 });

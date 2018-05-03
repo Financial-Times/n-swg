@@ -27,7 +27,7 @@ module.exports = class SwgClient {
 	}
 
 	getEntitlements () {
-		return true;
+		return Promise.resolve(true);
 	}
 
 	showOffers () {
