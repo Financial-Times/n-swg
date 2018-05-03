@@ -210,14 +210,40 @@ describe('Swg Controller: class', function () {
 			sandbox.spy(subject.handlers, 'onResolvedSubscribe');
 
 			await subject.onSubscribeResponse(subPromise);
-				expect(subject.subscribeButtons.disableButtons.calledOnce).to.be.true;
-				expect(utils.events.signal.calledWith('onSubscribeReturn', MOCK_RESULT)).to.be.true;
+			expect(subject.subscribeButtons.disableButtons.calledOnce).to.be.true;
+			expect(utils.events.signal.calledWith('onSubscribeReturn', MOCK_RESULT)).to.be.true;
 			expect(subject.track.getCall(0).calledWith(sinon.match({ action: 'success' }))).to.be.true;
-					expect(subject.resolveUser.calledWith(subject.NEW_USER, MOCK_RESULT)).to.be.true;
+			expect(subject.resolveUser.calledWith(subject.NEW_USER, MOCK_RESULT)).to.be.true;
 			expect(subject.track.calledTwice).to.be.true;
-						expect(subject.handlers.onResolvedSubscribe.calledOnce).to.be.true;
+			expect(subject.handlers.onResolvedSubscribe.calledOnce).to.be.true;
 			expect(subject.track.getCall(1).calledWith(sinon.match({ action: 'google-confirmed' }))).to.be.true;
-					});
+		});
+
+		it('on subPromise success, but resolveUser error disable buttons, signal return, track success, signal error, track event', async function () {
+			const MOCK_ERROR = new Error('500 res');
+			const mockResponseComplete = Promise.resolve();
+			const MOCK_RESULT = { mock: 'swg-result', complete: () => mockResponseComplete };
+			const subPromise = Promise.resolve(MOCK_RESULT);
+			const resolveUserPromise = Promise.reject(MOCK_ERROR);
+
+			sandbox.stub(subject, 'resolveUser').returns(resolveUserPromise);
+			sandbox.stub(subject.subscribeButtons, 'disableButtons');
+			sandbox.spy(subject.handlers, 'onResolvedSubscribe');
+
+			await subject.onSubscribeResponse(subPromise);
+			expect(subject.subscribeButtons.disableButtons.calledOnce).to.be.true;
+			expect(utils.events.signal.getCall(0).calledWith('onSubscribeReturn', MOCK_RESULT)).to.be.true;
+			expect(subject.track.getCall(0).calledWith(sinon.match({ action: 'success' }))).to.be.true;
+			expect(subject.resolveUser.calledWith(subject.NEW_USER, MOCK_RESULT)).to.be.true;
+			expect(utils.events.signal.getCall(1).calledWith('onError', { error: MOCK_ERROR, info: {} })).to.be.true;
+			expect(subject.track.getCall(1).calledWith(sinon.match({
+				action: 'exit',
+				context: {
+					errCode: undefined,
+					errData: undefined
+				}
+			}))).to.be.true;
+		});
 
 		it('on subPromise error: signal error, track event', async function () {
 			const MOCK_ERROR = new Error('mock error');
@@ -231,7 +257,7 @@ describe('Swg Controller: class', function () {
 			expect(utils.events.signal.calledWith('onError', { error: MOCK_ERROR, info: {} })).to.be.true;
 			expect(subject.track.calledOnce).to.be.true;
 			expect(subject.track.calledWith(sinon.match({
-						action: 'exit',
+				action: 'exit',
 				context: {
 						errCode: MOCK_ERROR.activityResult.code,
 						errData: MOCK_ERROR.activityResult.data
