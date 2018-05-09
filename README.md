@@ -12,6 +12,7 @@ As well as containing the source code for `n-swg` this repo acts as a documentat
 - [JSON-LD Markup](#json-ld-markup)
 - [SwG on AMP](#swg-on-amp)
 - [SwG on mobile](#swg-on-mobile)
+- [SKUs](#skus) 
 
 ## What is SwG?
 
