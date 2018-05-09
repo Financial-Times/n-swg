@@ -112,12 +112,12 @@ via **bower**
 Just replicate this basic html. Note that it is disabled by default (so we can check entitlements before enabling).
 
 ```html
-<a class="swg-button" disabled
+<button class="swg-button" disabled
 	data-trackable="swg-<APP_NAME>"
 	data-n-swg-button=""
 	data-n-swg-button-skus="<EXAMPLE_SKU_1>,<EXAMPLE_SKU_2>">
-	Subscribe with Google
-</a>
+	title="Subscribe with Google">
+</button>
 ```
 
 ## n-swg API
@@ -217,7 +217,7 @@ And if `disableEntitlementsCheck`=`false` (default)
 
 - check for user entitlements
 	- if none are found, init any swg buttons on the page
-	- if entitlements are found this it will resolve the users session and either prompt them to log in or automatically log them in. If this is a new user they will be prompted to complete the `/profile` consent form.
+	- if entitlements are found then it will resolve the users session and either prompt them to log in or automatically log them in. If this is a new user they will be prompted to complete the `/profile` consent form after successful login.
 
 If `disableEntitlementsCheck`=`true`
 
@@ -257,6 +257,45 @@ We are not able to sell subscriptions directly on our **iOS** app. So it is a no
 On **android** we currently link off to the barrier page in webview, swg-js would not work in this scenario due to the sandboxed nature. So again we would need to wait for Google to document how we can do this natively on android.
 
 # SKUs
-This of SKUs as the Google equivalent of what we refer to as offers.
+Think of SKUs as the Google equivalent of our offers.
 
-In progress.
+Each FT.com offer has a unique id. e.g `713f1e28-0bc5-8261-f1e6-eebab6f7600e`, within this offer there may be data about a monthly payment option (`p1m`) or an annual payment option (`p1y`), (or both). If the offer has a "trial" period there would also be data about the trial payment and term.
+
+For our Google SKUs we base the pricing upon an existing offer. This task is completed by the pricing team, setting the price for each supported currency / region as well as the pre-tax default GBP price. SKUs are then configured via the in-app purchase section of the play store console.
+
+It is important for tracking purposes that SKU ids follow a strict structure:
+
+```
+ft.com_OFFER.ID_TERM_NAME.TRIAL_DATE
+
+[ domain, offerId, termCode, name, date ]
+```
+
+Each section is delimited by `_` and data with that section is delimited with `.`
+- **domain** - 'ft.com', this never changes (although perhaps we will have `markets.ft.com` packages in the future etc).
+- **offerId** - the offerId with the `-` replaced by `.` e.g `713f1e28-0bc5-8261-f1e6-eebab6f7600e` becomes `713f1e28.0bc5.8261.f1e6.eebab6f7600e`.
+- **termCode** - the payment term code. `p1m` = "pay 1 month", `p1y` = "pay 1 year". other examples `p3m` = "pay 3 weeks" etc. Main two use cases are `p1m` aka monthly and `p1y` aka annual.
+- **name** - the name of the package, usually `standard` or `premium`, if you want a longer name with spaces use `.` e.g `standard.digital.package` -> "standard digital package".
+  - it is important to include either `standard` or `premium`
+  - if the sku has a trial attatched to it then trial should feature in the name. e.g `standard.trial`
+- **date** - the date on which the sku was set up, this helps keep the names unique and easy to reason about
+
+Examples:
+```
+ft.com_abcd38.efg89_p1m_premium.trial_31.05.18
+ft.com_abcd38.efg89_p1y_standard_31.05.18
+```
+
+We extract tracking data from the sku id. example `ft.com_41218b9e.c8ae.c934.43ad.71b13fcb4465_p1m_premium.trial_DATE` would have the following tracking properties extracted:
+
+```javascript
+{
+  offerId: '41218b9e-c8ae-c934-43ad-71b13fcb4465',
+  skuId: 'ft.com_41218b9e.c8ae.c934.43ad.71b13fcb4465_p1m_premium.trial_DATE',
+  productName: 'premium trial',
+  term: 'trial',
+  productType: 'Digital',
+  isTrial: true,
+  isPremium: true
+}
+```
