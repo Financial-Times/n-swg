@@ -20,6 +20,12 @@
 
 $o-overlay-is-silent: true;
 
+.overlay__wrapper {
+	position: fixed;
+	width: 100%;
+	bottom: 0;
+}
+
 .overlay__shadow {
 	@include oOverlayShadow;
 
@@ -31,35 +37,60 @@ $o-overlay-is-silent: true;
 	@include oOverlayClose;
 
 	position: absolute;
-	right: 0;
+	left: 0;
 	top: 0;
+	width: 24px;
+	height: 24px;
+	margin: 13px;
+	border-bottom: 0;
 }
 
 .overlay__content {
+	@import url('https://fonts.googleapis.com/css?family=Roboto:400,500');
+	@import url('https://fonts.googleapis.com/css?family=Product+Sans:500');
+
 	background-color: #FFFFFF;
-	border-radius: 10px;
-	border: 1px solid #ececec;
-	font-family: MetricWeb, sans-serif;
-	font-size: 18px;
-	margin: 10% auto 0;
-	padding: 30px;
+	border-radius: 8px 8px 0 0;
+	border: 1px solid transparent;
+	box-shadow: 0 1px 1px rgba(60, 64, 67, 0.3), 0 1px 4px 1px rgba(60, 64, 67, 0.15);
+	font-family: 'Roboto', Helvetica, Arial, sans-serif;
+	color: #757575;
+	font-size: 14px;
+	line-height: 20px;
+	margin: 0 auto;
+	max-width: 480px;
 	position: relative;
-	width: 240px;
+
+	a {
+		color: #1a73e8;
+		font-family: 'Product Sans', Helvetica, Arial, sans-serif;
+		font-weight: 500;
+		font-size: 16px;
+		border-bottom: 0;
+	}
+
+	.dark {
+		color: #212121;
+		font-size: 16px;
+		font-family: 'Product Sans', Helvetica, Arial, sans-serif;
+	}
+
+	&::before {
+		background: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI3NCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDc0IDI0Ij48cGF0aCBmaWxsPSIjNDI4NUY0IiBkPSJNOS4yNCA4LjE5djIuNDZoNS44OGMtLjE4IDEuMzgtLjY0IDIuMzktMS4zNCAzLjEtLjg2Ljg2LTIuMiAxLjgtNC41NCAxLjgtMy42MiAwLTYuNDUtMi45Mi02LjQ1LTYuNTRzMi44My02LjU0IDYuNDUtNi41NGMxLjk1IDAgMy4zOC43NyA0LjQzIDEuNzZMMTUuNCAyLjVDMTMuOTQgMS4wOCAxMS45OCAwIDkuMjQgMCA0LjI4IDAgLjExIDQuMDQuMTEgOXM0LjE3IDkgOS4xMyA5YzIuNjggMCA0LjctLjg4IDYuMjgtMi41MiAxLjYyLTEuNjIgMi4xMy0zLjkxIDIuMTMtNS43NSAwLS41Ny0uMDQtMS4xLS4xMy0xLjU0SDkuMjR6Ii8+PHBhdGggZmlsbD0iI0VBNDMzNSIgZD0iTTI1IDYuMTljLTMuMjEgMC01LjgzIDIuNDQtNS44MyA1LjgxIDAgMy4zNCAyLjYyIDUuODEgNS44MyA1LjgxczUuODMtMi40NiA1LjgzLTUuODFjMC0zLjM3LTIuNjItNS44MS01LjgzLTUuODF6bTAgOS4zM2MtMS43NiAwLTMuMjgtMS40NS0zLjI4LTMuNTIgMC0yLjA5IDEuNTItMy41MiAzLjI4LTMuNTJzMy4yOCAxLjQzIDMuMjggMy41MmMwIDIuMDctMS41MiAzLjUyLTMuMjggMy41MnoiLz48cGF0aCBmaWxsPSIjNDI4NUY0IiBkPSJNNTMuNTggNy40OWgtLjA5Yy0uNTctLjY4LTEuNjctMS4zLTMuMDYtMS4zQzQ3LjUzIDYuMTkgNDUgOC43MiA0NSAxMmMwIDMuMjYgMi41MyA1LjgxIDUuNDMgNS44MSAxLjM5IDAgMi40OS0uNjIgMy4wNi0xLjMyaC4wOXYuODFjMCAyLjIyLTEuMTkgMy40MS0zLjEgMy40MS0xLjU2IDAtMi41My0xLjEyLTIuOTMtMi4wN2wtMi4yMi45MmMuNjQgMS41NCAyLjMzIDMuNDMgNS4xNSAzLjQzIDIuOTkgMCA1LjUyLTEuNzYgNS41Mi02LjA1VjYuNDloLTIuNDJ2MXptLTIuOTMgOC4wM2MtMS43NiAwLTMuMS0xLjUtMy4xLTMuNTIgMC0yLjA1IDEuMzQtMy41MiAzLjEtMy41MiAxLjc0IDAgMy4xIDEuNSAzLjEgMy41NC4wMSAyLjAzLTEuMzYgMy41LTMuMSAzLjV6Ii8+PHBhdGggZmlsbD0iI0ZCQkMwNSIgZD0iTTM4IDYuMTljLTMuMjEgMC01LjgzIDIuNDQtNS44MyA1LjgxIDAgMy4zNCAyLjYyIDUuODEgNS44MyA1LjgxczUuODMtMi40NiA1LjgzLTUuODFjMC0zLjM3LTIuNjItNS44MS01LjgzLTUuODF6bTAgOS4zM2MtMS43NiAwLTMuMjgtMS40NS0zLjI4LTMuNTIgMC0yLjA5IDEuNTItMy41MiAzLjI4LTMuNTJzMy4yOCAxLjQzIDMuMjggMy41MmMwIDIuMDctMS41MiAzLjUyLTMuMjggMy41MnoiLz48cGF0aCBmaWxsPSIjMzRBODUzIiBkPSJNNTggLjI0aDIuNTF2MTcuNTdINTh6Ii8+PHBhdGggZmlsbD0iI0VBNDMzNSIgZD0iTTY4LjI2IDE1LjUyYy0xLjMgMC0yLjIyLS41OS0yLjgyLTEuNzZsNy43Ny0zLjIxLS4yNi0uNjZjLS40OC0xLjMtMS45Ni0zLjctNC45Ny0zLjctMi45OSAwLTUuNDggMi4zNS01LjQ4IDUuODEgMCAzLjI2IDIuNDYgNS44MSA1Ljc2IDUuODEgMi42NiAwIDQuMi0xLjYzIDQuODQtMi41N2wtMS45OC0xLjMyYy0uNjYuOTYtMS41NiAxLjYtMi44NiAxLjZ6bS0uMTgtNy4xNWMxLjAzIDAgMS45MS41MyAyLjIgMS4yOGwtNS4yNSAyLjE3YzAtMi40NCAxLjczLTMuNDUgMy4wNS0zLjQ1eiIvPjwvc3ZnPg==') no-repeat;
+		content: '';
+		display: inline-block;
+		width: 74px;
+		height: 24px;
+		position: absolute;
+		top: 15px;
+		margin-left: -37px;
+	}
 }
 
 .overlay__inner {
-	&::before {
-		background-image: url('https://www.ft.com/__origami/service/image/v2/images/raw/https%3A%2F%2Fwww.ft.com%2F__assets%2Fcreatives%2FG_active_focused_pressed.svg?source=m-login&width=20&height=20&format=png'), none;
-		background-image: url('https://www.ft.com/__origami/service/image/v2/images/raw/https%3A%2F%2Fwww.ft.com%2F__assets%2Fcreatives%2FG_active_focused_pressed.svg?source=m-login&width=20&height=20&format=svg'), none;
-		background-repeat: no-repeat;
-		background-size: contain;
-		background-position: 50%;
-		content: '';
-		display: inline-block;
-		width: 100%;
-		height: 30px;
-		vertical-align: baseline;
-	}
+	padding: 10px 20px;
+	margin-top: 56px;
+	border-top: 0.5px solid #dddddd;
 
 	small {
 		font-size: 12px;

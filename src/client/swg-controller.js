@@ -278,12 +278,12 @@ module.exports = class SwgController {
 	defaultOnwardEntitledJourney ({ promptLogin=false, consentRequired=false }={}) {
 		if (promptLogin) {
 			const loginHref = browser.generateLoginUrl();
-			this.overlay.show(`<p>It looks like you already have an FT.com subscription with Google.<br /><a href="${loginHref}">Please login</a><br /><br /><small>code: ENTITLED_LOGIN_REQUIRED</small></p>`);
+			this.overlay.show(`<p class="dark">It looks like you already have an FT.com subscription with Google.</p><p><a href="${loginHref}">Please login</a></p><p><small>code: ENTITLED_LOGIN_REQUIRED</small></p>`);
 		} else {
 			const uuid = browser.getContentUuidFromUrl();
 			const contentHref = uuid ? `https://www.ft.com/content/${uuid}` : 'https://www.ft.com';
 			const consentHref = consentRequired && this.POST_SUBSCRIBE_URL + (uuid ? '&ft-content-uuid=' + uuid : '');
-			this.overlay.show(`<p>It looks like you already have an FT.com subscription with Google. You have been logged in.<br /><a href="${consentHref || contentHref}">Go to content</a><br /><br /><small>code: ENTITLED_LOGIN_SUCCESS</small></p>`);
+			this.overlay.show(`<p class="dark">It looks like you already have an FT.com subscription with Google.</p><p>You have been logged in.</p><p><a href="${consentHref || contentHref}">Go to content</a></p><small>code: ENTITLED_LOGIN_SUCCESS</small></p>`);
 		}
 	}
 
@@ -302,7 +302,7 @@ module.exports = class SwgController {
 	 * Buy flow error onward journey
 	 */
 	onwardSubscriptionErrorJourney () {
-		this.overlay.show('<p>Something went wrong!</p>');
+		this.overlay.show('<p class="dark">Something went wrong!</p>');
 	};
 
 	/**

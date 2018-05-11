@@ -4,6 +4,9 @@ module.exports = class Overlay {
 		this.el = document.createElement('div');
 		this.el.classList.add('overlay__shadow');
 
+		this.wrapper = document.createElement('div');
+		this.wrapper.classList.add('overlay__wrapper');
+
 		this.content = document.createElement('div');
 		this.content.classList.add('overlay__content');
 
@@ -15,7 +18,8 @@ module.exports = class Overlay {
 
 		this.content.appendChild(this.close);
 		this.content.appendChild(this.inner);
-		this.el.appendChild(this.content);
+		this.wrapper.appendChild(this.content);
+		this.el.appendChild(this.wrapper);
 
 		this.visible = false;
 
