@@ -11,7 +11,7 @@ As well as containing the source code for `n-swg` this repo acts as a documentat
 - [`n-swg` API](#n-swg-api)
 - [JSON-LD Markup](#json-ld-markup)
 - [SwG on AMP](#swg-on-amp)
-- [SwG on mobile](#swg-on-mobile)
+- [SwG on mobile apps](#swg-on-mobile-apps)
 - [SKUs](#skus) 
 
 ## What is SwG?
@@ -39,7 +39,7 @@ Benefits of SwG include:
 - [Official Google Docs](https://developers.google.com/news/subscribe/)
 - The SwG client library source code [GitHub repository](https://github.com/subscriptions-project/swg-js)
 - This README acts as the FT.com documentation
-- Please contact #ft-conversion with any questions
+- Please contact #ft-next-conversion with any questions
 
 ## n-swg client
 
@@ -241,7 +241,7 @@ The swg library requires markup to work. So if there is no markup available (e.g
 In progress.
 
 
-# SwG on mobile
+# SwG on mobile apps
 It is important that any user with a SwG subscription is able to access content they are entitled to. This **should** always be possible via "Sign in with Google", assuming they created their account on desktop.
 
 Aside from this we do not currently actively support SwG flows on mobile. If we were to there are two main parts.
@@ -249,10 +249,10 @@ Aside from this we do not currently actively support SwG flows on mobile. If we 
 ### Entitlements checking
 If an app user lands on a barrier then ideally we can follow the entitlement check and account resolution flows. This could not use the swg-js solution as the android app uses webview and so the sandboxed environment would render the swg-js client un-usable. It is a similar story for iOS.
 
-Therefore if we want to persure this we must wait for Google to document how we can do native android app entitlement checking (and iOs).
+Therefore if we want to pursue this we must wait for Google to document how we can do native android app entitlement checking (and iOs).
 
 ### SwG purchase flows
-Users who purcahse via their web browser will be able to use SwG and sign in with Google.
+Users who purchase via their web browser will be able to use SwG and sign in with Google.
 
 We are not able to sell subscriptions directly on our **iOS** app. So it is a non issue.
 
@@ -263,7 +263,7 @@ Think of SKUs as the Google equivalent of our offers.
 
 Each FT.com offer has a unique id. e.g `713f1e28-0bc5-8261-f1e6-eebab6f7600e`, within this offer there may be data about a monthly payment option (`p1m`) or an annual payment option (`p1y`), (or both). If the offer has a "trial" period there would also be data about the trial payment and term.
 
-For our Google SKUs we base the pricing upon an existing offer. This task is completed by the pricing team, setting the price for each supported currency / region as well as the pre-tax default GBP price. SKUs are then configured via the in-app purchase section of the play store console.
+For our Google SKUs we base the pricing upon an existing offer. This task is completed by the pricing team, setting the price for each supported currency / region as well as the pre-tax default GBP price. These are likely exported as a spreadsheet and the SKUs will need to be manually configured via the "in-app products" section of the play store console.
 
 It is important for tracking purposes that SKU ids follow a strict structure:
 
