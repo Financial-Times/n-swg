@@ -40,8 +40,11 @@ module.exports = class Overlay {
 		});
 	}
 
-	show (content) {
+	show (content, theme='ft') {
 		this.inner.innerHTML = ''; //clear node
+
+		const themeClass = theme === 'google-ft' ? 'google-ft-mast' : 'ft-mast';
+		this.content.classList.add(`overlay__content--${themeClass}`);
 
 		if (content) {
 			this.inner.innerHTML = content;
