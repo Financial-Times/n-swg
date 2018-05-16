@@ -395,9 +395,10 @@ describe('Swg Controller: class', function () {
 		it('only retries as many times as defined by MAX_RETRIES', function () {
 			const MOCK_ERROR = new Error('Bad response!');
 			fetchStub.rejects(MOCK_ERROR);
+			subject.MAX_RETRIES = 5;
 			return subject.resolveUser().catch(() => {
 				// -1 because the first call isn't a *retry*
-				expect(fetchStub.getCalls().length - 1).to.deep.equal(subject.MAX_RETRIES);
+				expect(fetchStub.getCalls().length - 1).to.deep.equal(5);
 			});
 		});
 
