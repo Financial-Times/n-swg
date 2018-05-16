@@ -12,6 +12,7 @@ module.exports = class SwgController {
 		/* options */
 		this.swgClient = swgClient;
 		this.manualInitDomain = options.manualInitDomain;
+		this.MAX_RETRIES = 2;
 		this.M_SWG_SUB_SUCCESS_ENDPOINT = options.M_SWG_SUB_SUCCESS_ENDPOINT || (options.sandbox ? 'https://api-t.ft.com/commerce/v1/swg/subscriptions' : 'https://api.ft.com/commerce/v1/swg/subscriptions');
 		this.M_SWG_ENTITLED_SUCCESS_ENDPOINT = options.M_SWG_ENTITLED_SUCCESS_ENDPOINT || (options.sandbox ? 'https://swg-fulfilment-svc-eu-test.memb.ft.com/swg/v1/subscriptions/entitlementsCheck' : 'https://swg-fulfilment-svc-eu-prod.memb.ft.com/swg/v1/subscriptions/entitlementsCheck');
 		this.POST_SUBSCRIBE_URL = options.POST_SUBSCRIBE_URL || 'https://www.ft.com/profile?splash=swg_checkout';
@@ -153,8 +154,7 @@ module.exports = class SwgController {
 			.catch(err => {
 				/**
 				 * TODO: UX
-				 * Could not resolve the user on our end.
-				 * TODO: maybe try again?
+				 * Could not resolve the user on our end after multiple retries.
 				 * The Google modal will timeout and still show the confirmation
 				 * modaul so we should still ensure there is an onward journey
 				 */
@@ -231,7 +231,7 @@ module.exports = class SwgController {
 	 * @param {string} scenario - the resolution scenario. new user || existing
 	 * @param {object} swgResponse - the SwG response object with user data
 	 */
-	resolveUser (scenario, swgResponse, createSession=true) {
+	resolveUser (scenario, swgResponse, createSession=true, retries=0) {
 		const newPurchaseFlow = scenario === this.NEW_USER;
 		/* cors POST to relevant membership endpoint with SwG payload */
 		const endpoint = newPurchaseFlow
@@ -264,7 +264,20 @@ module.exports = class SwgController {
 					raw: json
 				});
 			})
-			.catch(reject);
+			.catch((error) => {
+				if (retries === this.MAX_RETRIES) {
+					reject(error);
+				} else {
+					retries++;
+
+					this.track({ action: 'retry', context: {
+						stage: 'user-resolution',
+						retries
+					}});
+
+					this.resolveUser(scenario, swgResponse, createSession, retries).then(resolve).catch(reject);
+				}
+			});
 		});
 	}
 

@@ -280,12 +280,12 @@ Each section is delimited by `_` and data with that section is delimited with `.
 - **name** - the name of the package, usually `standard` or `premium`, if you want a longer name with spaces use `.` e.g `standard.digital.package` -> "standard digital package".
   - it is important to include either `standard` or `premium`
   - if the sku has a trial attatched to it then trial should feature in the name. e.g `standard.trial`
-- **date** - the date on which the sku was set up, this helps keep the names unique and easy to reason about
+- **date** - the date on which the sku was set up, taking the format: `YYYY.MM.DD`. This helps keep the names unique and easy to reason about
 
 Examples:
 ```
-ft.com_abcd38.efg89_p1m_premium.trial_31.05.18
-ft.com_abcd38.efg89_p1y_standard_31.05.18
+ft.com_abcd38.efg89_p1m_premium.trial_2018.05.31
+ft.com_abcd38.efg89_p1y_standard_2018.05.31
 ```
 
 We extract tracking data from the sku id. example `ft.com_41218b9e.c8ae.c934.43ad.71b13fcb4465_p1m_premium.trial_DATE` would have the following tracking properties extracted:

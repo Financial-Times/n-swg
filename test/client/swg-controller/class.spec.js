@@ -379,6 +379,29 @@ describe('Swg Controller: class', function () {
 			expect(result).to.deep.equal({ loginRequired: true, consentRequired: true, raw: MOCK_RESULT });
 		});
 
+		it('retries on fetch error', async function () {
+			const MOCK_ERROR = new Error('Bad Response');
+			const MOCK_RESULT = { userInfo: { newlyCreated: true } };
+
+			fetchStub
+				.onFirstCall().rejects(MOCK_ERROR)
+				.onSecondCall().resolves({ json: MOCK_RESULT });
+
+			await subject.resolveUser();
+
+			expect(fetchStub.getCalls().length).to.deep.equal(2);
+		});
+
+		it('only retries as many times as defined by MAX_RETRIES', function () {
+			const MOCK_ERROR = new Error('Bad response!');
+			fetchStub.rejects(MOCK_ERROR);
+			subject.MAX_RETRIES = 5;
+			return subject.resolveUser().catch(() => {
+				// -1 because the first call isn't a *retry*
+				expect(fetchStub.getCalls().length - 1).to.deep.equal(5);
+			});
+		});
+
 		it('rejects with error on fetch error', function () {
 			const MOCK_ERROR = new Error('Bad response!');
 			fetchStub.throws(MOCK_ERROR);
