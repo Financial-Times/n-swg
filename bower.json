@@ -38,6 +38,7 @@
   },
   "dependencies": {
     "o-buttons": "^5.11.5",
-    "o-overlay": "^2.4.1"
+    "o-overlay": "^2.4.1",
+    "o-grid": "^4.3.4"
   }
 }

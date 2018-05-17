@@ -18,90 +18,120 @@
 
 $o-overlay-is-silent: true;
 $o-buttons-is-silent: true;
+$o-grid-is-silent: true;
+$o-typography-is-silent: true;
 
 @import 'o-overlay/main';
 @import 'o-buttons/main';
+@import 'o-grid/main';
+@import 'o-typography/main';
 
 .overlay__wrapper {
 	position: fixed;
 	width: 100%;
 	bottom: 0;
+
+	@include oGridRespondTo(S) {
+		margin-top: 15vh;
+		bottom: initial;
+	}
 }
 
 .overlay__shadow {
 	@include oOverlayShadow;
-
-	background-color: rgba(32, 33, 36, 0.6);
-	text-align: center;
 }
 
 .overlay__close {
 	@include oOverlayClose;
-
 	position: absolute;
-	left: 0;
+	right: 0;
 	top: 0;
-	width: 24px;
-	height: 24px;
-	margin: 13px;
+	width: 20px;
+	height: 20px;
 	border-bottom: 0;
 }
 
 .overlay__content {
 	background-color: #FFFFFF;
-	border-radius: 8px 8px 0 0;
 	border: 1px solid transparent;
 	box-shadow: 0 1px 1px rgba(60, 64, 67, 0.3), 0 1px 4px 1px rgba(60, 64, 67, 0.15);
-	font-family: 'Metric', Helvetica, Arial, sans-serif;
-	color: #000000;
-	font-size: 16px;
-	line-height: 20px;
 	margin: 0 auto;
-	max-width: 480px;
+	max-width: 580px;
 	position: relative;
-
-	a.overlay__button {
-		@include oButtons($theme: primary);
-	}
-
-	&::before {
-		content: '';
-		display: inline-block;
-		position: absolute;
-	}
 }
 
-.overlay__content--ft-mast {
-	&::before {
-		background-image: url('https://www.ft.com/__origami/service/image/v2/images/raw/https%3A%2F%2Fwww.ft.com%2F__assets%2Fcreatives%2Fbrand-ft%2FFT_logo_square.svg?source=next&height=20&format=svg&quality=highest');
-		background-image: url('https://www.ft.com/__origami/service/image/v2/images/raw/https%3A%2F%2Fwww.ft.com%2F__assets%2Fcreatives%2Fbrand-ft%2FFT_logo_square.svg?source=next&height=40&format=png&quality=highest')\9;
-		background-repeat: no-repeat;
-		width: 40px;
-		height: 40px;
-		margin-left: -20px;
-		top: 8px;
-	}
-}
-
-.overlay__content--google-ft-mast {
-	&::before {
-		background-image: url('https://www.ft.com/__origami/service/image/v2/images/raw/https%3A%2F%2Fwww.ft.com%2F__assets%2Fcreatives%2Fbrand-ft%2FGoogle_with_FT_logo_square.svg?source=next&height=20&format=svg&quality=highest');
-		background-image: url('https://www.ft.com/__origami/service/image/v2/images/raw/https%3A%2F%2Fwww.ft.com%2F__assets%2Fcreatives%2Fbrand-ft%2FGoogle_with_FT_logo_square.svg?source=next&height=36&format=png&quality=highest')\9;
-		background-repeat: no-repeat;
-		width: 155px;
-		height: 36px;
-		top: 10px;
-		margin-left: -77px;
-	}
+.overlay__button {
+	@include oButtons($theme: primary, $size: big);
+	width: 100%;
 }
 
 .overlay__inner {
-	padding: 10px 20px;
-	margin-top: 56px;
-	border-top: 0.5px solid #dddddd;
+	text-align: left;
+	padding: 30px 10px 10px;
 
-	small {
-		font-size: 12px;
-		font-family: Consolas,Menlo,Monaco,Lucida Console,Courier New,monospace,sans-serif;
+	@include oGridRespondTo(S) {
+		padding: 48px 50px 50px 30px;
+	}
+
+	@include oGridRespondTo(M) {
+		padding: 48px 100px 100px 80px;
+	}
+
+	h3 {
+		@include oTypographyProductHeadingLevel1();
+		@include oTypographySize($scale: 3);
+	}
+
+	p {
+		@include oTypographySans( $scale: (default: 0, M: 1) );
+	}
+
+	.external {
+		@include oTypographyLinkExternal;
+	}
+}
+
+.overlay__content--loading {
+	text-align: center; // center spinner
+};
+
+/* Loading spinner */
+.overlay__content--loading::after {
+	content: '';
+	display: inline-block;
+	position: absolute;
+	width: 16px;
+	height: 16px;
+	border: 3px solid rgba(51, 48, 46, 0.25);
+	border-top-color: #33302e;
+	border-radius: 50%;
+	-webkit-animation: loading-spinner 1s infinite linear;
+	animation: loading-spinner 1s infinite linear;
+	top: 50%;
+	margin-top: -8px;
+	margin-left: -8px;
+	z-index: 2;
+}
+
+/* White out the modal */
+.overlay__content--loading::before {
+	content: '';
+	width: 100%;
+	height: 100%;
+	display: block;
+	position: absolute;
+	top: 0;
+	z-index: 1;
+	background-color: #FFFFFF;
+}
+
+@keyframes loading-spinner {
+	0% {
+		-webkit-transform: rotate(0);
+		transform: rotate(0);
+	}
+	100% {
+		-webkit-transform: rotate(360deg);
+		transform: rotate(360deg);
 	}
 }
