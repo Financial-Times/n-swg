@@ -37,6 +37,8 @@
     "n-ui-foundations": "^3.0.0"
   },
   "dependencies": {
-    "o-overlay": "^2.4.1"
+    "o-buttons": "^5.11.5",
+    "o-overlay": "^2.4.1",
+    "o-grid": "^4.3.4"
   }
 }

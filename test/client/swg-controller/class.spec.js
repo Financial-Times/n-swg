@@ -152,37 +152,30 @@ describe('Swg Controller: class', function () {
 				expect(promiseStubCheck.calledOnce).to.be.true;
 			});
 
-			it('if granted access will showOverlay, resolve user and call handlers.onResolvedEntitlements(!promptLogin)', async function () {
+			it('if granted access will call handlers.onResolvedEntitlements(result)', async function () {
+				const SWG_ENTITLEMENTS_RESULT = { granted: true, json: {} };
 				const subject = new SwgController(swgClient);
-				const checkEntitlementsPromise = Promise.resolve({ granted: true, json: {} });
-				const resolveUserPromise = Promise.resolve();
-
-				sandbox.stub(subject, 'resolveUser').returns(resolveUserPromise);
+				const checkEntitlementsPromise = Promise.resolve(SWG_ENTITLEMENTS_RESULT);
 				sandbox.stub(subject.handlers, 'onResolvedEntitlements');
 
 				const initResult = subject.init();
 				utils.events.signal('onInitialEntitlementsEvent', checkEntitlementsPromise);
 
 				await initResult;
-				expect(subject.handlers.onResolvedEntitlements.calledWith(sinon.match({ promptLogin: false }))).to.be.true;
+				expect(subject.handlers.onResolvedEntitlements.calledWith(SWG_ENTITLEMENTS_RESULT)).to.be.true;
 			});
 
-			it('if granted access but resolve user errors, signal error and call defaultOnwardEntitledJourney(promptLogin)', async function () {
-				const MOCK_ERR = new Error('what!');
+			it('if user hasEntitlements but is not granted access, show message overlay', async function () {
 				const subject = new SwgController(swgClient);
-				const checkEntitlementsPromise = Promise.resolve({ granted: true, json: {} });
-				const resolveUserPromise = Promise.reject(MOCK_ERR);
+				const checkEntitlementsPromise = Promise.resolve({ granted: false, json: {}, hasEntitlements: true });
 
-				sandbox.stub(subject, 'resolveUser').returns(resolveUserPromise);
-				sandbox.stub(utils.events, 'signalError');
-				sandbox.stub(subject.handlers, 'onResolvedEntitlements');
+				sandbox.stub(subject.overlay, 'show');
 
 				const initResult = subject.init();
 				utils.events.signal('onInitialEntitlementsEvent', checkEntitlementsPromise);
 
 				await initResult.catch(); // attatch catch to wait on block to execute
-				expect(utils.events.signalError.calledWith(MOCK_ERR), 'signal err').to.be.true;
-				expect(subject.handlers.onResolvedEntitlements.calledWith(sinon.match({ promptLogin: true }))).to.be.true;
+				expect(subject.overlay.show.calledWith(sinon.match('You are trying to access Premium content'))).to.be.true;
 			});
 
 		});
@@ -759,6 +752,7 @@ describe('Swg Controller: class', function () {
 		let subject;
 		let overlayStub;
 		let redirectStub;
+		let resolveUserStub;
 		let windowLocation;
 
 		function setHref (href) {
@@ -772,6 +766,7 @@ describe('Swg Controller: class', function () {
 			subject.init();
 			redirectStub = sandbox.stub(utils.browser, 'redirectTo');
 			overlayStub = sandbox.stub(subject.overlay, 'show');
+			resolveUserStub = sandbox.stub(subject, 'resolveUser').resolves({});
 			sandbox.stub(utils.browser, 'getWindowLocation').returns(windowLocation);
 		});
 
@@ -781,59 +776,174 @@ describe('Swg Controller: class', function () {
 
 		describe('.defaultOnwardEntitledJourney()', function () {
 
-			context('promptLogin=true', function () {
-				it('show overlay will have link that defaults to login page', function () {
-					subject.defaultOnwardEntitledJourney({ promptLogin: true });
-					expect(overlayStub.calledWith(sinon.match('https://www.ft.com/login?socialEnabled=true'))).to.be.true;
-					expect(overlayStub.calledWith(sinon.match('ENTITLED_LOGIN_REQUIRED'))).to.be.true;
-				});
-
-				it('show overlay will have login link with requested content url as location', function () {
-				setHref('https://www.ft.com/barrier/trial?ft-content-uuid=12345&foo=bar');
-					subject.defaultOnwardEntitledJourney({ promptLogin: true });
-					expect(overlayStub.calledWith(sinon.match('https://www.ft.com/login?socialEnabled=true&location=https%3A%2F%2Fwww.ft.com%2Fcontent%2F12345'))).to.be.true;
-					expect(overlayStub.calledWith(sinon.match('ENTITLED_LOGIN_REQUIRED'))).to.be.true;
-				});
+			it('Will show an overlay message informing the user of their SwG subscription, with a login prompt', function () {
+				subject.defaultOnwardEntitledJourney();
+				expect(overlayStub.calledWith(sinon.match('It looks like you are already subscribed to FT.com via Google'))).to.be.true;
 			});
 
-			context('promptLogin=false', function () {
-				it('show overlay with link to requested content if ft-content-uuid present', function () {
-					setHref('https://www.ft.com/barrier/trial?ft-content-uuid=12345&foo=bar');
-					subject.defaultOnwardEntitledJourney({ promptLogin: false });
-					expect(overlayStub.calledWith(sinon.match('https://www.ft.com/content/12345'))).to.be.true;
-					expect(overlayStub.calledWith(sinon.match('ENTITLED_LOGIN_SUCCESS'))).to.be.true;
+			context('upon user clicking the login cta', function () {
+				let invokeCtaClickCallback;
+				let mockEvent;
+
+				beforeEach(() => {
+					mockEvent = {
+						preventDefault: sandbox.stub()
+					};
+					overlayStub.callsFake((copy, cta) => {
+						invokeCtaClickCallback = cta.callback;
+					});
 				});
 
-				it('show overlay with link to content if on a content page', function () {
-					setHref('https://www.ft.com/content/12345?foo=bar');
-					subject.defaultOnwardEntitledJourney({ promptLogin: false });
-					expect(overlayStub.calledWith(sinon.match('https://www.ft.com/content/12345'))).to.be.true;
-					expect(overlayStub.calledWith(sinon.match('ENTITLED_LOGIN_SUCCESS'))).to.be.true;
+				afterEach(() => {
+					invokeCtaClickCallback = null;
 				});
 
-				it('show overlay with link to homepage if not on a content page', function () {
-					setHref('https://www.ft.com/products');
-					subject.defaultOnwardEntitledJourney({ promptLogin: false });
-					expect(overlayStub.calledWith(sinon.match('https://www.ft.com'))).to.be.true;
-					expect(overlayStub.calledWith(sinon.match('ENTITLED_LOGIN_SUCCESS'))).to.be.true;
+				it('will showActivity in modal', function () {
+					sandbox.stub(subject.overlay, 'showActivity');
+					subject.defaultOnwardEntitledJourney();
+					invokeCtaClickCallback(mockEvent);
+					expect(subject.overlay.showActivity.calledOnce).to.be.true;
 				});
 
-				describe('consentRequired=true', function () {
+				it('will preventDefault on event', function () {
+					subject.defaultOnwardEntitledJourney();
+					invokeCtaClickCallback(mockEvent);
+					expect(mockEvent.preventDefault.calledOnce).to.be.true;
+				});
 
-					it('show overlay with link to consent page (\/profile)', function () {
-						subject.defaultOnwardEntitledJourney({ promptLogin: false, consentRequired: true });
-						expect(overlayStub.calledWith(sinon.match(subject.POST_SUBSCRIBE_URL))).to.be.true;
-						expect(overlayStub.calledWith(sinon.match('ENTITLED_LOGIN_SUCCESS'))).to.be.true;
+				it('will attempt to resolveUser', function () {
+					subject.defaultOnwardEntitledJourney();
+					invokeCtaClickCallback(mockEvent);
+					expect(resolveUserStub.calledOnce).to.be.true;
+				});
+
+				describe('on user resolution failure', function () {
+
+					it('should show a message prompting user to try again via login', async function () {
+						sandbox.stub(utils.events, 'signalError');
+						const swallow = sandbox.stub();
+						const MOCK_ERR = new Error('bad');
+						const RESOLVE_USER_RESULT = Promise.reject(MOCK_ERR);
+						sandbox.stub(subject.overlay, 'hideActivity');
+						resolveUserStub.returns(RESOLVE_USER_RESULT);
+
+						subject.defaultOnwardEntitledJourney();
+						invokeCtaClickCallback(mockEvent);
+						await RESOLVE_USER_RESULT.catch(swallow);
+
+						expect(subject.overlay.hideActivity.calledOnce).to.be.true;
+						expect(utils.events.signalError.calledWith(MOCK_ERR)).to.be.true;
+						expect(overlayStub.calledWith(sinon.match('We could not automatically log you in. Please try again.'))).to.be.true;
 					});
 
-					it('show overlay with link to consent page (\/profile) with ft-content-uuid of requested content', function () {
-						setHref('https://www.ft.com/content/12345?foo=bar');
-						subject.defaultOnwardEntitledJourney({ promptLogin: false, consentRequired: true });
-						expect(overlayStub.calledWith(sinon.match(subject.POST_SUBSCRIBE_URL + '&ft-content-uuid=12345'))).to.be.true;
-						expect(overlayStub.calledWith(sinon.match('ENTITLED_LOGIN_SUCCESS'))).to.be.true;
+				});
+
+				describe('on successful user resolution', function () {
+
+					context('login still required', function () {
+
+						it('show prompt login message if still required', async function () {
+							const RESOLVE_USER_RESULT = Promise.resolve({ loginRequired: true });
+							sandbox.stub(subject.overlay, 'hideActivity');
+							resolveUserStub.returns(RESOLVE_USER_RESULT);
+
+							subject.defaultOnwardEntitledJourney();
+							invokeCtaClickCallback(mockEvent);
+							await RESOLVE_USER_RESULT;
+							expect(subject.overlay.hideActivity.calledOnce).to.be.true;
+							expect(overlayStub.calledWith(sinon.match('We could not automatically log you in. Please try again.'))).to.be.true;
+						});
+
+						it('login link has correct location param default', async function () {
+							const RESOLVE_USER_RESULT = Promise.resolve({ loginRequired: true });
+							resolveUserStub.returns(RESOLVE_USER_RESULT);
+
+							subject.defaultOnwardEntitledJourney();
+							invokeCtaClickCallback(mockEvent);
+							await RESOLVE_USER_RESULT;
+							expect(overlayStub.getCall(0).args[1].href).to.equal('https://www.ft.com/login?socialEnabled=true');
+						});
+
+						it('login link has location param of requested content', async function () {
+							setHref('https://www.ft.com/barrier/trial?ft-content-uuid=12345&foo=bar');
+							const RESOLVE_USER_RESULT = Promise.resolve({ loginRequired: true });
+							resolveUserStub.returns(RESOLVE_USER_RESULT);
+
+							subject.defaultOnwardEntitledJourney();
+							invokeCtaClickCallback(mockEvent);
+							await RESOLVE_USER_RESULT;
+							expect(overlayStub.getCall(0).args[1].href).to.equal('https://www.ft.com/login?socialEnabled=true&location=https%3A%2F%2Fwww.ft.com%2Fcontent%2F12345');
+						});
+
+					});
+
+					context('consent required', function () {
+						it('redirects the browser to consent page (\/profile)', async function () {
+							const RESOLVE_USER_RESULT = Promise.resolve({ loginRequired: false, consentRequired: true });
+							resolveUserStub.returns(RESOLVE_USER_RESULT);
+
+							subject.defaultOnwardEntitledJourney();
+							invokeCtaClickCallback(mockEvent);
+							await RESOLVE_USER_RESULT;
+
+							expect(redirectStub.calledWith(subject.POST_SUBSCRIBE_URL)).to.be.true;
+						});
+
+						it('redirects the browser to consent page (\/profile) with ft-content-uuid of requested content', async function () {
+							setHref('https://www.ft.com/content/12345?foo=bar');
+							const RESOLVE_USER_RESULT = Promise.resolve({ loginRequired: false, consentRequired: true });
+							resolveUserStub.returns(RESOLVE_USER_RESULT);
+
+							subject.defaultOnwardEntitledJourney();
+							invokeCtaClickCallback(mockEvent);
+							await RESOLVE_USER_RESULT;
+
+							expect(redirectStub.calledWith(subject.POST_SUBSCRIBE_URL + '&ft-content-uuid=12345')).to.be.true;
+						});
+					});
+
+					context('no consent or login required', function () {
+
+						it('redirect to ft.com homepage by default', async function () {
+							const RESOLVE_USER_RESULT = Promise.resolve({ loginRequired: false, consentRequired: false });
+							resolveUserStub.returns(RESOLVE_USER_RESULT);
+
+							subject.defaultOnwardEntitledJourney();
+							invokeCtaClickCallback(mockEvent);
+							await RESOLVE_USER_RESULT;
+
+							expect(redirectStub.calledWith('https://www.ft.com')).to.be.true;
+						});
+
+						it('redirect to requested content from ft-content-uuid paramrter', async function () {
+							setHref('https://www.ft.com/barrier/trial?ft-content-uuid=12345&foo=bar');
+							const RESOLVE_USER_RESULT = Promise.resolve({ loginRequired: false, consentRequired: false });
+							resolveUserStub.returns(RESOLVE_USER_RESULT);
+
+							subject.defaultOnwardEntitledJourney();
+							invokeCtaClickCallback(mockEvent);
+							await RESOLVE_USER_RESULT;
+
+							expect(redirectStub.calledWith('https://www.ft.com/content/12345')).to.be.true;
+						});
+
+						it('redirect to requested content if on barrier page', async function () {
+							setHref('https://www.ft.com/content/12345?foo=bar');
+							const RESOLVE_USER_RESULT = Promise.resolve({ loginRequired: false, consentRequired: false });
+							resolveUserStub.returns(RESOLVE_USER_RESULT);
+
+							subject.defaultOnwardEntitledJourney();
+							invokeCtaClickCallback(mockEvent);
+							await RESOLVE_USER_RESULT;
+
+							expect(redirectStub.calledWith('https://www.ft.com/content/12345')).to.be.true;
+						});
+
 					});
 
 				});
+
+
 			});
 
 		});

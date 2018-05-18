@@ -86,26 +86,23 @@ module.exports = class SwgController {
 				/* handle entitlements check invoked by Google on init */
 				initialEntitlementsCheck.then((res={}) => {
 					if (res.granted && res.json) {
-						/* resolve user with access to requested content via SwG */
-						return this.resolveUser(this.ENTITLED_USER, res.json)
-							.then(({ consentRequired=false, loginRequired=false }={}) => {
-								/* set onward journey */
-								this.handlers.onResolvedEntitlements({ promptLogin: loginRequired, entitlements: res.entitlements, consentRequired });
-							})
-							.catch(err => {
-								/* signal error */
-								events.signalError(err);
-								/* set onward journey */
-								this.handlers.onResolvedEntitlements({ promptLogin: true, entitlements: res.entitlements, error: err });
-							})
-							.then(resolve);
-					} else if (res.hasEntitlements) {
 						/**
-						 * User has entitlements but not to requested content
-						 * TODO
-						 * - check if user has an active FT.com session
-						 * - prompt login if they do not
-						 * - UX message
+						 * User must have access via SwG, yet they are on
+						 * a barrier, so prompt them to login and create an
+						 * FT.com session for their SwG account */
+						this.handlers.onResolvedEntitlements(res);
+						resolve();
+					} else if (res.hasEntitlements) {
+						/* User has entitlements but not to requested content
+						 * so barrier is relevant. Show a dismissible message
+						 * to inform them that they have a SwG account, but
+						 * upgrading is not supported.
+						 * Do not enable SwG buttons */
+						this.overlay.show('<h3>You are trying to access Premium content</h3><p>The option to upgrade from Standard Digital to Premium Digital via Google is not available.</p><p>You can subscribe to Premium Digital via Google when your current subscription ends or if you cancel a subscription. Alternatively, you can purchase a subscription directly via FT by clicking \'Select\' button.</p><p><a href="">Learn more</a> about subscription options.</p>');
+						/* TODO
+						 * - check if user has an active FT.com session?
+						 * - we cannot confirm even if they do that they are logged into their SwG account.
+						 * - prompt login if they do not ?
 						 * - FUTURE (?) enable "upgrade" SwG buttons
 						 * */
 						resolve();
@@ -282,22 +279,49 @@ module.exports = class SwgController {
 	}
 
 	/**
-	 * User is entitled to content. Link to it if they are logged in, or prompt
-	 * them to login first. If we need to gather user consent, then go via the
-	 * POST_SUBSCRIBE_URL form
-	 * @param {boolean} opts.promptLogin - determines overlay message
-	 * @param {boolean} opts.consentRequired - user must complete profile
+	 * User is entitled to content. Prompt them to allow us to log them.
+	 * If we need to gather user consent, then go via the POST_SUBSCRIBE_URL
+	 * @param {object} result - the result of the Google entitlements check
 	 */
-	defaultOnwardEntitledJourney ({ promptLogin=false, consentRequired=false }={}) {
-		if (promptLogin) {
-			const loginHref = browser.generateLoginUrl();
-			this.overlay.show(`<p>It looks like you already have an FT.com subscription with Google.<br /><a href="${loginHref}">Please login</a><br /><br /><small>code: ENTITLED_LOGIN_REQUIRED</small></p>`);
-		} else {
-			const uuid = browser.getContentUuidFromUrl();
-			const contentHref = uuid ? `https://www.ft.com/content/${uuid}` : 'https://www.ft.com';
-			const consentHref = consentRequired && this.POST_SUBSCRIBE_URL + (uuid ? '&ft-content-uuid=' + uuid : '');
-			this.overlay.show(`<p>It looks like you already have an FT.com subscription with Google. You have been logged in.<br /><a href="${consentHref || contentHref}">Go to content</a><br /><br /><small>code: ENTITLED_LOGIN_SUCCESS</small></p>`);
-		}
+	defaultOnwardEntitledJourney (result={}) {
+		const uuid = browser.getContentUuidFromUrl();
+		const consentHref = this.POST_SUBSCRIBE_URL + (uuid ? '&ft-content-uuid=' + uuid : '');
+		const contentHref = uuid ? `https://www.ft.com/content/${uuid}` : 'https://www.ft.com';
+		const loginCta = {
+			copy: 'Please login',
+			href: browser.generateLoginUrl()
+		};
+
+		const onLoginCtaClick = (ev) => {
+			this.overlay.showActivity();
+			ev.preventDefault();
+			this.resolveUser(this.ENTITLED_USER, result.json)
+				.then(({ consentRequired=false, loginRequired=false }={}) => {
+					/* set onward journey */
+					if (loginRequired) {
+						this.overlay.hideActivity();
+						this.overlay.show('<h3>Sorry</h3><p>We could not automatically log you in. Please try again.</p>', loginCta);
+					} else if (consentRequired) {
+						browser.redirectTo(consentHref);
+					} else {
+						browser.redirectTo(contentHref);
+					}
+				})
+				.catch(err => {
+					this.overlay.hideActivity();
+					/* signal error */
+					events.signalError(err);
+					this.overlay.show('<h3>Sorry</h3><p>We could not automatically log you in. Please try again.</p>', loginCta);
+				});
+		};
+
+		const logMeInCta = {
+			copy: 'Log me in and take me to content',
+			href: loginCta.href, // fallback href
+			callback: onLoginCtaClick
+		};
+
+		this.overlay.show('<h3>You\'ve got a subscription on FT.com</h3><p>It looks like you are already subscribed to FT.com via Google.</p>', logMeInCta);
 	}
 
 	/**
@@ -315,7 +339,7 @@ module.exports = class SwgController {
 	 * Buy flow error onward journey
 	 */
 	onwardSubscriptionErrorJourney () {
-		this.overlay.show('<p>Something went wrong!</p>');
+		this.overlay.show('<h3>Sorry</h3><p>Something went wrong while creating your account on FT.com</p><p>Please call the FT customer services team on<br />+44 (0)207 775 6248</p>');
 	};
 
 	/**
