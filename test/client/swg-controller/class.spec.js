@@ -833,7 +833,7 @@ describe('Swg Controller: class', function () {
 
 						expect(subject.overlay.hideActivity.calledOnce).to.be.true;
 						expect(utils.events.signalError.calledWith(MOCK_ERR)).to.be.true;
-						expect(overlayStub.calledWith(sinon.match('We could not automatically log you in. Please try again.'))).to.be.true;
+						expect(overlayStub.calledWith(sinon.match('We couldn’t log you in automatically'))).to.be.true;
 					});
 
 				});
@@ -851,7 +851,7 @@ describe('Swg Controller: class', function () {
 							invokeCtaClickCallback(mockEvent);
 							await RESOLVE_USER_RESULT;
 							expect(subject.overlay.hideActivity.calledOnce).to.be.true;
-							expect(overlayStub.calledWith(sinon.match('We could not automatically log you in. Please try again.'))).to.be.true;
+							expect(overlayStub.calledWith(sinon.match('We couldn’t log you in automatically'))).to.be.true;
 						});
 
 						it('login link has correct location param default', async function () {
