@@ -67,14 +67,14 @@ $o-typography-is-silent: true;
 
 .overlay__inner {
 	text-align: left;
-	padding: 30px 10px 10px;
+	padding: 30px 24px 24px;
 
 	@include oGridRespondTo(S) {
 		padding: 48px 50px 50px 30px;
 	}
 
 	@include oGridRespondTo(M) {
-		padding: 48px 100px 100px 80px;
+		padding: 48px 100px 80px 80px;
 	}
 
 	h3 {

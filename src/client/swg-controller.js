@@ -98,7 +98,7 @@ module.exports = class SwgController {
 						 * to inform them that they have a SwG account, but
 						 * upgrading is not supported.
 						 * Do not enable SwG buttons */
-						this.overlay.show('<h3>You are trying to access Premium content</h3><p>The option to upgrade from Standard Digital to Premium Digital via Google is not available.</p><p>You can subscribe to Premium Digital via Google when your current subscription ends or if you cancel a subscription. Alternatively, you can purchase a subscription directly via FT by clicking \'Select\' button.</p><p><a href="">Learn more</a> about subscription options.</p>');
+						this.overlay.show('<h3>You are trying to access Premium content</h3><p>The option to upgrade from Standard Digital to Premium Digital via Google is not available.</p><p>If you would like to discuss your subscription options, please contact Customer Services on +800 0705 6477</p>');
 						/* TODO
 						 * - check if user has an active FT.com session?
 						 * - we cannot confirm even if they do that they are logged into their SwG account.
@@ -316,12 +316,12 @@ module.exports = class SwgController {
 		};
 
 		const logMeInCta = {
-			copy: 'Log me in and take me to content',
+			copy: 'Login and continue',
 			href: loginCta.href, // fallback href
 			callback: onLoginCtaClick
 		};
 
-		this.overlay.show('<h3>You\'ve got a subscription on FT.com</h3><p>It looks like you are already subscribed to FT.com via Google.</p>', logMeInCta);
+		this.overlay.show('<h3>You\'ve got a subscription on FT.com</h3><p>It looks like you are already subscribed to FT.com via Google</p>', logMeInCta);
 	}
 
 	/**
@@ -339,7 +339,7 @@ module.exports = class SwgController {
 	 * Buy flow error onward journey
 	 */
 	onwardSubscriptionErrorJourney () {
-		this.overlay.show('<h3>Sorry</h3><p>Something went wrong while creating your account on FT.com</p><p>Please call the FT customer services team on<br />+44 (0)207 775 6248</p>');
+		this.overlay.show('<h3>Sorry</h3><p>Something went wrong while creating your account on FT.com</p><p>Please call the FT customer services team on<br />+800 0705 6477</p>');
 	};
 
 	/**
