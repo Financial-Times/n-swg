@@ -98,7 +98,9 @@ module.exports = class SwgController {
 						 * to inform them that they have a SwG account, but
 						 * upgrading is not supported.
 						 * Do not enable SwG buttons */
-						this.overlay.show('<h3>You are trying to access Premium content</h3><p>The option to upgrade from Standard Digital to Premium Digital via Google is not available.</p><p>If you would like to discuss your subscription options, please contact Customer Services on +800 0705 6477</p>');
+						if (!browser.isProductSelector()) {
+							this.overlay.show('<h3>You are trying to access Premium content</h3><p>The option to upgrade from Standard Digital to Premium Digital via Google is not available.</p><p>If you would like to discuss your subscription options, please contact Customer Services on +800 0705 6477</p>');
+						}
 						/* TODO
 						 * - check if user has an active FT.com session?
 						 * - we cannot confirm even if they do that they are logged into their SwG account.
