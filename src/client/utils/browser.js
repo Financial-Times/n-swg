@@ -30,5 +30,11 @@ module.exports = {
 	 */
 	getWindowLocation: function () {
 		return window.location;
+	},
+	/**
+	 * @returns {Boolean}
+	*/
+	isProductSelector: function () {
+		return /^\/products/.test(this.getWindowLocation().pathname);
 	}
 };
