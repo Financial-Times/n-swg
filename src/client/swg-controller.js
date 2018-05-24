@@ -288,7 +288,7 @@ module.exports = class SwgController {
 		const consentHref = this.POST_SUBSCRIBE_URL + (uuid ? '&ft-content-uuid=' + uuid : '');
 		const contentHref = uuid ? `https://www.ft.com/content/${uuid}` : 'https://www.ft.com';
 		const loginCta = {
-			copy: 'Please login',
+			copy: 'Go to the FT login page',
 			href: browser.generateLoginUrl()
 		};
 
@@ -300,7 +300,7 @@ module.exports = class SwgController {
 					/* set onward journey */
 					if (loginRequired) {
 						this.overlay.hideActivity();
-						this.overlay.show('<h3>Sorry</h3><p>We could not automatically log you in. Please try again.</p>', loginCta);
+						this.overlay.show('<h3>Sorry</h3><p>We couldn’t log you in automatically</p>', loginCta);
 					} else if (consentRequired) {
 						browser.redirectTo(consentHref);
 					} else {
@@ -311,7 +311,7 @@ module.exports = class SwgController {
 					this.overlay.hideActivity();
 					/* signal error */
 					events.signalError(err);
-					this.overlay.show('<h3>Sorry</h3><p>We could not automatically log you in. Please try again.</p>', loginCta);
+					this.overlay.show('<h3>Sorry</h3><p>We couldn’t log you in automatically</p>', loginCta);
 				});
 		};
 
