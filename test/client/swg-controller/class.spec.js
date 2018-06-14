@@ -45,7 +45,7 @@ describe('Swg Controller: class', function () {
 			expect(subject.swgClient).to.deep.equal(swgClient);
 			expect(subject.overlay).to.be.an.instanceOf(utils.Overlay);
 			expect(subject.M_SWG_SUB_SUCCESS_ENDPOINT).to.equal('https://api.ft.com/commerce/v1/swg/subscriptions');
-			expect(subject.M_SWG_ENTITLED_SUCCESS_ENDPOINT).to.equal('https://swg-fulfilment-svc-eu-prod.memb.ft.com/swg/v1/subscriptions/entitlementsCheck');
+			expect(subject.M_SWG_ENTITLED_SUCCESS_ENDPOINT).to.equal('https://api.ft.com/commerce/v1/swg/subscriptions/entitlementsCheck');
 			expect(subject.POST_SUBSCRIBE_URL).to.equal('https://www.ft.com/profile?splash=swg_checkout');
 		});
 

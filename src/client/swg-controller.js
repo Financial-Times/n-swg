@@ -14,7 +14,7 @@ module.exports = class SwgController {
 		this.manualInitDomain = options.manualInitDomain;
 		this.MAX_RETRIES = 2;
 		this.M_SWG_SUB_SUCCESS_ENDPOINT = options.M_SWG_SUB_SUCCESS_ENDPOINT || (options.sandbox ? 'https://api-t.ft.com/commerce/v1/swg/subscriptions' : 'https://api.ft.com/commerce/v1/swg/subscriptions');
-		this.M_SWG_ENTITLED_SUCCESS_ENDPOINT = options.M_SWG_ENTITLED_SUCCESS_ENDPOINT || (options.sandbox ? 'https://swg-fulfilment-svc-eu-test.memb.ft.com/swg/v1/subscriptions/entitlementsCheck' : 'https://swg-fulfilment-svc-eu-prod.memb.ft.com/swg/v1/subscriptions/entitlementsCheck');
+		this.M_SWG_ENTITLED_SUCCESS_ENDPOINT = options.M_SWG_ENTITLED_SUCCESS_ENDPOINT || (options.sandbox ? 'https://api-t.ft.com/commerce/v1/swg/subscriptions/entitlementsCheck' : 'https://api.ft.com/commerce/v1/swg/subscriptions/entitlementsCheck');
 		this.POST_SUBSCRIBE_URL = options.POST_SUBSCRIBE_URL || 'https://www.ft.com/profile?splash=swg_checkout';
 		this.handlers = Object.assign({
 			onEntitlementsResponse: this.onEntitlementsResponse.bind(this),
