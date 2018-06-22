@@ -481,7 +481,7 @@ module.exports = class SwgController {
 	}
 
 	setNewSwgSubscriberCookie () {
-		document.cookie = `${this.NEW_SWG_SUB_COOKIE}=true; Domain=.ft.com`;
+		document.cookie = `${this.NEW_SWG_SUB_COOKIE}=true;Domain=ft.com`;
 	}
 
 };

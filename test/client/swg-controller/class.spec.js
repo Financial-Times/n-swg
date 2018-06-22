@@ -12,7 +12,10 @@ describe('Swg Controller: class', function () {
 	let sandbox;
 
 	beforeEach(() => {
-		const jsdom = new JSDOM();
+		const jsdom = new JSDOM('', {
+			url: 'http://www.ft.com'
+		});
+
 		sandbox = sinon.sandbox.create();
 		global.CustomEvent = jsdom.window.CustomEvent;
 		global.document = jsdom.window.document;
@@ -192,7 +195,7 @@ describe('Swg Controller: class', function () {
 			sandbox.stub(subject, 'track');
 		});
 
-		it('on subPromise success: disable buttons, signal return, track success, resolve user -> handlers.onResolvedSubscribe()', async function () {
+		it('on subPromise success: drop onward journey cookie, disable buttons, signal return, track success, resolve user -> handlers.onResolvedSubscribe()', async function () {
 			const mockResponseComplete = Promise.resolve();
 			const MOCK_RESULT = { mock: 'swg-result', complete: () => mockResponseComplete };
 			const subPromise = Promise.resolve(MOCK_RESULT);
@@ -203,6 +206,7 @@ describe('Swg Controller: class', function () {
 			sandbox.spy(subject.handlers, 'onResolvedSubscribe');
 
 			await subject.onSubscribeResponse(subPromise);
+			expect(global.document.cookie).to.include('NewSwgSubscriber');
 			expect(subject.subscribeButtons.disableButtons.calledOnce).to.be.true;
 			expect(utils.events.signal.calledWith('onSubscribeReturn', MOCK_RESULT)).to.be.true;
 			expect(subject.track.getCall(0).calledWith(sinon.match({ action: 'success' }))).to.be.true;
@@ -351,11 +355,25 @@ describe('Swg Controller: class', function () {
 			})).to.be.true;
 		});
 
+		it('scenario=EXISTING_USER correctly formats (EXISTING USER) and handles request from passed options', async function () {
+			const MOCK_SWG_RESPONSE = { swgToken: '123' };
+			const MOCK_RESULT = { userInfo: { newlyCreated: false } };
+			fetchStub.resolves({ json: MOCK_RESULT });
+			subject.setNewSwgSubscriberCookie();
+
+			const result = await subject.resolveUser(subject.NEW_USER, MOCK_SWG_RESPONSE);
+			expect(result).to.deep.equal({
+				loginRequired: false,
+				consentRequired: true,
+				raw: MOCK_RESULT
+			});
+		});
+
 		it('extracts and resolves with json on fetch response', async function () {
 			const MOCK_RESULT = { end: 'result' };
 			fetchStub.resolves({ json: MOCK_RESULT });
 			const result = await subject.resolveUser();
-			expect(result).to.deep.equal({ consentRequired: undefined, loginRequired: false, raw: MOCK_RESULT });
+			expect(result).to.deep.equal({ consentRequired: false, loginRequired: false, raw: MOCK_RESULT });
 		});
 
 		it('correctly formats result json and consentRequired boolean', async function () {
