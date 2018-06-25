@@ -16,6 +16,7 @@ module.exports = class SwgController {
 		this.M_SWG_SUB_SUCCESS_ENDPOINT = options.M_SWG_SUB_SUCCESS_ENDPOINT || (options.sandbox ? 'https://api-t.ft.com/commerce/v1/swg/subscriptions' : 'https://api.ft.com/commerce/v1/swg/subscriptions');
 		this.M_SWG_ENTITLED_SUCCESS_ENDPOINT = options.M_SWG_ENTITLED_SUCCESS_ENDPOINT || (options.sandbox ? 'https://api-t.ft.com/commerce/v1/swg/subscriptions/entitlementsCheck' : 'https://api.ft.com/commerce/v1/swg/subscriptions/entitlementsCheck');
 		this.POST_SUBSCRIBE_URL = options.POST_SUBSCRIBE_URL || 'https://www.ft.com/profile?splash=swg_checkout';
+		this.NEW_SWG_SUB_COOKIE = 'FTSwgNewSubscriber';
 		this.handlers = Object.assign({
 			onEntitlementsResponse: this.onEntitlementsResponse.bind(this),
 			onFlowCanceled: this.onFlowCanceled.bind(this),
@@ -138,6 +139,8 @@ module.exports = class SwgController {
 			events.signal('onSubscribeReturn', response);
 			/* track success event */
 			this.track({ action: 'success', context: {} });
+			/* Drop a functional cookie so we can show the user the onward journey page. */
+			this.setNewSwgSubscriberCookie();
 			/* resolve user */
 			return this.resolveUser(this.NEW_USER, response).then(res => {
 				/* when user clicks SwG "continue" cta */
@@ -250,15 +253,21 @@ module.exports = class SwgController {
 				body: payload
 			})
 			.then(({ json }) => {
+				const newlyCreated = _get(json, 'userInfo.newlyCreated');
+				const hasNewSubCookie = document.cookie.indexOf(this.NEW_SWG_SUB_COOKIE) !== -1;
+
 				/**
 				 * Both subscription and entitlement callback endpoints return
-				 * a 200 with set-cookie headers for the resolved user session
-				 * and json about the new session.
+				 *  a 200 with set-cookie headers for the resolved user session
+				 *  and json about the new session.
+				 * If the user has just been created OR we can still see the
+				 *  NEW_SWG_SUB_COOKIE, then we still need to show them the
+				 *  consent page. The cookie gets deleted there.
 				 * Unless createSession was false we can assume user now has
-				 * active session cookies
+				 *  active session cookies
 				 */
 				resolve({
-					consentRequired: _get(json, 'userInfo.newlyCreated'),
+					consentRequired: newlyCreated || hasNewSubCookie,
 					loginRequired: !newPurchaseFlow && createSession === false,
 					raw: json
 				});
@@ -469,6 +478,10 @@ module.exports = class SwgController {
 				skuId: skus[0]
 			};
 		}
+	}
+
+	setNewSwgSubscriberCookie () {
+		document.cookie = `${this.NEW_SWG_SUB_COOKIE}=true;Domain=ft.com`;
 	}
 
 };
