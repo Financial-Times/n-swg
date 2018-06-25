@@ -206,7 +206,7 @@ describe('Swg Controller: class', function () {
 			sandbox.spy(subject.handlers, 'onResolvedSubscribe');
 
 			await subject.onSubscribeResponse(subPromise);
-			expect(global.document.cookie).to.include('NewSwgSubscriber');
+			expect(global.document.cookie).to.include('FTSwgNewSubscriber');
 			expect(subject.subscribeButtons.disableButtons.calledOnce).to.be.true;
 			expect(utils.events.signal.calledWith('onSubscribeReturn', MOCK_RESULT)).to.be.true;
 			expect(subject.track.getCall(0).calledWith(sinon.match({ action: 'success' }))).to.be.true;
