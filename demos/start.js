@@ -13,8 +13,8 @@ const logger = require('@financial-times/n-logger').default;
 const app = require('./app');
 
 const NEXT_ROUTER_PATH = process.env.NEXT_ROUTER_PATH || '../next-router';
-let KEY_PATH = path.resolve(NEXT_ROUTER_PATH, 'key.pem');
-let CERT_PATH = path.resolve(NEXT_ROUTER_PATH, 'key-cert.pem');
+let KEY_PATH = path.resolve(NEXT_ROUTER_PATH, 'self-signed-ssl-key.pem');
+let CERT_PATH = path.resolve(NEXT_ROUTER_PATH, 'self-signed-ssl-certificate.pem');
 let opts;
 
 try {
