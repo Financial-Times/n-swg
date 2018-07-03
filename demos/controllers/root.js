@@ -16,9 +16,11 @@ const getMode = (query={}) => {
 const getOffers = (mode) => {
 	return {
 		production: [
-			{ name: 'FT.com trial', sku: 'ft.com_41218b9e.c8ae.c934.43ad.71b13fcb4465_p1m_premium.trial_26.04.18_test' },
-			{ name: 'FT.com standard', sku: 'ft.com_c8ad55e6.ba74.fea0.f9da.a4546ae2ee23_p1m' },
-			{ name: 'FT.com premium', sku: 'ft.com_713f1e28.0bc5.8261.f1e6.eebab6f7600e_p1m' }
+			{ name: 'FT.com trial', sku: 'subs:com.ft.news:ft.com_41218b9e.c8ae.c934.43ad.71b13fcb4465_p1m_premium.trial_26.04.18_test' },
+			{ name: 'FT.com standard (monthly)', sku: 'subs:com.ft.news:ft.com_c8ad55e6.ba74.fea0.f9da.a4546ae2ee23_p1m_standard_2018.05.21' },
+			{ name: 'FT.com standard (annual)', sku: 'subs:com.ft.news:ft.com_c8ad55e6.ba74.fea0.f9da.a4546ae2ee23_p1y_standard_2018.05.21' },
+			{ name: 'FT.com premium (monthly)', sku: 'subs:com.ft.news:ft.com_713f1e28.0bc5.8261.f1e6.eebab6f7600e_p1m_premium_2018.05.21' },
+			{ name: 'FT.com premium (monthly)', sku: 'subs:com.ft.news:ft.com_713f1e28.0bc5.8261.f1e6.eebab6f7600e_p1y_premium_2018.05.21' }
 		],
 		sandbox: [
 			{ name: 'basic_daily_1 Dummy SKU', sku: 'basic_daily_1' },
