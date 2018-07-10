@@ -480,8 +480,8 @@ describe('Swg Controller: class', function () {
 		});
 
 		it('signal and track appropriately on flowStarted', function () {
-			subject.onFlowStarted({ flow: 'someFlow', data: { sku: 'foo' }});
-			expect(subject.track.calledWith({ action: 'flowStarted.someFlow', context: { flowName: 'someFlow', skus: ['foo'] }, journeyStart: true })).to.be.true;
+			subject.onFlowStarted({ flow: 'someFlow', data: { sku: 'foo' } });
+			expect(subject.track.calledWith({ action: 'flowStarted', context: { flowName: 'someFlow', skus: ['foo'] }, journeyStart: true })).to.be.true;
 		});
 
 		it('signal and track appropriately on flowStarted when flowName === subscribe', function () {
@@ -506,7 +506,7 @@ describe('Swg Controller: class', function () {
 
 		it('signal and track appropriately on flowCanceled', function () {
 			subject.onFlowCanceled({ flow: 'someFlow', data: { sku: 'foo' }});
-			expect(subject.track.calledWith({ action: 'flowCanceled.someFlow', context: { flowName: 'someFlow', skus: ['foo'] } })).to.be.true;
+			expect(subject.track.calledWith({ action: 'flowCanceled', context: { flowName: 'someFlow', skus: ['foo'] } })).to.be.true;
 		});
 
 		it('signal and track appropriately on flowCanceled when flowName === subscribe', function () {
