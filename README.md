@@ -225,10 +225,8 @@ If `disableEntitlementsCheck`=`true`
 
 - init any swg buttons on the page
 
-
 #### `swg.swgClient`
 This exposes the swg-js client for direct usage should you want.
-
 
 
 # JSON-LD Markup
@@ -238,7 +236,7 @@ The swg library requires markup to work. So if there is no markup available (e.g
 
 
 # SwG on AMP
-In progress.
+This is implemented in [Financial-Times/google-amp](https://github.com/Financial-Times/google-amp) and is *not* using this component, but rather uses the [amp-subscriptions extension for AMP](https://github.com/ampproject/amphtml/blob/master/extensions/amp-subscriptions/amp-subscriptions.md).
 
 
 # SwG on mobile apps
