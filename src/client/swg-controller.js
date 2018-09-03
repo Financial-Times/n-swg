@@ -23,7 +23,7 @@ module.exports = class SwgController {
 			onFlowStarted: this.onFlowStarted.bind(this),
 			onSubscribeResponse: this.onSubscribeResponse.bind(this),
 			onLoginRequest: this.onLoginRequest.bind(this),
-			onResolvedEntitlements: this.defaultOnwardEntitledJourney.bind(this),
+			onResolvedEntitlements: options.customOnwardJourney ? () => { } : this.defaultOnwardEntitledJourney.bind(this),
 			onResolvedSubscribe: this.defaultOnwardSubscribedJourney.bind(this)
 		}, options.handlers);
 
@@ -294,7 +294,7 @@ module.exports = class SwgController {
 	 * If we need to gather user consent, then go via the POST_SUBSCRIBE_URL
 	 * @param {object} result - the result of the Google entitlements check
 	 */
-	defaultOnwardEntitledJourney (result={}) {
+	getEntitledOnwardJourneyProps (result = {}) {
 		const uuid = browser.getContentUuidFromUrl();
 		const consentHref = this.POST_SUBSCRIBE_URL + (uuid ? '&ft-content-uuid=' + uuid : '');
 		const contentHref = uuid ? `https://www.ft.com/content/${uuid}` : 'https://www.ft.com';
@@ -307,7 +307,7 @@ module.exports = class SwgController {
 			this.overlay.showActivity();
 			ev.preventDefault();
 			this.resolveUser(this.ENTITLED_USER, result.json)
-				.then(({ consentRequired=false, loginRequired=false }={}) => {
+				.then(({ consentRequired = false, loginRequired = false } = {}) => {
 					/* set onward journey */
 					if (loginRequired) {
 						this.overlay.hideActivity();
@@ -332,6 +332,11 @@ module.exports = class SwgController {
 			callback: onLoginCtaClick
 		};
 
+		return logMeInCta;
+	}
+
+	defaultOnwardEntitledJourney (result = {}) {
+		const logMeInCta = this.getEntitledOnwardJourneyProps(result);
 		this.overlay.show('<h3>You\'ve got a subscription on FT.com</h3><p>It looks like you are already subscribed to FT.com via Google</p>', logMeInCta);
 	}
 
