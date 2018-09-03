@@ -793,12 +793,18 @@ describe('Swg Controller: class', function () {
 		});
 
 		describe('.defaultOnwardEntitledJourney()', function () {
-
 			it('Will show an overlay message informing the user of their SwG subscription, with a login prompt', function () {
 				subject.defaultOnwardEntitledJourney();
 				expect(overlayStub.calledWith(sinon.match('It looks like you are already subscribed to FT.com via Google'))).to.be.true;
 			});
+		});
 
+		describe('.getEntitledOnwardJourneyProps()', function () {
+			it('Returns an object containing the relevant properties', function () {
+				subject.getEntitledOnwardJourneyProps();
+				expect(subject.getEntitledOnwardJourneyProps()).to.contain.keys('copy', 'href', 'callback');
+				expect(subject.getEntitledOnwardJourneyProps().callback).to.be.a('function');
+			});
 			context('upon user clicking the login cta', function () {
 				let invokeCtaClickCallback;
 				let mockEvent;
@@ -861,7 +867,9 @@ describe('Swg Controller: class', function () {
 					context('login still required', function () {
 
 						it('show prompt login message if still required', async function () {
-							const RESOLVE_USER_RESULT = Promise.resolve({ loginRequired: true });
+							const RESOLVE_USER_RESULT = Promise.resolve({
+								loginRequired: true
+							});
 							sandbox.stub(subject.overlay, 'hideActivity');
 							resolveUserStub.returns(RESOLVE_USER_RESULT);
 
@@ -873,7 +881,9 @@ describe('Swg Controller: class', function () {
 						});
 
 						it('login link has correct location param default', async function () {
-							const RESOLVE_USER_RESULT = Promise.resolve({ loginRequired: true });
+							const RESOLVE_USER_RESULT = Promise.resolve({
+								loginRequired: true
+							});
 							resolveUserStub.returns(RESOLVE_USER_RESULT);
 
 							subject.defaultOnwardEntitledJourney();
@@ -884,7 +894,9 @@ describe('Swg Controller: class', function () {
 
 						it('login link has location param of requested content', async function () {
 							setHref('https://www.ft.com/barrier/trial?ft-content-uuid=12345&foo=bar');
-							const RESOLVE_USER_RESULT = Promise.resolve({ loginRequired: true });
+							const RESOLVE_USER_RESULT = Promise.resolve({
+								loginRequired: true
+							});
 							resolveUserStub.returns(RESOLVE_USER_RESULT);
 
 							subject.defaultOnwardEntitledJourney();
@@ -897,7 +909,10 @@ describe('Swg Controller: class', function () {
 
 					context('consent required', function () {
 						it('redirects the browser to consent page (\/profile)', async function () {
-							const RESOLVE_USER_RESULT = Promise.resolve({ loginRequired: false, consentRequired: true });
+							const RESOLVE_USER_RESULT = Promise.resolve({
+								loginRequired: false,
+								consentRequired: true
+							});
 							resolveUserStub.returns(RESOLVE_USER_RESULT);
 
 							subject.defaultOnwardEntitledJourney();
@@ -909,7 +924,10 @@ describe('Swg Controller: class', function () {
 
 						it('redirects the browser to consent page (\/profile) with ft-content-uuid of requested content', async function () {
 							setHref('https://www.ft.com/content/12345?foo=bar');
-							const RESOLVE_USER_RESULT = Promise.resolve({ loginRequired: false, consentRequired: true });
+							const RESOLVE_USER_RESULT = Promise.resolve({
+								loginRequired: false,
+								consentRequired: true
+							});
 							resolveUserStub.returns(RESOLVE_USER_RESULT);
 
 							subject.defaultOnwardEntitledJourney();
@@ -923,7 +941,10 @@ describe('Swg Controller: class', function () {
 					context('no consent or login required', function () {
 
 						it('redirect to ft.com homepage by default', async function () {
-							const RESOLVE_USER_RESULT = Promise.resolve({ loginRequired: false, consentRequired: false });
+							const RESOLVE_USER_RESULT = Promise.resolve({
+								loginRequired: false,
+								consentRequired: false
+							});
 							resolveUserStub.returns(RESOLVE_USER_RESULT);
 
 							subject.defaultOnwardEntitledJourney();
@@ -935,7 +956,10 @@ describe('Swg Controller: class', function () {
 
 						it('redirect to requested content from ft-content-uuid paramrter', async function () {
 							setHref('https://www.ft.com/barrier/trial?ft-content-uuid=12345&foo=bar');
-							const RESOLVE_USER_RESULT = Promise.resolve({ loginRequired: false, consentRequired: false });
+							const RESOLVE_USER_RESULT = Promise.resolve({
+								loginRequired: false,
+								consentRequired: false
+							});
 							resolveUserStub.returns(RESOLVE_USER_RESULT);
 
 							subject.defaultOnwardEntitledJourney();
@@ -947,7 +971,10 @@ describe('Swg Controller: class', function () {
 
 						it('redirect to requested content if on barrier page', async function () {
 							setHref('https://www.ft.com/content/12345?foo=bar');
-							const RESOLVE_USER_RESULT = Promise.resolve({ loginRequired: false, consentRequired: false });
+							const RESOLVE_USER_RESULT = Promise.resolve({
+								loginRequired: false,
+								consentRequired: false
+							});
 							resolveUserStub.returns(RESOLVE_USER_RESULT);
 
 							subject.defaultOnwardEntitledJourney();
@@ -960,12 +987,9 @@ describe('Swg Controller: class', function () {
 					});
 
 				});
-
-
 			});
 
 		});
-
 
 		describe('.defaultOnwardSubscribedJourney()', function () {
 
