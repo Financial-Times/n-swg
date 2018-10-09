@@ -148,9 +148,7 @@ module.exports = class SwgController {
 				/* when user clicks SwG "continue" cta */
 				response.complete().then(() => {
 					/* track confirmation event */
-					this.track({ action: 'google-confirmed', context: {
-						// TODO subscriptionId: response.subscriptionId
-					}});
+					this.track({ action: 'google-confirmed' });
 					/* trigger onward journey */
 					this.handlers.onResolvedSubscribe(res);
 				});
@@ -166,7 +164,6 @@ module.exports = class SwgController {
 					/* track failure event */
 					this.track({ action: 'failure', context: {
 						stage: 'user-resolution'
-						// TODO subscriptionId: response.subscriptionId
 					}});
 					/* trigger onward journey */
 					this.onwardSubscriptionErrorJourney();
@@ -365,9 +362,7 @@ module.exports = class SwgController {
 				// Update Goggle to say we've completed
 				await response.complete();
 
-				this.track({ action: 'google-confirmed', context: {
-					// TODO subscriptionId: response.subscriptionId
-				}});
+				this.track({ action: 'google-confirmed' });
 
 				// Redirect the browser
 				browser.redirectTo(consentHref);
