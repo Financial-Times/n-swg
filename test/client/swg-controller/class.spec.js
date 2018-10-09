@@ -777,9 +777,11 @@ describe('Swg Controller: class', function () {
 		}
 
 		beforeEach(() => {
+			windowLocation = { search: '', href: '' };
 			subject = new SwgController(swgClient);
 			subject.init();
-			sandbox.stub(utils.browser, 'redirectTo');
+			redirectStub = sandbox.stub(utils.browser, 'redirectTo');
+			sandbox.stub(utils.browser, 'getWindowLocation').returns(windowLocation);
 		});
 
 		afterEach(() => {
