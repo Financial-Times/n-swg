@@ -803,12 +803,14 @@ describe('Swg Controller: class', function () {
 			it('should log the user in of they have an account', async () => {
 				sandbox.stub(swgClient, 'waitForSubscriptionLookup').returns(Promise.resolve(true));
 				sandbox.spy(swgClient, 'showLoginNotification');
+				sandbox.spy(subject, 'resolveUser');
 
 				await subject.defaultOnwardEntitledJourney({
 					subscriptionToken: 'test'
 				});
 
 				expect(swgClient.showLoginNotification.calledOnce).to.be.true;
+				expect(subject.resolveUser.calledOnce).to.be.true;
 			});
 
 			it('should create the user if they don\'t have an account', async () => {

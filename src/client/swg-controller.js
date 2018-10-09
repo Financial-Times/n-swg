@@ -330,8 +330,15 @@ module.exports = class SwgController {
 			if (account) {
 				// The users account exists so lets log them in
 
+				// Resolve the user and log them in
+				const LoginPromise = this.resolveUser(this.ENTITLED_USER, result);
+
 				// Tell the user that we are going to log them in
-				await this.swgClient.showLoginNotification();
+				const showLoginPromise = this.swgClient.showLoginNotification();
+
+				// Await the promises
+				await LoginPromise;
+				await showLoginPromise;
 
 				// Redirect the browser
 				browser.redirectTo(contentHref);
