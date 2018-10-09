@@ -13,8 +13,10 @@ module.exports = class SwgController {
 		this.swgClient = swgClient;
 		this.manualInitDomain = options.manualInitDomain;
 		this.MAX_RETRIES = 2;
-		this.M_SWG_SUB_SUCCESS_ENDPOINT = options.M_SWG_SUB_SUCCESS_ENDPOINT || (options.sandbox ? 'https://api-t.ft.com/commerce/v1/swg/subscriptions' : 'https://api.ft.com/commerce/v1/swg/subscriptions');
-		this.M_SWG_ENTITLED_SUCCESS_ENDPOINT = options.M_SWG_ENTITLED_SUCCESS_ENDPOINT || (options.sandbox ? 'https://api-t.ft.com/commerce/v1/swg/subscriptions/entitlementsCheck' : 'https://api.ft.com/commerce/v1/swg/subscriptions/entitlementsCheck');
+		this.M_SWG_URL = options.sandbox ? 'https://api-t.ft.com/commerce/v1/swg' : 'https://api.ft.com/commerce/v1/swg';
+		this.M_SWG_SUB_SUCCESS_ENDPOINT = options.M_SWG_SUB_SUCCESS_ENDPOINT || `${this.M_SWG_URL}/subscriptions`;
+		this.M_SWG_ENTITLED_SUCCESS_ENDPOINT = options.M_SWG_ENTITLED_SUCCESS_ENDPOINT || `${this.M_SWG_URL}/subscriptions/entitlementsCheck`;
+		this.M_SWG_ACCOUNT_CHECK = options.M_SWG_ACCOUNT_CHECK || `${this.M_SWG_URL}/subscriptions/deferred_account`;
 		this.POST_SUBSCRIBE_URL = options.POST_SUBSCRIBE_URL || 'https://www.ft.com/profile?splash=swg_checkout';
 		this.NEW_SWG_SUB_COOKIE = 'FTSwgNewSubscriber';
 		this.handlers = Object.assign({
@@ -23,7 +25,7 @@ module.exports = class SwgController {
 			onFlowStarted: this.onFlowStarted.bind(this),
 			onSubscribeResponse: this.onSubscribeResponse.bind(this),
 			onLoginRequest: this.onLoginRequest.bind(this),
-			onResolvedEntitlements: options.customOnwardJourney ? () => { } : this.defaultOnwardEntitledJourney.bind(this),
+			onResolvedEntitlements: this.defaultOnwardEntitledJourney.bind(this),
 			onResolvedSubscribe: this.defaultOnwardSubscribedJourney.bind(this)
 		}, options.handlers);
 
@@ -290,54 +292,82 @@ module.exports = class SwgController {
 	}
 
 	/**
-	 * User is entitled to content. Prompt them to allow us to log them.
-	 * If we need to gather user consent, then go via the POST_SUBSCRIBE_URL
+	 * Check to see if there is an account associated with the given subscriptionToken
+	 * @param {string} subscriptionToken From Googles entitlement check
+	 * @return {boolean}
+	 */
+	async hasAccount (subscriptionToken) {
+		try {
+			const result = await smartFetch.fetch(`${this.M_SWG_ACCOUNT_CHECK}?subscription_token=${subscriptionToken}`, {
+				method: 'GET',
+				credentials: 'include',
+				headers: { 'content-type': 'application/json' }
+			});
+			if (result.active) {
+				return true;
+			}
+			return false;
+		} catch (e) {
+			// Fail silently
+			return false;
+		}
+	}
+
+	/**
+	 * User is entitled to content but does not have an account with the FT
+	 * Run the completeDeferredAccountCreation journey to create them an account
 	 * @param {object} result - the result of the Google entitlements check
 	 */
-	getEntitledOnwardJourneyProps (result = {}) {
+	async defaultOnwardEntitledJourney (result = {}) {
 		const uuid = browser.getContentUuidFromUrl();
 		const consentHref = this.POST_SUBSCRIBE_URL + (uuid ? '&ft-content-uuid=' + uuid : '');
 		const contentHref = uuid ? `https://www.ft.com/content/${uuid}` : 'https://www.ft.com';
-		const loginCta = {
-			copy: 'Go to the FT login page',
-			href: browser.generateLoginUrl()
-		};
 
-		const onLoginCtaClick = (ev) => {
-			this.overlay.showActivity();
-			ev.preventDefault();
-			this.resolveUser(this.ENTITLED_USER, result.json)
-				.then(({ consentRequired = false, loginRequired = false } = {}) => {
-					/* set onward journey */
-					if (loginRequired) {
-						this.overlay.hideActivity();
-						this.overlay.show('<h3>Sorry</h3><p>We couldn’t log you in automatically</p>', loginCta);
-					} else if (consentRequired) {
-						browser.redirectTo(consentHref);
-					} else {
-						browser.redirectTo(contentHref);
-					}
-				})
-				.catch(err => {
-					this.overlay.hideActivity();
-					/* signal error */
-					events.signalError(err);
-					this.overlay.show('<h3>Sorry</h3><p>We couldn’t log you in automatically</p>', loginCta);
-				});
-		};
+		try {
+			const accountLookupPromise = this.hasAccount(result.subscriptionToken);
+			const account = await this.swgClient.waitForSubscriptionLookup(accountLookupPromise);
 
-		const logMeInCta = {
-			copy: 'Login and continue',
-			href: loginCta.href, // fallback href
-			callback: onLoginCtaClick
-		};
+			if (account) {
+				// The users account exists so lets log them in
 
-		return logMeInCta;
-	}
+				// Tell the user that we are going to log them in
+				await this.swgClient.showLoginNotification();
 
-	defaultOnwardEntitledJourney (result = {}) {
-		const logMeInCta = this.getEntitledOnwardJourneyProps(result);
-		this.overlay.show('<h3>You\'ve got a subscription on FT.com</h3><p>It looks like you are already subscribed to FT.com via Google</p>', logMeInCta);
+				// Redirect the browser
+				browser.redirectTo(contentHref);
+			} else {
+				// The users account was not found so lets make them one
+
+				// Popup the Google deferred account creation
+				const response = await this.swgClient.completeDeferredAccountCreation(
+					{entitlements: result.entitlements, consent: true}
+				);
+
+				// Fix data structure to be inline with SubscriptionResponse
+				// https://developers.google.com/news/subscribe/reference/subscription-response
+				// This can be removed once this PR has been merged
+				// https://github.com/subscriptions-project/swg-js/pull/418/files
+				if (response.purchaseData && response.purchaseData.raw && response.purchaseData.raw.data) {
+					response.purchaseData.signature = response.purchaseData.raw.signature;
+					response.purchaseData.raw = response.purchaseData.raw.data;
+				}
+
+				// Call Membership to create the user
+				await this.resolveUser(this.NEW_USER, response);
+
+				// Update Goggle to say we've completed
+				await response.complete();
+
+				this.track({ action: 'google-confirmed', context: {
+					// TODO subscriptionId: response.subscriptionId
+				}});
+
+				// Redirect the browser
+				browser.redirectTo(consentHref);
+			}
+		} catch (err) {
+			events.signalError(err);
+		}
 	}
 
 	/**
