@@ -13,10 +13,10 @@ module.exports = class SwgController {
 		this.swgClient = swgClient;
 		this.manualInitDomain = options.manualInitDomain;
 		this.MAX_RETRIES = 2;
-		this.M_SWG_URL = options.sandbox ? 'https://api-t.ft.com/commerce/v1/swg' : 'https://api.ft.com/commerce/v1/swg';
-		this.M_SWG_SUB_SUCCESS_ENDPOINT = options.M_SWG_SUB_SUCCESS_ENDPOINT || `${this.M_SWG_URL}/subscriptions`;
-		this.M_SWG_ENTITLED_SUCCESS_ENDPOINT = options.M_SWG_ENTITLED_SUCCESS_ENDPOINT || `${this.M_SWG_URL}/subscriptions/entitlementsCheck`;
-		this.M_SWG_ACCOUNT_CHECK = options.M_SWG_ACCOUNT_CHECK || `${this.M_SWG_URL}/subscriptions/deferred_account`;
+		this.M_SWG_URL = options.sandbox ? 'https://api-t.ft.com/commerce' : 'https://api.ft.com/commerce';
+		this.M_SWG_SUB_SUCCESS_ENDPOINT = options.M_SWG_SUB_SUCCESS_ENDPOINT || `${this.M_SWG_URL}/v1/swg/subscriptions`;
+		this.M_SWG_ENTITLED_SUCCESS_ENDPOINT = options.M_SWG_ENTITLED_SUCCESS_ENDPOINT || `${this.M_SWG_URL}/v1/swg/subscriptions/entitlementsCheck`;
+		this.M_SWG_ACCOUNT_CHECK = options.M_SWG_ACCOUNT_CHECK || `${this.M_SWG_URL}/deferred-account`;
 		this.POST_SUBSCRIBE_URL = options.POST_SUBSCRIBE_URL || 'https://www.ft.com/profile?splash=swg_checkout';
 		this.NEW_SWG_SUB_COOKIE = 'FTSwgNewSubscriber';
 		this.handlers = Object.assign({
