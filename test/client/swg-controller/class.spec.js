@@ -789,13 +789,18 @@ describe('Swg Controller: class', function () {
 		});
 
 		describe('.defaultOnwardEntitledJourney()', function () {
+			const entitlements = {
+				entitlements: {
+					entitlements: [
+						{subscriptionToken: 'test'}
+					]
+				}
+			};
 
 			it('should check if the entitled user has an account or not', () => {
 				sandbox.spy(subject, 'hasAccount');
 
-				subject.defaultOnwardEntitledJourney({
-					subscriptionToken: 'test'
-				});
+				subject.defaultOnwardEntitledJourney(entitlements);
 
 				expect(subject.hasAccount.calledWith('test')).to.be.true;
 			});
@@ -805,9 +810,7 @@ describe('Swg Controller: class', function () {
 				sandbox.spy(swgClient, 'showLoginNotification');
 				sandbox.spy(subject, 'resolveUser');
 
-				await subject.defaultOnwardEntitledJourney({
-					subscriptionToken: 'test'
-				});
+				await subject.defaultOnwardEntitledJourney(entitlements);
 
 				expect(swgClient.showLoginNotification.calledOnce).to.be.true;
 				expect(subject.resolveUser.calledOnce).to.be.true;
@@ -818,9 +821,7 @@ describe('Swg Controller: class', function () {
 				sandbox.spy(swgClient, 'completeDeferredAccountCreation');
 				sandbox.spy(subject, 'resolveUser');
 
-				await subject.defaultOnwardEntitledJourney({
-					subscriptionToken: 'test'
-				});
+				await subject.defaultOnwardEntitledJourney(entitlements);
 
 				expect(swgClient.completeDeferredAccountCreation.calledOnce).to.be.true;
 				expect(subject.resolveUser.calledOnce).to.be.true;
@@ -830,9 +831,7 @@ describe('Swg Controller: class', function () {
 				sinon.spy(utils.events, 'signalError');
 				sandbox.stub(swgClient, 'waitForSubscriptionLookup').returns(Promise.reject(false));
 
-				await subject.defaultOnwardEntitledJourney({
-					subscriptionToken: 'test'
-				});
+				await subject.defaultOnwardEntitledJourney(entitlements);
 
 				expect(utils.events.signalError.calledOnce).to.be.true;
 			});
