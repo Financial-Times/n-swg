@@ -798,7 +798,7 @@ describe('Swg Controller: class', function () {
 			};
 
 			it('should check if the entitled user has an account or not', () => {
-				sandbox.spy(subject, 'hasAccount');
+				sandbox.stub(subject, 'hasAccount').returns(Promise.resolve(true));
 
 				subject.defaultOnwardEntitledJourney(entitlements);
 
@@ -806,6 +806,7 @@ describe('Swg Controller: class', function () {
 			});
 
 			it('should log the user in of they have an account', async () => {
+				sandbox.stub(subject, 'hasAccount').returns(Promise.resolve(true));
 				sandbox.stub(swgClient, 'waitForSubscriptionLookup').returns(Promise.resolve(true));
 				sandbox.spy(swgClient, 'showLoginNotification');
 				sandbox.spy(subject, 'resolveUser');
@@ -817,6 +818,7 @@ describe('Swg Controller: class', function () {
 			});
 
 			it('should create the user if they don\'t have an account', async () => {
+				sandbox.stub(subject, 'hasAccount').returns(Promise.resolve(false));
 				sandbox.stub(swgClient, 'waitForSubscriptionLookup').returns(Promise.resolve(false));
 				sandbox.spy(swgClient, 'completeDeferredAccountCreation');
 				sandbox.spy(subject, 'resolveUser');
@@ -828,6 +830,7 @@ describe('Swg Controller: class', function () {
 			});
 
 			it('should signal an error if one happens', async () => {
+				sandbox.stub(subject, 'hasAccount').returns(Promise.resolve(true));
 				sinon.spy(utils.events, 'signalError');
 				sandbox.stub(swgClient, 'waitForSubscriptionLookup').returns(Promise.reject(false));
 

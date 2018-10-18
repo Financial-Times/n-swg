@@ -291,25 +291,25 @@ module.exports = class SwgController {
 	/**
 	 * Check to see if there is an account associated with the given subscriptionToken
 	 * @param {string} subscriptionToken From Googles entitlement check
-	 * @return {boolean}
+	 * @return {Promise<boolean>}
 	 */
-	async hasAccount (subscriptionToken) {
-		try {
-			const result = await smartFetch.fetch(`${this.M_SWG_ACCOUNT_CHECK}`, {
+	hasAccount (subscriptionToken) {
+		return smartFetch.fetch(`${this.M_SWG_ACCOUNT_CHECK}`, {
 				method: 'POST',
 				credentials: 'include',
 				headers: { 'content-type': 'application/json' },
 				body: subscriptionToken
+			})
+			.then(result => {
+				if (_get(result, 'json.active')) {
+					return true;
+				}
+				return false;
+			})
+			.catch(() => {
+				// Fail silently
+				return false;
 			});
-
-			if (_get(result, 'json.active')) {
-				return true;
-			}
-			return false;
-		} catch (e) {
-			// Fail silently
-			return false;
-		}
 	}
 
 	/**
@@ -317,59 +317,60 @@ module.exports = class SwgController {
 	 * Run the completeDeferredAccountCreation journey to create them an account
 	 * @param {object} result - the result of the Google entitlements check
 	 */
-	async defaultOnwardEntitledJourney (result = {}) {
+	defaultOnwardEntitledJourney (result = {}) {
 		const uuid = browser.getContentUuidFromUrl();
 		const consentHref = this.POST_SUBSCRIBE_URL + (uuid ? '&ft-content-uuid=' + uuid : '');
 		const contentHref = uuid ? `https://www.ft.com/content/${uuid}` : 'https://www.ft.com';
 
-		try {
-			const accountLookupPromise = this.hasAccount(result.entitlements.entitlements[0].subscriptionToken);
-			const account = await this.swgClient.waitForSubscriptionLookup(accountLookupPromise);
+		const accountLookupPromise = this.hasAccount(result.entitlements.entitlements[0].subscriptionToken);
+		return this.swgClient.waitForSubscriptionLookup(accountLookupPromise)
+			.then(account => {
+				if (account) {
+					// The users account exists so lets log them in
 
-			if (account) {
-				// The users account exists so lets log them in
+					// Tell the user that we are going to log them in
+					return this.swgClient.showLoginNotification()
+						.then(() => {
+							// Resolve the user and log them in
+							return this.resolveUser(this.ENTITLED_USER, result.json);
+						})
+						.then(() => {
+							// Redirect the browser to content
+							browser.redirectTo(contentHref);
+						});
+				} else {
+					// The users account was not found so lets make them one
 
-				// Tell the user that we are going to log them in
-				await this.swgClient.showLoginNotification();
+					// Popup the Google deferred account creation
+					return this.swgClient.completeDeferredAccountCreation({ entitlements: result.entitlements, consent: true })
+						.then(response => {
+							//  Fix data structure to be inline with SubscriptionResponse
+							//  https://developers.google.com/news/subscribe/reference/subscription-response
+							//  This can be removed once this PR has been merged
+							//  https://github.com/subscriptions-project/swg-js/pull/418/files
+							if (response.purchaseData && response.purchaseData.raw && response.purchaseData.raw.data) {
+								response.purchaseData.signature = response.purchaseData.raw.signature;
+								response.purchaseData.raw = response.purchaseData.raw.data;
+							}
 
-				// Resolve the user and log them in
-				await this.resolveUser(this.ENTITLED_USER, result.json);
+							// Call Membership to create the user
+							return this.resolveUser(this.NEW_USER, response)
+								.then(() => {
+									// Update Goggle to say we've completed
+									return response.complete();
+								})
+								.then(() => {
+									this.track({ action: 'google-confirmed' });
 
-				// Redirect the browser
-				browser.redirectTo(contentHref);
-			} else {
-				// The users account was not found so lets make them one
-
-				// Popup the Google deferred account creation
-				const response = await this.swgClient.completeDeferredAccountCreation(
-					{ entitlements: result.entitlements, consent: true }
-				);
-
-				/**
-				 * Fix data structure to be inline with SubscriptionResponse
-				 * https://developers.google.com/news/subscribe/reference/subscription-response
-				 * This can be removed once this PR has been merged
-				 * https://github.com/subscriptions-project/swg-js/pull/418/files
-				 */
-				if (response.purchaseData && response.purchaseData.raw && response.purchaseData.raw.data) {
-					response.purchaseData.signature = response.purchaseData.raw.signature;
-					response.purchaseData.raw = response.purchaseData.raw.data;
+									// Redirect the browser
+									browser.redirectTo(consentHref);
+								});
+						});
 				}
-
-				// Call Membership to create the user
-				await this.resolveUser(this.NEW_USER, response);
-
-				// Update Goggle to say we've completed
-				await response.complete();
-
-				this.track({ action: 'google-confirmed' });
-
-				// Redirect the browser
-				browser.redirectTo(consentHref);
-			}
-		} catch (err) {
-			events.signalError(err);
-		}
+			})
+			.catch(err => {
+				events.signalError(err);
+			});
 	}
 
 	/**
