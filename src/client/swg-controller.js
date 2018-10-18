@@ -246,7 +246,6 @@ module.exports = class SwgController {
 
 		return new Promise((resolve, reject) => {
 
-			return resolve();
 			smartFetch.fetch(endpoint, {
 				method: 'POST',
 				credentials: 'include',
