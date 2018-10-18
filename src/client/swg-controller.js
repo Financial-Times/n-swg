@@ -245,6 +245,8 @@ module.exports = class SwgController {
 			: JSON.stringify({ createSession, swg: swgResponse });
 
 		return new Promise((resolve, reject) => {
+
+			return resolve();
 			smartFetch.fetch(endpoint, {
 				method: 'POST',
 				credentials: 'include',
@@ -295,12 +297,14 @@ module.exports = class SwgController {
 	 */
 	async hasAccount (subscriptionToken) {
 		try {
-			const result = await smartFetch.fetch(`${this.M_SWG_ACCOUNT_CHECK}?subscription_token=${subscriptionToken}`, {
-				method: 'GET',
+			const result = await smartFetch.fetch(`${this.M_SWG_ACCOUNT_CHECK}`, {
+				method: 'POST',
 				credentials: 'include',
-				headers: { 'content-type': 'application/json' }
+				headers: { 'content-type': 'application/json' },
+				body: subscriptionToken
 			});
-			if (result.active) {
+
+			if (_get(result, 'json.active')) {
 				return true;
 			}
 			return false;
@@ -321,21 +325,17 @@ module.exports = class SwgController {
 		const contentHref = uuid ? `https://www.ft.com/content/${uuid}` : 'https://www.ft.com';
 
 		try {
-			const accountLookupPromise = this.hasAccount(result.subscriptionToken);
+			const accountLookupPromise = this.hasAccount(result.entitlements.entitlements[0].subscriptionToken);
 			const account = await this.swgClient.waitForSubscriptionLookup(accountLookupPromise);
 
 			if (account) {
 				// The users account exists so lets log them in
 
-				// Resolve the user and log them in
-				const LoginPromise = this.resolveUser(this.ENTITLED_USER, result);
-
 				// Tell the user that we are going to log them in
-				const showLoginPromise = this.swgClient.showLoginNotification();
+				await this.swgClient.showLoginNotification();
 
-				// Await the promises
-				await LoginPromise;
-				await showLoginPromise;
+				// Resolve the user and log them in
+				await this.resolveUser(this.ENTITLED_USER, result.json);
 
 				// Redirect the browser
 				browser.redirectTo(contentHref);
@@ -344,7 +344,7 @@ module.exports = class SwgController {
 
 				// Popup the Google deferred account creation
 				const response = await this.swgClient.completeDeferredAccountCreation(
-					{entitlements: result.entitlements, consent: true}
+					{ entitlements: result.entitlements, consent: true }
 				);
 
 				// Fix data structure to be inline with SubscriptionResponse
