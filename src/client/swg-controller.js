@@ -245,7 +245,6 @@ module.exports = class SwgController {
 			: JSON.stringify({ createSession, swg: swgResponse });
 
 		return new Promise((resolve, reject) => {
-
 			smartFetch.fetch(endpoint, {
 				method: 'POST',
 				credentials: 'include',
@@ -346,10 +345,12 @@ module.exports = class SwgController {
 					{ entitlements: result.entitlements, consent: true }
 				);
 
-				// Fix data structure to be inline with SubscriptionResponse
-				// https://developers.google.com/news/subscribe/reference/subscription-response
-				// This can be removed once this PR has been merged
-				// https://github.com/subscriptions-project/swg-js/pull/418/files
+				/**
+				 * Fix data structure to be inline with SubscriptionResponse
+				 * https://developers.google.com/news/subscribe/reference/subscription-response
+				 * This can be removed once this PR has been merged
+				 * https://github.com/subscriptions-project/swg-js/pull/418/files
+				 */
 				if (response.purchaseData && response.purchaseData.raw && response.purchaseData.raw.data) {
 					response.purchaseData.signature = response.purchaseData.raw.signature;
 					response.purchaseData.raw = response.purchaseData.raw.data;
