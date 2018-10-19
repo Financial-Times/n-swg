@@ -46,4 +46,16 @@ module.exports = class SwgClient {
 		return true;
 	}
 
+	waitForSubscriptionLookup () {
+		return Promise.resolve(true);
+	}
+
+	showLoginNotification () {
+		return Promise.resolve(true);
+	}
+
+	completeDeferredAccountCreation () {
+		return Promise.resolve(true);
+	}
+
 };

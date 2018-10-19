@@ -29,14 +29,10 @@ a11y: demo-build
 
 test: verify
 	make unit-test
-	make a11y-demo
 
 unit-test:
 	mocha test/client --recursive --require test/client/setup
 
-a11y-demo:
+smoke:
 	export TEST_URL=http://localhost:5050; \
 	make a11y
-
-smoke:
-	n-test smoke --host http://localhost:5050

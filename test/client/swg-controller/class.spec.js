@@ -768,9 +768,7 @@ describe('Swg Controller: class', function () {
 
 	context('Onward journeys', function () {
 		let subject;
-		let overlayStub;
 		let redirectStub;
-		let resolveUserStub;
 		let windowLocation;
 
 		function setHref (href) {
@@ -783,8 +781,6 @@ describe('Swg Controller: class', function () {
 			subject = new SwgController(swgClient);
 			subject.init();
 			redirectStub = sandbox.stub(utils.browser, 'redirectTo');
-			overlayStub = sandbox.stub(subject.overlay, 'show');
-			resolveUserStub = sandbox.stub(subject, 'resolveUser').resolves({});
 			sandbox.stub(utils.browser, 'getWindowLocation').returns(windowLocation);
 		});
 
@@ -793,202 +789,55 @@ describe('Swg Controller: class', function () {
 		});
 
 		describe('.defaultOnwardEntitledJourney()', function () {
-			it('Will show an overlay message informing the user of their SwG subscription, with a login prompt', function () {
-				subject.defaultOnwardEntitledJourney();
-				expect(overlayStub.calledWith(sinon.match('It looks like you are already subscribed to FT.com via Google'))).to.be.true;
-			});
-		});
+			const entitlements = {
+				entitlements: {
+					entitlements: [
+						{subscriptionToken: 'test'}
+					]
+				}
+			};
 
-		describe('.getEntitledOnwardJourneyProps()', function () {
-			it('Returns an object containing the relevant properties', function () {
-				subject.getEntitledOnwardJourneyProps();
-				expect(subject.getEntitledOnwardJourneyProps()).to.contain.keys('copy', 'href', 'callback');
-				expect(subject.getEntitledOnwardJourneyProps().callback).to.be.a('function');
-			});
-			context('upon user clicking the login cta', function () {
-				let invokeCtaClickCallback;
-				let mockEvent;
+			it('should check if the entitled user has an account or not', () => {
+				sandbox.stub(subject, 'hasAccount').returns(Promise.resolve(true));
 
-				beforeEach(() => {
-					mockEvent = {
-						preventDefault: sandbox.stub()
-					};
-					overlayStub.callsFake((copy, cta) => {
-						invokeCtaClickCallback = cta.callback;
-					});
-				});
+				subject.defaultOnwardEntitledJourney(entitlements);
 
-				afterEach(() => {
-					invokeCtaClickCallback = null;
-				});
-
-				it('will showActivity in modal', function () {
-					sandbox.stub(subject.overlay, 'showActivity');
-					subject.defaultOnwardEntitledJourney();
-					invokeCtaClickCallback(mockEvent);
-					expect(subject.overlay.showActivity.calledOnce).to.be.true;
-				});
-
-				it('will preventDefault on event', function () {
-					subject.defaultOnwardEntitledJourney();
-					invokeCtaClickCallback(mockEvent);
-					expect(mockEvent.preventDefault.calledOnce).to.be.true;
-				});
-
-				it('will attempt to resolveUser', function () {
-					subject.defaultOnwardEntitledJourney();
-					invokeCtaClickCallback(mockEvent);
-					expect(resolveUserStub.calledOnce).to.be.true;
-				});
-
-				describe('on user resolution failure', function () {
-
-					it('should show a message prompting user to try again via login', async function () {
-						sandbox.stub(utils.events, 'signalError');
-						const swallow = sandbox.stub();
-						const MOCK_ERR = new Error('bad');
-						const RESOLVE_USER_RESULT = Promise.reject(MOCK_ERR);
-						sandbox.stub(subject.overlay, 'hideActivity');
-						resolveUserStub.returns(RESOLVE_USER_RESULT);
-
-						subject.defaultOnwardEntitledJourney();
-						invokeCtaClickCallback(mockEvent);
-						await RESOLVE_USER_RESULT.catch(swallow);
-
-						expect(subject.overlay.hideActivity.calledOnce).to.be.true;
-						expect(utils.events.signalError.calledWith(MOCK_ERR)).to.be.true;
-						expect(overlayStub.calledWith(sinon.match('We couldn’t log you in automatically'))).to.be.true;
-					});
-
-				});
-
-				describe('on successful user resolution', function () {
-
-					context('login still required', function () {
-
-						it('show prompt login message if still required', async function () {
-							const RESOLVE_USER_RESULT = Promise.resolve({
-								loginRequired: true
-							});
-							sandbox.stub(subject.overlay, 'hideActivity');
-							resolveUserStub.returns(RESOLVE_USER_RESULT);
-
-							subject.defaultOnwardEntitledJourney();
-							invokeCtaClickCallback(mockEvent);
-							await RESOLVE_USER_RESULT;
-							expect(subject.overlay.hideActivity.calledOnce).to.be.true;
-							expect(overlayStub.calledWith(sinon.match('We couldn’t log you in automatically'))).to.be.true;
-						});
-
-						it('login link has correct location param default', async function () {
-							const RESOLVE_USER_RESULT = Promise.resolve({
-								loginRequired: true
-							});
-							resolveUserStub.returns(RESOLVE_USER_RESULT);
-
-							subject.defaultOnwardEntitledJourney();
-							invokeCtaClickCallback(mockEvent);
-							await RESOLVE_USER_RESULT;
-							expect(overlayStub.getCall(0).args[1].href).to.equal('https://www.ft.com/login?socialEnabled=true');
-						});
-
-						it('login link has location param of requested content', async function () {
-							setHref('https://www.ft.com/barrier/trial?ft-content-uuid=12345&foo=bar');
-							const RESOLVE_USER_RESULT = Promise.resolve({
-								loginRequired: true
-							});
-							resolveUserStub.returns(RESOLVE_USER_RESULT);
-
-							subject.defaultOnwardEntitledJourney();
-							invokeCtaClickCallback(mockEvent);
-							await RESOLVE_USER_RESULT;
-							expect(overlayStub.getCall(0).args[1].href).to.equal('https://www.ft.com/login?socialEnabled=true&location=https%3A%2F%2Fwww.ft.com%2Fcontent%2F12345');
-						});
-
-					});
-
-					context('consent required', function () {
-						it('redirects the browser to consent page (\/profile)', async function () {
-							const RESOLVE_USER_RESULT = Promise.resolve({
-								loginRequired: false,
-								consentRequired: true
-							});
-							resolveUserStub.returns(RESOLVE_USER_RESULT);
-
-							subject.defaultOnwardEntitledJourney();
-							invokeCtaClickCallback(mockEvent);
-							await RESOLVE_USER_RESULT;
-
-							expect(redirectStub.calledWith(subject.POST_SUBSCRIBE_URL)).to.be.true;
-						});
-
-						it('redirects the browser to consent page (\/profile) with ft-content-uuid of requested content', async function () {
-							setHref('https://www.ft.com/content/12345?foo=bar');
-							const RESOLVE_USER_RESULT = Promise.resolve({
-								loginRequired: false,
-								consentRequired: true
-							});
-							resolveUserStub.returns(RESOLVE_USER_RESULT);
-
-							subject.defaultOnwardEntitledJourney();
-							invokeCtaClickCallback(mockEvent);
-							await RESOLVE_USER_RESULT;
-
-							expect(redirectStub.calledWith(subject.POST_SUBSCRIBE_URL + '&ft-content-uuid=12345')).to.be.true;
-						});
-					});
-
-					context('no consent or login required', function () {
-
-						it('redirect to ft.com homepage by default', async function () {
-							const RESOLVE_USER_RESULT = Promise.resolve({
-								loginRequired: false,
-								consentRequired: false
-							});
-							resolveUserStub.returns(RESOLVE_USER_RESULT);
-
-							subject.defaultOnwardEntitledJourney();
-							invokeCtaClickCallback(mockEvent);
-							await RESOLVE_USER_RESULT;
-
-							expect(redirectStub.calledWith('https://www.ft.com')).to.be.true;
-						});
-
-						it('redirect to requested content from ft-content-uuid paramrter', async function () {
-							setHref('https://www.ft.com/barrier/trial?ft-content-uuid=12345&foo=bar');
-							const RESOLVE_USER_RESULT = Promise.resolve({
-								loginRequired: false,
-								consentRequired: false
-							});
-							resolveUserStub.returns(RESOLVE_USER_RESULT);
-
-							subject.defaultOnwardEntitledJourney();
-							invokeCtaClickCallback(mockEvent);
-							await RESOLVE_USER_RESULT;
-
-							expect(redirectStub.calledWith('https://www.ft.com/content/12345')).to.be.true;
-						});
-
-						it('redirect to requested content if on barrier page', async function () {
-							setHref('https://www.ft.com/content/12345?foo=bar');
-							const RESOLVE_USER_RESULT = Promise.resolve({
-								loginRequired: false,
-								consentRequired: false
-							});
-							resolveUserStub.returns(RESOLVE_USER_RESULT);
-
-							subject.defaultOnwardEntitledJourney();
-							invokeCtaClickCallback(mockEvent);
-							await RESOLVE_USER_RESULT;
-
-							expect(redirectStub.calledWith('https://www.ft.com/content/12345')).to.be.true;
-						});
-
-					});
-
-				});
+				expect(subject.hasAccount.calledWith('test')).to.be.true;
 			});
 
+			it('should log the user in of they have an account', async () => {
+				sandbox.stub(subject, 'hasAccount').returns(Promise.resolve(true));
+				sandbox.stub(swgClient, 'waitForSubscriptionLookup').returns(Promise.resolve(true));
+				sandbox.spy(swgClient, 'showLoginNotification');
+				sandbox.spy(subject, 'resolveUser');
+
+				await subject.defaultOnwardEntitledJourney(entitlements);
+
+				expect(swgClient.showLoginNotification.calledOnce).to.be.true;
+				expect(subject.resolveUser.calledOnce).to.be.true;
+			});
+
+			it('should create the user if they don\'t have an account', async () => {
+				sandbox.stub(subject, 'hasAccount').returns(Promise.resolve(false));
+				sandbox.stub(swgClient, 'waitForSubscriptionLookup').returns(Promise.resolve(false));
+				sandbox.spy(swgClient, 'completeDeferredAccountCreation');
+				sandbox.spy(subject, 'resolveUser');
+
+				await subject.defaultOnwardEntitledJourney(entitlements);
+
+				expect(swgClient.completeDeferredAccountCreation.calledOnce).to.be.true;
+				expect(subject.resolveUser.calledOnce).to.be.true;
+			});
+
+			it('should signal an error if one happens', async () => {
+				sandbox.stub(subject, 'hasAccount').returns(Promise.resolve(true));
+				sinon.spy(utils.events, 'signalError');
+				sandbox.stub(swgClient, 'waitForSubscriptionLookup').returns(Promise.reject(false));
+
+				await subject.defaultOnwardEntitledJourney(entitlements);
+
+				expect(utils.events.signalError.calledOnce).to.be.true;
+			});
 		});
 
 		describe('.defaultOnwardSubscribedJourney()', function () {
