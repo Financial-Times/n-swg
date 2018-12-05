@@ -321,13 +321,17 @@ module.exports = class SwgController {
 		const uuid = browser.getContentUuidFromUrl();
 		const consentHref = this.POST_SUBSCRIBE_URL + (uuid ? '&ft-content-uuid=' + uuid : '');
 		const contentHref = uuid ? `https://www.ft.com/content/${uuid}` : 'https://www.ft.com';
+		// We can't assume this is part of the signup since that can happen offsite so reset this.
+		const formType = '';
+		
+		this.track({ action: 'onward-entitled-journey' });
 
 		const accountLookupPromise = this.hasAccount(result.entitlements.entitlements[0].subscriptionToken);
 		return this.swgClient.waitForSubscriptionLookup(accountLookupPromise)
 			.then(account => {
 				if (account) {
 					// The users account exists so lets log them in
-
+					this.track({ action: 'auto-login-start', context: { formType } });
 					// Tell the user that we are going to log them in
 					return this.swgClient.showLoginNotification()
 						.then(() => {
@@ -335,15 +339,21 @@ module.exports = class SwgController {
 							return this.resolveUser(this.ENTITLED_USER, result.json);
 						})
 						.then(() => {
+							this.track({ action: 'auto-login-success', context: { formType } });
 							// Redirect the browser to content
 							browser.redirectTo(contentHref);
+						})
+						.catch(error => {
+							this.track({ action: 'auto-login-failed', context: { formType } });
+							events.signalError(error);
 						});
 				} else {
 					// The users account was not found so lets make them one
-
+					this.track({ action: 'subscription-found', context: { formType } });
 					// Popup the Google deferred account creation
 					return this.swgClient.completeDeferredAccountCreation({ entitlements: result.entitlements, consent: true })
 						.then(response => {
+							this.track({ action: 'create-account-continue', context: { formType } });
 							//  Fix data structure to be inline with SubscriptionResponse
 							//  https://developers.google.com/news/subscribe/reference/subscription-response
 							//  This can be removed once this PR has been merged
@@ -356,15 +366,23 @@ module.exports = class SwgController {
 							// Call Membership to create the user
 							return this.resolveUser(this.NEW_USER, response)
 								.then(() => {
-									// Update Goggle to say we've completed
+									// Update Google to say we've completed
 									return response.complete();
 								})
 								.then(() => {
-									this.track({ action: 'google-confirmed' });
+									// Keeping this one here for posterity.
+									this.track({ action: 'google-confirmed', context: { formType } });
+									this.track({ action: 'create-account-success', context: { formType } });
 
 									// Redirect the browser
 									browser.redirectTo(consentHref);
+								}).catch((error) => {
+									this.track({ action: 'create-account-failed', context: { formType } });
+									events.signalError(error);
 								});
+						}).catch((error) => {
+							this.track({ action: 'create-account-cancel', context: { formType } });
+							events.signalError(error);
 						});
 				}
 			})
