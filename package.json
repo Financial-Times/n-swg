@@ -21,7 +21,7 @@
   "homepage": "https://github.com/Financial-Times/n-swg#readme",
   "dependencies": {},
   "devDependencies": {
-    "@financial-times/n-gage": "3.4.0",
+    "@financial-times/n-gage": "3.5.0",
     "@financial-times/n-internal-tool": "^2.2.2",
     "@financial-times/n-logger": "^5.6.3",
     "@financial-times/n-test": "^1.0.1",
