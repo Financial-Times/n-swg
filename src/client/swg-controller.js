@@ -323,7 +323,7 @@ module.exports = class SwgController {
 		const contentHref = uuid ? `https://www.ft.com/content/${uuid}` : 'https://www.ft.com';
 		// We can't assume this is part of the signup since that can happen offsite so reset this.
 		const formType = '';
-		
+
 		this.track({ action: 'onward-entitled-journey' });
 
 		const accountLookupPromise = this.hasAccount(result.entitlements.entitlements[0].subscriptionToken);

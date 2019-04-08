@@ -40,5 +40,8 @@
     "o-buttons": "^5.11.5",
     "o-overlay": "^2.4.1",
     "o-grid": "^4.3.4"
+  },
+  "resolutions": {
+    "ftdomdelegate": "^3.0.0"
   }
 }
