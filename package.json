@@ -6,7 +6,8 @@
   "scripts": {
     "precommit": "node_modules/.bin/secret-squirrel",
     "commitmsg": "node_modules/.bin/secret-squirrel-commitmsg",
-    "prepush": "make verify -j3"
+    "prepush": "make verify -j3",
+    "prepare": "npx snyk protect || npx snyk protect -d || true"
   },
   "repository": {
     "type": "git",
@@ -45,6 +46,7 @@
     "pa11y-ci": "^2.1.1",
     "proxyquire": "^1.8.0",
     "request": "^2.83.0",
-    "sinon": "^4.4.2"
+    "sinon": "^4.4.2",
+    "snyk": "^1.168.0"
   }
 }
