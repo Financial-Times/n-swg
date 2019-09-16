@@ -102,7 +102,7 @@ module.exports = class SwgController {
 						 * upgrading is not supported.
 						 * Do not enable SwG buttons */
 						if (!browser.isProductSelector()) {
-							this.overlay.show('<h3>You are trying to access Premium content</h3><p>The option to upgrade from Standard Digital to Premium Digital via Google is not available.</p><p>If you would like to discuss your subscription options, please contact Customer Services on +800 0705 6477</p>');
+							this.overlay.show('<h3>You are trying to access Premium content</h3><p>The option to upgrade from Standard Digital to Premium Digital via Google is not available.</p><p>If you would like to discuss your subscription options, please contact Customer Services on 00800 0705 6477</p>');
 						}
 						/* TODO
 						 * - check if user has an active FT.com session?
@@ -406,7 +406,7 @@ module.exports = class SwgController {
 	 * Buy flow error onward journey
 	 */
 	onwardSubscriptionErrorJourney () {
-		this.overlay.show('<h3>Sorry</h3><p>Something went wrong while creating your account on FT.com</p><p>Please call the FT customer services team on<br />+800 0705 6477</p>');
+		this.overlay.show('<h3>Sorry</h3><p>Something went wrong while creating your account on FT.com</p><p>Please call the FT customer services team on<br />00800 0705 6477</p>');
 	};
 
 	/**
