@@ -23,7 +23,7 @@ module.exports = class SwgController {
 			onEntitlementsResponse: this.onEntitlementsResponse.bind(this),
 			onFlowCanceled: this.onFlowCanceled.bind(this),
 			onFlowStarted: this.onFlowStarted.bind(this),
-			onSubscribeResponse: this.onSubscribeResponse.bind(this),
+			onPaymentResponse: this.onPaymentResponse.bind(this),
 			onLoginRequest: this.onLoginRequest.bind(this),
 			onResolvedEntitlements: this.defaultOnwardEntitledJourney.bind(this),
 			onResolvedSubscribe: this.defaultOnwardSubscribedJourney.bind(this)
@@ -32,7 +32,7 @@ module.exports = class SwgController {
 		/* bind handlers */
 		const mount = (name, handler) => this.swgClient[name] && handler && this.swgClient[name](handler);
 		mount('setOnEntitlementsResponse', this.handlers.onEntitlementsResponse);
-		mount('setOnSubscribeResponse', this.handlers.onSubscribeResponse);
+		mount('setOnPaymentResponse', this.handlers.onPaymentResponse);
 		mount('setOnLoginRequest', this.handlers.onLoginRequest);
 		mount('setOnFlowCanceled', this.handlers.onFlowCanceled);
 		mount('setOnFlowStarted', this.handlers.onFlowStarted);
@@ -133,7 +133,7 @@ module.exports = class SwgController {
 	 * Upon SwG subscription response. Resolve the user and set onward journey.
 	 * @param {promise} subPromise - as returned by SwG
 	 */
-	onSubscribeResponse (subPromise) {
+	onPaymentResponse (subPromise) {
 		return subPromise.then((response) => {
 			/* disable any buttons */
 			if (this.subscribeButtons) this.subscribeButtons.disableButtons();
