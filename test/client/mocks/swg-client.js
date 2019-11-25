@@ -18,7 +18,7 @@ module.exports = class SwgClient {
 		return true;
 	}
 
-	setOnSubscribeResponse () {
+	setOnPaymentResponse () {
 		return true;
 	}
 

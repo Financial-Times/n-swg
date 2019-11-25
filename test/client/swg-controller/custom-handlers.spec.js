@@ -42,7 +42,7 @@ describe('Swg Controller: custom handlers', function () {
 
 		sandbox.stub(utils.events, 'signal');
 		sandbox.stub(subject, 'resolveUser').returns(resolveUserPromise);
-		await subject.onSubscribeResponse(subPromise);
+		await subject.onPaymentResponse(subPromise);
 
 		expect(utils.events.signal.calledWith('onSubscribeReturn', MOCK_RESULT)).to.be.true;
 		expect(subject.track.getCall(0).calledWith(sinon.match({ action: 'success' }))).to.be.true;

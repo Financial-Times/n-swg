@@ -43,7 +43,7 @@ describe('Swg Controller: class', function () {
 			expect(subject.alreadyInitialised).to.be.false;
 			expect(subject.handlers.onFlowCanceled).to.be.a('Function');
 			expect(subject.handlers.onFlowStarted).to.be.a('Function');
-			expect(subject.handlers.onSubscribeResponse).to.be.a('Function');
+			expect(subject.handlers.onPaymentResponse).to.be.a('Function');
 			expect(subject.handlers.onEntitlementsResponse).to.be.a('Function');
 			expect(subject.swgClient).to.deep.equal(swgClient);
 			expect(subject.overlay).to.be.an.instanceOf(utils.Overlay);
@@ -58,7 +58,7 @@ describe('Swg Controller: class', function () {
 				handlers: {
 					setOnFlowCanceled: () => 'canceled stub',
 					setOnFlowStarted: () => 'started stub',
-					onSubscribeResponse: () => 'stub',
+					onPaymentResponse: () => 'stub',
 					onSomeOtherThing: () => 'stub again'
 				},
 				M_SWG_SUB_SUCCESS_ENDPOINT: '/success',
@@ -68,7 +68,7 @@ describe('Swg Controller: class', function () {
 			expect(subject.manualInitDomain).to.equal(OPTIONS.manualInitDomain);
 			expect(subject.handlers.setOnFlowCanceled).to.equal(OPTIONS.handlers.setOnFlowCanceled);
 			expect(subject.handlers.setOnFlowStarted).to.equal(OPTIONS.handlers.setOnFlowStarted);
-			expect(subject.handlers.onSubscribeResponse).to.equal(OPTIONS.handlers.onSubscribeResponse);
+			expect(subject.handlers.onPaymentResponse).to.equal(OPTIONS.handlers.onPaymentResponse);
 			expect(subject.handlers.setOnEntitlementsResponse).to.equal(OPTIONS.handlers.setOnEntitlementsResponse);
 			expect(subject.handlers.onSomeOtherThing).to.equal(OPTIONS.handlers.onSomeOtherThing);
 			expect(subject.swgClient).to.deep.equal(swgClient);
@@ -77,11 +77,11 @@ describe('Swg Controller: class', function () {
 		});
 
 		it('binds event handlers', function () {
-			sandbox.stub(swgClient, 'setOnSubscribeResponse');
+			sandbox.stub(swgClient, 'setOnPaymentResponse');
 			sandbox.stub(swgClient, 'setOnEntitlementsResponse');
 
 			const subject = new SwgController(swgClient);
-			expect(swgClient.setOnSubscribeResponse.calledOnce).to.be.true;
+			expect(swgClient.setOnPaymentResponse.calledOnce).to.be.true;
 			expect(swgClient.setOnEntitlementsResponse.calledOnce).to.be.true;
 			expect(subject.swgClient).to.deep.equal(swgClient);
 	});
@@ -92,7 +92,7 @@ describe('Swg Controller: class', function () {
 
 		beforeEach(() => {
 			sandbox.stub(swgClient, 'init');
-			sandbox.stub(swgClient, 'setOnSubscribeResponse');
+			sandbox.stub(swgClient, 'setOnPaymentResponse');
 		});
 
 		it('does not setup swgClient if .alreadyInitialised', function () {
@@ -185,7 +185,7 @@ describe('Swg Controller: class', function () {
 
 	});
 
-	describe('.onSubscribeResponse() handler', function () {
+	describe('.onPaymentResponse() handler', function () {
 		let subject;
 
 		beforeEach(() => {
@@ -205,7 +205,7 @@ describe('Swg Controller: class', function () {
 			sandbox.stub(subject.subscribeButtons, 'disableButtons');
 			sandbox.spy(subject.handlers, 'onResolvedSubscribe');
 
-			await subject.onSubscribeResponse(subPromise);
+			await subject.onPaymentResponse(subPromise);
 			expect(global.document.cookie).to.include('FTSwgNewSubscriber');
 			expect(subject.subscribeButtons.disableButtons.calledOnce).to.be.true;
 			expect(utils.events.signal.calledWith('onSubscribeReturn', MOCK_RESULT)).to.be.true;
@@ -227,7 +227,7 @@ describe('Swg Controller: class', function () {
 			sandbox.stub(subject.subscribeButtons, 'disableButtons');
 			sandbox.spy(subject.handlers, 'onResolvedSubscribe');
 
-			await subject.onSubscribeResponse(subPromise);
+			await subject.onPaymentResponse(subPromise);
 			expect(subject.subscribeButtons.disableButtons.calledOnce).to.be.true;
 			expect(utils.events.signal.getCall(0).calledWith('onSubscribeReturn', MOCK_RESULT)).to.be.true;
 			expect(subject.track.getCall(0).calledWith(sinon.match({ action: 'success' }))).to.be.true;
@@ -248,7 +248,7 @@ describe('Swg Controller: class', function () {
 			};
 			const subPromise = Promise.reject(MOCK_ERROR);
 
-			await subject.onSubscribeResponse(subPromise);
+			await subject.onPaymentResponse(subPromise);
 			expect(utils.events.signal.calledWith('onError', { error: MOCK_ERROR, info: {} })).to.be.true;
 			expect(subject.track.calledOnce).to.be.true;
 			expect(subject.track.calledWith(sinon.match({

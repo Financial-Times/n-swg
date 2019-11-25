@@ -12,7 +12,7 @@ As well as containing the source code for `n-swg` this repo acts as a documentat
 - [JSON-LD Markup](#json-ld-markup)
 - [SwG on AMP](#swg-on-amp)
 - [SwG on mobile apps](#swg-on-mobile-apps)
-- [SKUs](#skus) 
+- [SKUs](#skus)
 
 ## What is SwG?
 
@@ -157,7 +157,7 @@ successful subscription confirmation */
 },
 
 handlers: {
-	onSubscribeResponse: (args) => console.log('Welcome to the FT')
+	onPaymentResponse: (args) => console.log('Welcome to the FT')
 }
 /* [optional] An object containing custom callback functions. See the
 SwgController constructor for available handlers */
