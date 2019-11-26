@@ -1,3 +1,5 @@
+$system-code: n-swg !default;
+
 // TODO: remove once Google have native disabled styling
 // from here
 .swg-button,
@@ -16,14 +18,11 @@
 }
 // until here
 
-$o-overlay-is-silent: true;
-$o-buttons-is-silent: true;
 $o-grid-is-silent: true;
-$o-typography-is-silent: true;
 
-@import 'o-overlay/main';
 @import 'o-buttons/main';
 @import 'o-grid/main';
+@import 'o-icons/main';
 @import 'o-typography/main';
 
 .overlay__wrapper {
@@ -38,17 +37,52 @@ $o-typography-is-silent: true;
 }
 
 .overlay__shadow {
-	@include oOverlayShadow;
+	background-color: rgba(0, 0, 0, 0.2);
+	position: fixed;
+	height: 150%; // because on some phones scrolling upwards detaches a 100% height overlay from the bottom of the screen
+	width: 100%;
+	top: 0;
+	left: 0;
+	z-index: 10;
+	opacity: 1;
+	transition: opacity 0.3s ease-in-out;
 }
 
 .overlay__close {
-	@include oOverlayClose;
+	@include oIconsContent('cross', oColorsByName('black-60'), $size: 20);
 	position: absolute;
 	right: 0;
 	top: 0;
 	width: 20px;
 	height: 20px;
 	border-bottom: 0;
+	background-size: contain;
+	// start: undo button styles
+	appearance: none;
+	border: 0;
+	font: inherit;
+	outline: inherit;
+	// end: undo button styles
+	box-sizing: content-box;
+	margin-top: 10px; // Align with the text baseline (magic number)
+	margin-right: 10px; // Same right spacing as the top one
+	margin-left: 10px;
+	margin-bottom: 10px;
+	padding: 0.25em;
+	cursor: pointer;
+	font-size: 8px;
+	line-height: 1;
+	user-select: none;
+
+	// Increase hit zone of the button around it for better usability
+	&:after {
+		position: absolute;
+		content: '';
+		top: -10px;
+		right: -10px;
+		left: -10px;
+		bottom: -10px;
+	}
 }
 
 .overlay__content {
@@ -61,7 +95,10 @@ $o-typography-is-silent: true;
 }
 
 .overlay__button {
-	@include oButtons($theme: primary, $size: big);
+	@include oButtonsContent($opts: (
+		'type': 'primary',
+		'size': 'big'
+	));
 	width: 100%;
 }
 
@@ -78,8 +115,8 @@ $o-typography-is-silent: true;
 	}
 
 	h3 {
-		@include oTypographyProductHeadingLevel1();
-		@include oTypographySize($scale: 3);
+		@include oTypographyHeading($level: 1);
+		@include oTypographySans($scale: 3, $include-font-family: false, $include-progressive: false);
 	}
 
 	p {
@@ -87,7 +124,7 @@ $o-typography-is-silent: true;
 	}
 
 	.external {
-		@include oTypographyLinkExternal;
+		@include oTypographyLink($external: true);
 	}
 }
 
