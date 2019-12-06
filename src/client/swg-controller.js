@@ -156,23 +156,23 @@ module.exports = class SwgController {
 					this.handlers.onResolvedSubscribe(res);
 				});
 			})
-			.catch(err => {
+				.catch(err => {
 				/**
 				 * TODO: UX
 				 * Could not resolve the user on our end after multiple retries.
 				 * The Google modal will timeout and still show the confirmation
 				 * modaul so we should still ensure there is an onward journey
 				 */
-				response.complete().then(() => {
+					response.complete().then(() => {
 					/* track failure event */
-					this.track({ action: 'failure', context: {
-						stage: 'user-resolution'
-					}});
-					/* trigger onward journey */
-					this.onwardSubscriptionErrorJourney();
+						this.track({ action: 'failure', context: {
+							stage: 'user-resolution'
+						}});
+						/* trigger onward journey */
+						this.onwardSubscriptionErrorJourney();
+					});
+					return Promise.reject(err); // re-throw for tracking
 				});
-				return Promise.reject(err); // re-throw for tracking
-			});
 		}).catch(err => {
 			/* signal error event to any listeners */
 			events.signalError(err);
@@ -254,11 +254,11 @@ module.exports = class SwgController {
 				headers: { 'content-type': 'application/json' },
 				body: payload
 			})
-			.then(({ json }) => {
-				const newlyCreated = _get(json, 'userInfo.newlyCreated');
-				const hasNewSubCookie = document.cookie.indexOf(this.NEW_SWG_SUB_COOKIE) !== -1;
+				.then(({ json }) => {
+					const newlyCreated = _get(json, 'userInfo.newlyCreated');
+					const hasNewSubCookie = document.cookie.indexOf(this.NEW_SWG_SUB_COOKIE) !== -1;
 
-				/**
+					/**
 				 * Both subscription and entitlement callback endpoints return
 				 *  a 200 with set-cookie headers for the resolved user session
 				 *  and json about the new session.
@@ -268,26 +268,26 @@ module.exports = class SwgController {
 				 * Unless createSession was false we can assume user now has
 				 *  active session cookies
 				 */
-				resolve({
-					consentRequired: newlyCreated || hasNewSubCookie,
-					loginRequired: !newPurchaseFlow && createSession === false,
-					raw: json
+					resolve({
+						consentRequired: newlyCreated || hasNewSubCookie,
+						loginRequired: !newPurchaseFlow && createSession === false,
+						raw: json
+					});
+				})
+				.catch((error) => {
+					if (retries === this.MAX_RETRIES) {
+						reject(error);
+					} else {
+						retries++;
+
+						this.track({ action: 'retry', context: {
+							stage: 'user-resolution',
+							retries
+						}});
+
+						this.resolveUser(scenario, swgResponse, createSession, retries).then(resolve).catch(reject);
+					}
 				});
-			})
-			.catch((error) => {
-				if (retries === this.MAX_RETRIES) {
-					reject(error);
-				} else {
-					retries++;
-
-					this.track({ action: 'retry', context: {
-						stage: 'user-resolution',
-						retries
-					}});
-
-					this.resolveUser(scenario, swgResponse, createSession, retries).then(resolve).catch(reject);
-				}
-			});
 		});
 	}
 
@@ -298,11 +298,11 @@ module.exports = class SwgController {
 	 */
 	hasAccount (subscriptionToken) {
 		return smartFetch.fetch(`${this.M_SWG_ACCOUNT_CHECK}`, {
-				method: 'POST',
-				credentials: 'include',
-				headers: { 'content-type': 'application/json' },
-				body: subscriptionToken
-			})
+			method: 'POST',
+			credentials: 'include',
+			headers: { 'content-type': 'application/json' },
+			body: subscriptionToken
+		})
 			.then(result => {
 				if (_get(result, 'json.active')) {
 					return true;
@@ -455,7 +455,7 @@ module.exports = class SwgController {
 	static load ({ manual=false, swgPromise=swgReady(), loadClient=importSWG, sandbox=false }={}) {
 		return new Promise((resolve, reject) => {
 			try {
-				console.log("hello")
+				console.log('hello');
 				importGooglePlatform(document)({ manual, sandbox });
 
 				loadClient(document)({ manual, sandbox });
@@ -467,7 +467,7 @@ module.exports = class SwgController {
 	}
 
 	static handleEntitlementsCallback (entitlements) {
-		console.log(entitlements)
+		console.log(entitlements);
 
 		/* suppress Google "Manage Subscription toast" */
 		// entitlements.ack();

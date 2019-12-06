@@ -84,7 +84,7 @@ describe('Swg Controller: class', function () {
 			expect(swgClient.setOnPaymentResponse.calledOnce).to.be.true;
 			expect(swgClient.setOnEntitlementsResponse.calledOnce).to.be.true;
 			expect(subject.swgClient).to.deep.equal(swgClient);
-	});
+		});
 
 	});
 
@@ -254,8 +254,8 @@ describe('Swg Controller: class', function () {
 			expect(subject.track.calledWith(sinon.match({
 				action: 'exit',
 				context: {
-						errCode: MOCK_ERROR.activityResult.code,
-						errData: MOCK_ERROR.activityResult.data
+					errCode: MOCK_ERROR.activityResult.code,
+					errData: MOCK_ERROR.activityResult.data
 				}
 			}))).to.be.true;
 		});
@@ -318,20 +318,20 @@ describe('Swg Controller: class', function () {
 			fetchStub.resolves({ json: MOCK_RESULT });
 
 			const result = await subject.resolveUser(subject.ENTITLED_USER, MOCK_SWG_RESPONSE, false);
-				expect(result).to.deep.equal({
-					loginRequired: true,
-					consentRequired: false,
-					raw: MOCK_RESULT
-				});
-				expect(fetchStub.calledWith(MOCK_M_SWG_ENTITLED_SUCCESS_ENDPOINT, {
-					method: 'POST',
-					body: expectedBody,
-					credentials: 'include',
-					headers: {
-						'content-type': 'application/json'
-					}
-				})).to.be.true;
+			expect(result).to.deep.equal({
+				loginRequired: true,
+				consentRequired: false,
+				raw: MOCK_RESULT
 			});
+			expect(fetchStub.calledWith(MOCK_M_SWG_ENTITLED_SUCCESS_ENDPOINT, {
+				method: 'POST',
+				body: expectedBody,
+				credentials: 'include',
+				headers: {
+					'content-type': 'application/json'
+				}
+			})).to.be.true;
+		});
 
 		it('scenario=NEW_USER correctly formats (NEW USER) and handles request from passed options', async function () {
 			const MOCK_SWG_RESPONSE = { swgToken: '123' };
