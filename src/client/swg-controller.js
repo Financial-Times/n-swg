@@ -1,4 +1,4 @@
-const { swgReady, importClient, Overlay, _get, events, smartFetch, browser } = require('./utils');
+const { swgReady, importSWG, importGooglePlatform, Overlay, _get, events, smartFetch, browser } = require('./utils');
 const SubscribeButtons = require('./subscribe-button');
 
 module.exports = class SwgController {
@@ -12,6 +12,7 @@ module.exports = class SwgController {
 		/* options */
 		this.swgClient = swgClient;
 		this.manualInitDomain = options.manualInitDomain;
+
 		this.MAX_RETRIES = 2;
 		this.M_SWG_URL = options.sandbox ? 'https://api-t.ft.com/commerce' : 'https://api.ft.com/commerce';
 		this.M_SWG_SUB_SUCCESS_ENDPOINT = options.M_SWG_SUB_SUCCESS_ENDPOINT || `${this.M_SWG_URL}/v1/swg/subscriptions`;
@@ -19,6 +20,8 @@ module.exports = class SwgController {
 		this.M_SWG_ACCOUNT_CHECK = options.M_SWG_ACCOUNT_CHECK || `${this.M_SWG_URL}/deferred-account`;
 		this.POST_SUBSCRIBE_URL = options.POST_SUBSCRIBE_URL || 'https://www.ft.com/profile?splash=swg_checkout';
 		this.NEW_SWG_SUB_COOKIE = 'FTSwgNewSubscriber';
+		this.SHOW_ONLY_IF_READY_TO_PAY = false;
+
 		this.handlers = Object.assign({
 			onEntitlementsResponse: this.onEntitlementsResponse.bind(this),
 			onFlowCanceled: this.onFlowCanceled.bind(this),
@@ -449,9 +452,12 @@ module.exports = class SwgController {
 	 * @param {boolean} sandbox - load sandbox swg client lib, defaults to prod
 	 * @returns {promise}
 	 */
-	static load ({ manual=false, swgPromise=swgReady(), loadClient=importClient, sandbox=false }={}) {
+	static load ({ manual=false, swgPromise=swgReady(), loadClient=importSWG, sandbox=false }={}) {
 		return new Promise((resolve, reject) => {
 			try {
+				console.log("hello")
+				importGooglePlatform(document)({ manual, sandbox });
+
 				loadClient(document)({ manual, sandbox });
 			} catch (e) {
 				reject(e);
@@ -461,13 +467,17 @@ module.exports = class SwgController {
 	}
 
 	static handleEntitlementsCallback (entitlements) {
+		console.log(entitlements)
+
 		/* suppress Google "Manage Subscription toast" */
-		entitlements.ack();
+		// entitlements.ack();
+
 		return {
 			granted: entitlements && entitlements.enablesThis && entitlements.enablesThis(),
 			hasEntitlements: entitlements && entitlements.enablesAny && entitlements.enablesAny(),
 			json: entitlements && entitlements.json && entitlements.json(),
-			entitlements
+			entitlements,
+			isReadyToPay: entitlements && entitlements.isReadyToPay,
 		};
 	}
 

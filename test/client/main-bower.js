@@ -25,7 +25,7 @@ describe('Bower main-client.js', function () {
 	it('has correct methods', function () {
 		expect(subject.swgLoader).to.be.a('Function');
 		expect(subject.SwgController).to.be.a('Function');
-		expect(subject.importClient).to.be.a('Function');
+		expect(subject.importSWG).to.be.a('Function');
 	});
 
 	it('exports the SwgController class', function () {

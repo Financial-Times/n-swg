@@ -141,20 +141,21 @@ subscribeFromButton: true,
 /* [optional] if true checkout flow will be initiated by clicking on
 [data-n-swg-button] elements */
 
-M_SWG_SUB_SUCCESS_ENDPOINT: 'www.ft.com/some-ft-com-url'
+M_SWG_SUB_SUCCESS_ENDPOINT: 'www.ft.com/some-ft-com-url',
 /* [optional] if provided this is the CORS endpoint n-swg will call upon a
 successful swg subscription event response */
-},
 
-M_SWG_ENTITLED_SUCCESS_ENDPOINT: 'www.ft.com/some-ft-com-url'
+M_SWG_ENTITLED_SUCCESS_ENDPOINT: 'www.ft.com/some-ft-com-url',
 /* [optional] if provided this is the CORS endpoint n-swg will call upon a
 successful entitlements check event response */
-},
 
-POST_SUBSCRIBE_URL: 'www.ft.com/some-ft-com-url'
+POST_SUBSCRIBE_URL: 'www.ft.com/some-ft-com-url',
 /* [optional] if provided this is the endpoint n-swg will call upon a
 successful subscription confirmation */
-},
+
+SHOW_ONLY_IF_READY_TO_PAY: false, 
+/* [optional] if provided this is the endpoint n-swg will call upon a
+successful subscription confirmation */
 
 handlers: {
 	onPaymentResponse: (args) => console.log('Welcome to the FT')
@@ -201,7 +202,7 @@ Should you encounter the case where you only require the swg-js client library, 
 const loadOptions = {
 	manual: true
 }
-nSwG.importClient(loadOptions);
+nSwG.importSWG(loadOptions);
 ```
 
 ### Methods

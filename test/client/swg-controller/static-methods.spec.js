@@ -21,28 +21,28 @@ describe('Swg Controller: static methods', function () {
 
 	describe('.load()', function () {
 		let swgReadyMock;
-		let mockImportClient;
+		let mockImportSWG;
 
 		beforeEach(() => {
 			swgReadyMock = Promise.resolve();
-			mockImportClient = () => () => true;
+			mockImportSWG = () => () => true;
 		});
 
 		afterEach(() => {
 			swgReadyMock = null;
-			mockImportClient = null;
+			mockImportSWG = null;
 		});
 
 		it('returns a promise', function () {
-			const subject = SwgController.load({ swgPromise: swgReadyMock, loadClient: mockImportClient });
+			const subject = SwgController.load({ swgPromise: swgReadyMock, loadClient: mockImportSWG });
 			expect(subject).to.be.a('Promise');
 		});
 
 		it('rejects if loading the swg client fails', function () {
-			mockImportClient = () => () => {
+			mockImportSWG = () => () => {
 				throw new Error('failure!');
 			};
-			const subject = SwgController.load({ swgPromise: swgReadyMock, loadClient: mockImportClient });
+			const subject = SwgController.load({ swgPromise: swgReadyMock, loadClient: mockImportSWG });
 			return subject.catch(err => {
 				expect(err.message).to.equal('failure!');
 			});
@@ -51,7 +51,7 @@ describe('Swg Controller: static methods', function () {
 		it('resolves if when the loaded swg client invokes the callback', async function () {
 			const mockCallbackResult = { mock: 'result' };
 			swgReadyMock = Promise.resolve(mockCallbackResult);
-			const subject = SwgController.load({ swgPromise: swgReadyMock, loadClient: mockImportClient });
+			const subject = SwgController.load({ swgPromise: swgReadyMock, loadClient: mockImportSWG });
 			const res = await subject;
 			expect(res).to.deep.equal(mockCallbackResult);
 		});

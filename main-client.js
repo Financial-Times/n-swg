@@ -1,5 +1,5 @@
 const SwgController = require('./src/client/swg-controller');
-const { importClient } = require('./src/client/utils');
+const { importSWG } = require('./src/client/utils');
 
 module.exports = {
 	SwgController,
@@ -11,5 +11,5 @@ module.exports = {
 		})
 		.catch(reject);
 	}),
-	importClient: importClient()
+	importSWG: importSWG()
 };
