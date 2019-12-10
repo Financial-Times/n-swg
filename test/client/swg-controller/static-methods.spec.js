@@ -61,7 +61,7 @@ describe('Swg Controller: static methods', function () {
 	describe('.generateTrackingData()', function () {
 
 		it('generates basic tracking data', function () {
-			const result = SwgController.generateTrackingData({ sandbox: true });
+			const result = SwgController.generateTrackingData();
 			expect(result).to.deep.equal({
 				category: 'SwG',
 				formType: 'swg.signup',

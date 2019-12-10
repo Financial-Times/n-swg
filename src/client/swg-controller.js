@@ -13,7 +13,7 @@ module.exports = class SwgController {
 		this.swgClient = swgClient;
 		this.manualInitDomain = options.manualInitDomain;
 		this.MAX_RETRIES = 2;
-		this.M_SWG_URL = options.sandbox ? 'https://api-t.ft.com/commerce' : 'https://api.ft.com/commerce';
+		this.M_SWG_URL = 'https://api.ft.com/commerce';
 		this.M_SWG_SUB_SUCCESS_ENDPOINT = options.M_SWG_SUB_SUCCESS_ENDPOINT || `${this.M_SWG_URL}/v1/swg/subscriptions`;
 		this.M_SWG_ENTITLED_SUCCESS_ENDPOINT = options.M_SWG_ENTITLED_SUCCESS_ENDPOINT || `${this.M_SWG_URL}/v1/swg/subscriptions/entitlementsCheck`;
 		this.M_SWG_ACCOUNT_CHECK = options.M_SWG_ACCOUNT_CHECK || `${this.M_SWG_URL}/deferred-account`;
@@ -446,13 +446,12 @@ module.exports = class SwgController {
 	 * @param {boolean} manual - load swg client lib in manual mode
 	 * @param {promise} swgPromise - for mocking
 	 * @param {function} loadClient - for mocking
-	 * @param {boolean} sandbox - load sandbox swg client lib, defaults to prod
 	 * @returns {promise}
 	 */
-	static load ({ manual=false, swgPromise=swgReady(), loadClient=importClient, sandbox=false }={}) {
+	static load ({ manual=false, swgPromise=swgReady(), loadClient=importClient, }={}) {
 		return new Promise((resolve, reject) => {
 			try {
-				loadClient(document)({ manual, sandbox });
+				loadClient(document)({ manual });
 			} catch (e) {
 				reject(e);
 			}
@@ -480,7 +479,7 @@ module.exports = class SwgController {
 		return {
 			category: 'SwG',
 			formType: 'swg.signup',
-			production: !options.sandbox,
+			production: true,
 			paymentMethod: 'SWG',
 			system: { source: 'n-swg' }
 		};

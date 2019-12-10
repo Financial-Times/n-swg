@@ -134,9 +134,6 @@ with the provided domain (it only works for ft.com at the time of writing).
 If not passed the config will be pulled by swg-js from JSON-LD markup.
 It is important to note that SwG will not work if it cannot find config */
 
-sandbox: false,
-/* [optional] if true imports the sandbox version of swg.js */
-
 subscribeFromButton: true,
 /* [optional] if true checkout flow will be initiated by clicking on
 [data-n-swg-button] elements */
