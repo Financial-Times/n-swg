@@ -85,7 +85,6 @@ describe('Swg Controller: class', function () {
 			expect(swgClient.setOnEntitlementsResponse.calledOnce).to.be.true;
 			expect(subject.swgClient).to.deep.equal(swgClient);
 		});
-
 	});
 
 	describe('.init()', function () {

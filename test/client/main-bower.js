@@ -58,10 +58,10 @@ describe('Bower main-client.js', function () {
 				SwgController.load.restore();
 				done();
 			})
-				.catch(err => {
-					SwgController.load.restore();
-					done(err);
-				});
+			.catch(err => {
+				SwgController.load.restore();
+				done(err);
+			});
 		});
 
 		it('on successful .load() resolves with an instance of the SwgController class', function (done) {
@@ -72,10 +72,10 @@ describe('Bower main-client.js', function () {
 				SwgController.load.restore();
 				done();
 			})
-				.catch(err => {
-					SwgController.load.restore();
-					done(err);
-				});
+			.catch(err => {
+				SwgController.load.restore();
+				done(err);
+			});
 		});
 
 		it('on error in .load() rejects with an error', function (done) {
@@ -87,10 +87,10 @@ describe('Bower main-client.js', function () {
 				SwgController.load.restore();
 				done();
 			})
-				.catch(err => {
-					SwgController.load.restore();
-					done(err);
-				});
+			.catch(err => {
+				SwgController.load.restore();
+				done(err);
+			});
 		});
 
 	});
