@@ -10,7 +10,7 @@ module.exports = {
 			const swg = new SwgController(client, options);
 			resolve(swg);
 		})
-		.catch(reject);
+			.catch(reject);
 	}),
 	importClient: importClient()
 };

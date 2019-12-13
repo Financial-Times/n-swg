@@ -65,7 +65,7 @@ describe('Swg Controller: static methods', function () {
 			expect(result).to.deep.equal({
 				category: 'SwG',
 				formType: 'swg.signup',
-				production: false,
+				production: true,
 				paymentMethod: 'SWG',
 				system: { source: 'n-swg' }
 			});

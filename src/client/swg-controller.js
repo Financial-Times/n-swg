@@ -154,14 +154,14 @@ module.exports = class SwgController {
 				});
 			})
 				.catch(err => {
-					/**
-					 * TODO: UX
-					 * Could not resolve the user on our end after multiple retries.
-					 * The Google modal will timeout and still show the confirmation
-					 * modaul so we should still ensure there is an onward journey
-					 */
+				/**
+				 * TODO: UX
+				 * Could not resolve the user on our end after multiple retries.
+				 * The Google modal will timeout and still show the confirmation
+				 * modaul so we should still ensure there is an onward journey
+				 */
 					response.complete().then(() => {
-						/* track failure event */
+					/* track failure event */
 						this.track({ action: 'failure', context: {
 							stage: 'user-resolution'
 						}});
@@ -256,15 +256,15 @@ module.exports = class SwgController {
 					const hasNewSubCookie = document.cookie.indexOf(this.NEW_SWG_SUB_COOKIE) !== -1;
 
 					/**
-					 * Both subscription and entitlement callback endpoints return
-					 *  a 200 with set-cookie headers for the resolved user session
-					 *  and json about the new session.
-					 * If the user has just been created OR we can still see the
-					 *  NEW_SWG_SUB_COOKIE, then we still need to show them the
-					 *  consent page. The cookie gets deleted there.
-					 * Unless createSession was false we can assume user now has
-					 *  active session cookies
-					 */
+				 * Both subscription and entitlement callback endpoints return
+				 *  a 200 with set-cookie headers for the resolved user session
+				 *  and json about the new session.
+				 * If the user has just been created OR we can still see the
+				 *  NEW_SWG_SUB_COOKIE, then we still need to show them the
+				 *  consent page. The cookie gets deleted there.
+				 * Unless createSession was false we can assume user now has
+				 *  active session cookies
+				 */
 					resolve({
 						consentRequired: newlyCreated || hasNewSubCookie,
 						loginRequired: !newPurchaseFlow && createSession === false,
