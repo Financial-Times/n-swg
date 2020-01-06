@@ -1,0 +1,14 @@
+_extends: github-apps-config-next
+
+branches:
+  - name: master
+    protection:
+      required_pull_request_reviews: null
+      required_status_checks:
+        strict: true
+        contexts:
+          - "ci/circleci: build"
+      enforce_admins: true
+      restrictions:
+        users: []
+        teams: []
