@@ -13,7 +13,7 @@ module.exports = class SwgController {
 		this.swgClient = swgClient;
 		this.manualInitDomain = options.manualInitDomain;
 		this.MAX_RETRIES = 2;
-		this.M_SWG_URL = options.sandbox ? 'https://api-t.ft.com/commerce' : 'https://api.ft.com/commerce';
+		this.M_SWG_URL = 'https://api.ft.com/commerce';
 		this.M_SWG_SUB_SUCCESS_ENDPOINT = options.M_SWG_SUB_SUCCESS_ENDPOINT || `${this.M_SWG_URL}/v1/swg/subscriptions`;
 		this.M_SWG_ENTITLED_SUCCESS_ENDPOINT = options.M_SWG_ENTITLED_SUCCESS_ENDPOINT || `${this.M_SWG_URL}/v1/swg/subscriptions/entitlementsCheck`;
 		this.M_SWG_ACCOUNT_CHECK = options.M_SWG_ACCOUNT_CHECK || `${this.M_SWG_URL}/deferred-account`;
@@ -41,7 +41,7 @@ module.exports = class SwgController {
 		/* setup */
 		this.alreadyInitialised = false;
 		this.overlay = overlay || new Overlay();
-		this.baseTrackingData = SwgController.generateTrackingData(options);
+		this.baseTrackingData = SwgController.generateTrackingData();
 		if (options.subscribeFromButton) {
 			/* setup buttons */
 			this.subscribeButtons = new subscribeButtonConstructor(swgClient, { SwgController });
@@ -153,23 +153,23 @@ module.exports = class SwgController {
 					this.handlers.onResolvedSubscribe(res);
 				});
 			})
-			.catch(err => {
+				.catch(err => {
 				/**
 				 * TODO: UX
 				 * Could not resolve the user on our end after multiple retries.
 				 * The Google modal will timeout and still show the confirmation
 				 * modaul so we should still ensure there is an onward journey
 				 */
-				response.complete().then(() => {
+					response.complete().then(() => {
 					/* track failure event */
-					this.track({ action: 'failure', context: {
-						stage: 'user-resolution'
-					}});
-					/* trigger onward journey */
-					this.onwardSubscriptionErrorJourney();
+						this.track({ action: 'failure', context: {
+							stage: 'user-resolution'
+						}});
+						/* trigger onward journey */
+						this.onwardSubscriptionErrorJourney();
+					});
+					return Promise.reject(err); // re-throw for tracking
 				});
-				return Promise.reject(err); // re-throw for tracking
-			});
 		}).catch(err => {
 			/* signal error event to any listeners */
 			events.signalError(err);
@@ -251,11 +251,11 @@ module.exports = class SwgController {
 				headers: { 'content-type': 'application/json' },
 				body: payload
 			})
-			.then(({ json }) => {
-				const newlyCreated = _get(json, 'userInfo.newlyCreated');
-				const hasNewSubCookie = document.cookie.indexOf(this.NEW_SWG_SUB_COOKIE) !== -1;
+				.then(({ json }) => {
+					const newlyCreated = _get(json, 'userInfo.newlyCreated');
+					const hasNewSubCookie = document.cookie.indexOf(this.NEW_SWG_SUB_COOKIE) !== -1;
 
-				/**
+					/**
 				 * Both subscription and entitlement callback endpoints return
 				 *  a 200 with set-cookie headers for the resolved user session
 				 *  and json about the new session.
@@ -265,26 +265,26 @@ module.exports = class SwgController {
 				 * Unless createSession was false we can assume user now has
 				 *  active session cookies
 				 */
-				resolve({
-					consentRequired: newlyCreated || hasNewSubCookie,
-					loginRequired: !newPurchaseFlow && createSession === false,
-					raw: json
+					resolve({
+						consentRequired: newlyCreated || hasNewSubCookie,
+						loginRequired: !newPurchaseFlow && createSession === false,
+						raw: json
+					});
+				})
+				.catch((error) => {
+					if (retries === this.MAX_RETRIES) {
+						reject(error);
+					} else {
+						retries++;
+
+						this.track({ action: 'retry', context: {
+							stage: 'user-resolution',
+							retries
+						}});
+
+						this.resolveUser(scenario, swgResponse, createSession, retries).then(resolve).catch(reject);
+					}
 				});
-			})
-			.catch((error) => {
-				if (retries === this.MAX_RETRIES) {
-					reject(error);
-				} else {
-					retries++;
-
-					this.track({ action: 'retry', context: {
-						stage: 'user-resolution',
-						retries
-					}});
-
-					this.resolveUser(scenario, swgResponse, createSession, retries).then(resolve).catch(reject);
-				}
-			});
 		});
 	}
 
@@ -295,11 +295,11 @@ module.exports = class SwgController {
 	 */
 	hasAccount (subscriptionToken) {
 		return smartFetch.fetch(`${this.M_SWG_ACCOUNT_CHECK}`, {
-				method: 'POST',
-				credentials: 'include',
-				headers: { 'content-type': 'application/json' },
-				body: subscriptionToken
-			})
+			method: 'POST',
+			credentials: 'include',
+			headers: { 'content-type': 'application/json' },
+			body: subscriptionToken
+		})
 			.then(result => {
 				if (_get(result, 'json.active')) {
 					return true;
@@ -446,13 +446,12 @@ module.exports = class SwgController {
 	 * @param {boolean} manual - load swg client lib in manual mode
 	 * @param {promise} swgPromise - for mocking
 	 * @param {function} loadClient - for mocking
-	 * @param {boolean} sandbox - load sandbox swg client lib, defaults to prod
 	 * @returns {promise}
 	 */
-	static load ({ manual=false, swgPromise=swgReady(), loadClient=importClient, sandbox=false }={}) {
+	static load ({ manual=false, swgPromise=swgReady(), loadClient=importClient, }={}) {
 		return new Promise((resolve, reject) => {
 			try {
-				loadClient(document)({ manual, sandbox });
+				loadClient(document)({ manual });
 			} catch (e) {
 				reject(e);
 			}
@@ -473,14 +472,13 @@ module.exports = class SwgController {
 
 	/**
 	 * Generate basic tracking data
-	 * @param {object} options
 	 * @returns {object}
 	 */
-	static generateTrackingData (options={}) {
+	static generateTrackingData () {
 		return {
 			category: 'SwG',
 			formType: 'swg.signup',
-			production: !options.sandbox,
+			production: true,
 			paymentMethod: 'SWG',
 			system: { source: 'n-swg' }
 		};

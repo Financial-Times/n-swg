@@ -22,10 +22,6 @@ const getOffers = (mode) => {
 			{ name: 'FT.com premium (monthly)', sku: 'subs:com.ft.news:ft.com_713f1e28.0bc5.8261.f1e6.eebab6f7600e_p1m_premium_2018.05.21' },
 			{ name: 'FT.com premium (monthly)', sku: 'subs:com.ft.news:ft.com_713f1e28.0bc5.8261.f1e6.eebab6f7600e_p1y_premium_2018.05.21' }
 		],
-		sandbox: [
-			{ name: 'basic_daily_1 Dummy SKU', sku: 'basic_daily_1' },
-			{ name: 'premium_daily_1 Dummy SKU', sku: 'premium_daily_1' }
-		]
 	}[mode] || [];
 };
 

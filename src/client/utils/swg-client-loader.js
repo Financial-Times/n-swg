@@ -1,11 +1,11 @@
-module.exports = (_document=document) => ({ manual=false, src, id='swg-client', sandbox=false }={}) => {
+module.exports = (_document=document) => ({ manual=false, src, id='swg-client' }={}) => {
 	const hasClientAlready = id && !!_document.querySelector('#' + id);
 	// Prevent importing more than once.
 	if (hasClientAlready) return;
 
 	let script = _document.createElement('SCRIPT');
 
-	script.src = src || (sandbox ? 'https://news.google.com/swg/js/v1/swg-tt.js' : 'https://news.google.com/swg/js/v1/swg.js');
+	script.src = src || 'https://news.google.com/swg/js/v1/swg.js';
 	script.async = true;
 	script.id = id;
 
