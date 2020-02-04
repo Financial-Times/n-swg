@@ -51,24 +51,6 @@ module.exports = class SwgController {
 		/* symbols */
 		this.ENTITLED_USER = 'entitled_user';
 		this.NEW_USER = 'new_user';
-
-
-		this.init = this.init.bind(this)
-		this.checkEntitlements = this.checkEntitlements.bind(this)
-		this.getReadyToPayBool = this.getReadyToPayBool.bind(this)
-		this.onPaymentResponse = this.onPaymentResponse.bind(this)
-		this.onFlowStarted = this.onFlowStarted.bind(this)
-		this.onFlowCanceled = this.onFlowCanceled.bind(this)
-		this.onEntitlementsResponse = this.onEntitlementsResponse.bind(this)
-		this.onLoginRequest = this.onLoginRequest.bind(this)
-		this.resolveUser = this.resolveUser.bind(this)
-		this.hasAccount = this.hasAccount.bind(this)
-		this.defaultOnwardEntitledJourney = this.defaultOnwardEntitledJourney.bind(this)
-		this.defaultOnwardSubscribedJourney = this.defaultOnwardSubscribedJourney.bind(this)
-		this.onwardSubscriptionErrorJourney = this.onwardSubscriptionErrorJourney.bind(this)
-		this.track = this.track.bind(this)
-		this.errorEventHandler = this.errorEventHandler.bind(this)
-		this.setNewSwgSubscriberCookie = this.setNewSwgSubscriberCookie.bind(this)
 	}
 
 	/**
@@ -149,12 +131,11 @@ module.exports = class SwgController {
 
 	/**
 	 * Get a user's `isReadyToPay` entitlement.
-	 * @returns {promise} - resolves with a boolean boolean`
+	 * @returns {promise} - resolves with a `boolean`
 	 */
-
-	getReadyToPayBool() {
+	isReadyToPay () {
 		return this.swgClient.getEntitlements()
-			.then(({ isReadyToPay }) => isReadyToPay)
+			.then(({ isReadyToPay }) => isReadyToPay);
 	}
 
 	/**
