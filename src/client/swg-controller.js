@@ -51,6 +51,24 @@ module.exports = class SwgController {
 		/* symbols */
 		this.ENTITLED_USER = 'entitled_user';
 		this.NEW_USER = 'new_user';
+
+
+		this.init = this.init.bind(this)
+		this.checkEntitlements = this.checkEntitlements.bind(this)
+		this.getReadyToPayBool = this.getReadyToPayBool.bind(this)
+		this.onPaymentResponse = this.onPaymentResponse.bind(this)
+		this.onFlowStarted = this.onFlowStarted.bind(this)
+		this.onFlowCanceled = this.onFlowCanceled.bind(this)
+		this.onEntitlementsResponse = this.onEntitlementsResponse.bind(this)
+		this.onLoginRequest = this.onLoginRequest.bind(this)
+		this.resolveUser = this.resolveUser.bind(this)
+		this.hasAccount = this.hasAccount.bind(this)
+		this.defaultOnwardEntitledJourney = this.defaultOnwardEntitledJourney.bind(this)
+		this.defaultOnwardSubscribedJourney = this.defaultOnwardSubscribedJourney.bind(this)
+		this.onwardSubscriptionErrorJourney = this.onwardSubscriptionErrorJourney.bind(this)
+		this.track = this.track.bind(this)
+		this.errorEventHandler = this.errorEventHandler.bind(this)
+		this.setNewSwgSubscriberCookie = this.setNewSwgSubscriberCookie.bind(this)
 	}
 
 	/**
@@ -84,7 +102,7 @@ module.exports = class SwgController {
 			if (disableEntitlementsCheck) {
 				/* no entitlements check, enable buttons */
 				if (this.subscribeButtons) this.subscribeButtons.init();
-				resolve();
+				resolve(this);
 			} else {
 				/* handle entitlements check invoked by Google on init */
 				initialEntitlementsCheck.then((res={}) => {
@@ -94,7 +112,7 @@ module.exports = class SwgController {
 						 * a barrier, so prompt them to login and create an
 						 * FT.com session for their SwG account */
 						this.handlers.onResolvedEntitlements(res);
-						resolve();
+						resolve(this);
 					} else if (res.hasEntitlements) {
 						/* User has entitlements but not to requested content
 						 * so barrier is relevant. Show a dismissible message
@@ -110,11 +128,11 @@ module.exports = class SwgController {
 						 * - prompt login if they do not ?
 						 * - FUTURE (?) enable "upgrade" SwG buttons
 						 * */
-						resolve();
+						resolve(this);
 					} else {
 						/* no entitlements, enable buttons */
 						if (this.subscribeButtons) this.subscribeButtons.init();
-						resolve();
+						resolve(this);
 					}
 				});
 			}
@@ -127,6 +145,16 @@ module.exports = class SwgController {
 	 */
 	checkEntitlements () {
 		return this.swgClient.getEntitlements().then(SwgController.handleEntitlementsCallback);
+	}
+
+	/**
+	 * Get a user's `isReadyToPay` entitlement.
+	 * @returns {promise} - resolves with a boolean boolean`
+	 */
+
+	getReadyToPayBool() {
+		return this.swgClient.getEntitlements()
+			.then(({ isReadyToPay }) => isReadyToPay)
 	}
 
 	/**
