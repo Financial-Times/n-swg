@@ -84,7 +84,7 @@ module.exports = class SwgController {
 			if (disableEntitlementsCheck) {
 				/* no entitlements check, enable buttons */
 				if (this.subscribeButtons) this.subscribeButtons.init();
-				resolve();
+				resolve(this);
 			} else {
 				/* handle entitlements check invoked by Google on init */
 				initialEntitlementsCheck.then((res={}) => {
@@ -94,7 +94,7 @@ module.exports = class SwgController {
 						 * a barrier, so prompt them to login and create an
 						 * FT.com session for their SwG account */
 						this.handlers.onResolvedEntitlements(res);
-						resolve();
+						resolve(this);
 					} else if (res.hasEntitlements) {
 						/* User has entitlements but not to requested content
 						 * so barrier is relevant. Show a dismissible message
@@ -110,11 +110,11 @@ module.exports = class SwgController {
 						 * - prompt login if they do not ?
 						 * - FUTURE (?) enable "upgrade" SwG buttons
 						 * */
-						resolve();
+						resolve(this);
 					} else {
 						/* no entitlements, enable buttons */
 						if (this.subscribeButtons) this.subscribeButtons.init();
-						resolve();
+						resolve(this);
 					}
 				});
 			}
@@ -127,6 +127,15 @@ module.exports = class SwgController {
 	 */
 	checkEntitlements () {
 		return this.swgClient.getEntitlements().then(SwgController.handleEntitlementsCallback);
+	}
+
+	/**
+	 * Get a user's `isReadyToPay` entitlement - if a user has a Google account with an associated payment method like a credit card or Google Pay.
+	 * @returns {promise} - resolves with a `boolean`
+	 */
+	isReadyToPay () {
+		return this.swgClient.getEntitlements()
+			.then(({ isReadyToPay }) => isReadyToPay);
 	}
 
 	/**
@@ -153,23 +162,23 @@ module.exports = class SwgController {
 					this.handlers.onResolvedSubscribe(res);
 				});
 			})
-			.catch(err => {
+				.catch(err => {
 				/**
 				 * TODO: UX
 				 * Could not resolve the user on our end after multiple retries.
 				 * The Google modal will timeout and still show the confirmation
 				 * modaul so we should still ensure there is an onward journey
 				 */
-				response.complete().then(() => {
+					response.complete().then(() => {
 					/* track failure event */
-					this.track({ action: 'failure', context: {
-						stage: 'user-resolution'
-					}});
-					/* trigger onward journey */
-					this.onwardSubscriptionErrorJourney();
+						this.track({ action: 'failure', context: {
+							stage: 'user-resolution'
+						}});
+						/* trigger onward journey */
+						this.onwardSubscriptionErrorJourney();
+					});
+					return Promise.reject(err); // re-throw for tracking
 				});
-				return Promise.reject(err); // re-throw for tracking
-			});
 		}).catch(err => {
 			/* signal error event to any listeners */
 			events.signalError(err);
@@ -251,11 +260,11 @@ module.exports = class SwgController {
 				headers: { 'content-type': 'application/json' },
 				body: payload
 			})
-			.then(({ json }) => {
-				const newlyCreated = _get(json, 'userInfo.newlyCreated');
-				const hasNewSubCookie = document.cookie.indexOf(this.NEW_SWG_SUB_COOKIE) !== -1;
+				.then(({ json }) => {
+					const newlyCreated = _get(json, 'userInfo.newlyCreated');
+					const hasNewSubCookie = document.cookie.indexOf(this.NEW_SWG_SUB_COOKIE) !== -1;
 
-				/**
+					/**
 				 * Both subscription and entitlement callback endpoints return
 				 *  a 200 with set-cookie headers for the resolved user session
 				 *  and json about the new session.
@@ -265,26 +274,26 @@ module.exports = class SwgController {
 				 * Unless createSession was false we can assume user now has
 				 *  active session cookies
 				 */
-				resolve({
-					consentRequired: newlyCreated || hasNewSubCookie,
-					loginRequired: !newPurchaseFlow && createSession === false,
-					raw: json
+					resolve({
+						consentRequired: newlyCreated || hasNewSubCookie,
+						loginRequired: !newPurchaseFlow && createSession === false,
+						raw: json
+					});
+				})
+				.catch((error) => {
+					if (retries === this.MAX_RETRIES) {
+						reject(error);
+					} else {
+						retries++;
+
+						this.track({ action: 'retry', context: {
+							stage: 'user-resolution',
+							retries
+						}});
+
+						this.resolveUser(scenario, swgResponse, createSession, retries).then(resolve).catch(reject);
+					}
 				});
-			})
-			.catch((error) => {
-				if (retries === this.MAX_RETRIES) {
-					reject(error);
-				} else {
-					retries++;
-
-					this.track({ action: 'retry', context: {
-						stage: 'user-resolution',
-						retries
-					}});
-
-					this.resolveUser(scenario, swgResponse, createSession, retries).then(resolve).catch(reject);
-				}
-			});
 		});
 	}
 
@@ -295,11 +304,11 @@ module.exports = class SwgController {
 	 */
 	hasAccount (subscriptionToken) {
 		return smartFetch.fetch(`${this.M_SWG_ACCOUNT_CHECK}`, {
-				method: 'POST',
-				credentials: 'include',
-				headers: { 'content-type': 'application/json' },
-				body: subscriptionToken
-			})
+			method: 'POST',
+			credentials: 'include',
+			headers: { 'content-type': 'application/json' },
+			body: subscriptionToken
+		})
 			.then(result => {
 				if (_get(result, 'json.active')) {
 					return true;
