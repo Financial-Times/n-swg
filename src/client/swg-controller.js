@@ -84,6 +84,9 @@ module.exports = class SwgController {
 			if (disableEntitlementsCheck) {
 				/* no entitlements check, enable buttons */
 				if (this.subscribeButtons) this.subscribeButtons.init();
+
+				this.track({ action: 'shown' });
+
 				resolve(this);
 			} else {
 				/* handle entitlements check invoked by Google on init */
@@ -114,6 +117,9 @@ module.exports = class SwgController {
 					} else {
 						/* no entitlements, enable buttons */
 						if (this.subscribeButtons) this.subscribeButtons.init();
+
+						this.track({ action: 'shown' });
+
 						resolve(this);
 					}
 				});
