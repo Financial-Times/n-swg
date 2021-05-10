@@ -230,13 +230,13 @@ This exposes the swg-js client for direct usage should you want.
 
 
 # JSON-LD Markup
-Please see [`next-json-ld` README](https://github.com/Financial-Times/next-json-ld/blob/master/README.md#subscribe-with-google-swg-markup) for a detailed description of the markup required on our articles and barriers.
+Please see [`next-json-ld` README](https://github.com/Financial-Times/next-json-ld/blob/main/README.md#subscribe-with-google-swg-markup) for a detailed description of the markup required on our articles and barriers.
 
 The swg library requires markup to work. So if there is no markup available (e.g a standalone page) then the client should be initialised in "manual" mode.
 
 
 # SwG on AMP
-This is implemented in [Financial-Times/google-amp](https://github.com/Financial-Times/google-amp) and is *not* using this component, but rather uses the [amp-subscriptions extension for AMP](https://github.com/ampproject/amphtml/blob/master/extensions/amp-subscriptions/amp-subscriptions.md).
+This is implemented in [Financial-Times/google-amp](https://github.com/Financial-Times/google-amp) and is *not* using this component, but rather uses the [amp-subscriptions extension for AMP](https://github.com/ampproject/amphtml/blob/main/extensions/amp-subscriptions/amp-subscriptions.md).
 
 
 # SwG on mobile apps
