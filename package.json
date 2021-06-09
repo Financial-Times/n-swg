@@ -4,9 +4,6 @@
   "description": "JS, Styles, Templates and utils for FT.com Subscribe with Google implementation",
   "main": "main.js",
   "scripts": {
-    "precommit": "node_modules/.bin/secret-squirrel",
-    "commitmsg": "node_modules/.bin/secret-squirrel-commitmsg",
-    "prepush": "make verify -j3",
     "prepare": "npx snyk protect || npx snyk protect -d || true"
   },
   "repository": {
@@ -48,5 +45,12 @@
     "request": "^2.83.0",
     "sinon": "^4.4.2",
     "snyk": "^1.168.0"
+  },
+  "husky": {
+    "hooks": {
+      "commit-msg": "node_modules/.bin/secret-squirrel-commitmsg",
+      "pre-commit": "node_modules/.bin/secret-squirrel",
+      "pre-push": "make verify -j3"
+    }
   }
 }
