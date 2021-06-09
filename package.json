@@ -46,6 +46,9 @@
     "sinon": "^4.4.2",
     "snyk": "^1.168.0"
   },
+  "engines": {
+    "node": "12.x"
+  },
   "husky": {
     "hooks": {
       "commit-msg": "node_modules/.bin/secret-squirrel-commitmsg",
