@@ -4,7 +4,8 @@
   "description": "JS, Styles, Templates and utils for FT.com Subscribe with Google implementation",
   "main": "main.js",
   "scripts": {
-    "prepare": "npx snyk protect || npx snyk protect -d || true"
+    "prepare": "npx snyk protect || npx snyk protect -d || true",
+    "preinstall": "[ \"$INIT_CWD\" != \"$PWD\" ] || npm_config_yes=true npx check-engine"
   },
   "repository": {
     "type": "git",
@@ -17,7 +18,6 @@
     "url": "https://github.com/Financial-Times/n-swg/issues"
   },
   "homepage": "https://github.com/Financial-Times/n-swg#readme",
-  "dependencies": {},
   "devDependencies": {
     "@financial-times/n-gage": "^8.0.0",
     "@financial-times/n-internal-tool": "^2.2.2",
@@ -33,6 +33,7 @@
     "bower": "^1.8.8",
     "chai": "^4.1.2",
     "chalk": "^2.3.0",
+    "check-engines": "^1.5.0",
     "css-loader": "^0.28.7",
     "eslint": "^4.13.1",
     "jsdom": "^11.6.2",
@@ -47,7 +48,8 @@
     "snyk": "^1.168.0"
   },
   "engines": {
-    "node": "12.x"
+    "node": "12.x",
+    "npm": "7.x || 8.x"
   },
   "husky": {
     "hooks": {
